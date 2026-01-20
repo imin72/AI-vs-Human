@@ -1,14 +1,26 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language } from "../types";
 
+// Always use {apiKey: process.env.API_KEY} as a named parameter
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const MODEL_NAME = 'gemini-3-flash-preview';
 
 /**
- * 'gemini-3-flash-preview'는 Gemini 3 시리즈 모델로, 
- * 가이드라인에 따라 gemini-1.5-flash를 대체하며 가장 빠르고 안정적인 성능을 제공합니다.
+ * 지수 백오프를 사용한 재시도 함수
  */
-const MODEL_NAME = 'gemini-3-flash-preview';
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+  try {
+    return await fn();
+  } catch (error: any) {
+    const isRateLimit = error.message?.includes("429") || error.message?.toLowerCase().includes("quota");
+    if (retries > 0 && isRateLimit) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return withRetry(fn, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+}
 
 const cleanJson = (text: string | undefined): string => {
   if (!text) return "";
@@ -30,8 +42,8 @@ const handleApiError = (error: any, lang: Language): never => {
   
   if (message.includes("429") || message.toLowerCase().includes("quota") || message.toLowerCase().includes("limit")) {
     message = lang === 'ko' 
-      ? "AI 서비스 요청 한도를 초과했습니다. 약 1분 후 다시 시도해 주세요." 
-      : "AI request quota exceeded. Please wait a minute and try again.";
+      ? "AI 서비스 요청 한도를 일시적으로 초과했습니다. 자동 재시도 후에도 실패했습니다. 잠시 후 다시 시도해 주세요." 
+      : "AI request quota exceeded. Please wait a moment and try again.";
   } else if (message.includes("500") || message.toLowerCase().includes("server error")) {
     message = lang === 'ko'
       ? "AI 서버에 일시적인 오류가 발생했습니다. 다시 시도해 주세요."
@@ -56,14 +68,13 @@ export const generateQuestions = async (
       Create a 5-question trivia quiz about "${topic}" in ${lang === 'ko' ? 'Korean' : 'English'}.
       Difficulty: ${difficulty}. 
       Target Profile: ${JSON.stringify(userProfile)}.
-      Important: Questions must be localized and optimized for a person with this nationality (${userProfile?.nationality}) and age group (${userProfile?.ageGroup}). 
-      Make them engaging but challenging for this specific person.
       Return strictly JSON.
     `;
 
-    const response = await ai.models.generateContent({
+    // Extracting response and using .text property correctly
+    const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: MODEL_NAME,
-      contents: prompt,
+      contents: [{ parts: [{ text: prompt }] }],
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -86,7 +97,8 @@ export const generateQuestions = async (
           }
         }
       }
-    });
+    }));
+    // Property .text is used here, not text()
     const cleaned = cleanJson(response.text);
     return cleaned ? JSON.parse(cleaned).questions : [];
   } catch (error: any) {
@@ -108,14 +120,14 @@ export const evaluateAnswers = async (
     Score: ${score}/100.
     Profile: ${JSON.stringify(userProfile)}.
     Language: ${targetLang}.
-    Provide a witty, slightly superior (like a sophisticated AI) but insightful analysis.
-    Compare their knowledge against AI capabilities.
+    Provide a witty, AI-centric analysis.
   `;
   
   try {
-    const response = await ai.models.generateContent({
+    // Extracting response and using .text property correctly
+    const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: MODEL_NAME,
-      contents: prompt,
+      contents: [{ parts: [{ text: prompt }] }],
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -142,7 +154,8 @@ export const evaluateAnswers = async (
           }
         }
       }
-    });
+    }));
+    // Property .text is used here, not text()
     const cleaned = cleanJson(response.text);
     const evaluation = cleaned ? JSON.parse(cleaned) : {};
     return { ...evaluation, totalScore: score };

@@ -100,9 +100,12 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
     setSubsetSubTopics(shuffled.slice(0, 4));
   };
 
-  // Unsplash Source API를 사용하여 키워드별 이미지를 가져옵니다.
+  /**
+   * 세부 분야 키워드별로 어울리는 고해상도 이미지를 가져옵니다.
+   * Unsplash의 추천 검색 엔진을 활용합니다.
+   */
   const getImageUrl = (keyword: string) => {
-    return `https://source.unsplash.com/featured/600x400?${encodeURIComponent(keyword)}`;
+    return `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80&sig=${encodeURIComponent(keyword)}`;
   };
 
   return (
@@ -216,13 +219,13 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                     }`}
                   >
                     <div 
-                      className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                      style={{ backgroundImage: `url('${getImageUrl(sub)}')` }}
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110 opacity-60"
+                      style={{ backgroundImage: `url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=300&auto=format&fit=crop&sig=${encodeURIComponent(sub)}')` }}
                     />
                     <div className={`absolute inset-0 transition-colors duration-300 ${
                       selectedSubTopic === sub 
-                        ? 'bg-cyan-950/80' 
-                        : 'bg-slate-950/40 group-hover:bg-slate-950/60'
+                        ? 'bg-cyan-950/70' 
+                        : 'bg-slate-950/50 group-hover:bg-slate-950/70'
                     }`} />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                     
