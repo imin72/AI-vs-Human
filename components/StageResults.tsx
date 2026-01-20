@@ -13,11 +13,11 @@ interface StageResultsProps {
 }
 
 const THEMES = [
-  { id: 'default', name: 'Glass', bg: 'glass-panel', text: 'text-white', accent: 'text-cyan-400', chart: '#06b6d4' },
-  { id: 'terminal', name: 'Terminal', bg: 'bg-black border-2 border-green-500 font-mono', text: 'text-green-500', accent: 'text-green-300', chart: '#22c55e' },
-  { id: 'royal', name: 'Royal', bg: 'bg-gradient-to-br from-indigo-900 to-purple-900 border border-yellow-500/50', text: 'text-yellow-50', accent: 'text-yellow-400', chart: '#fbbf24' },
-  { id: 'sunset', name: 'Sunset', bg: 'bg-gradient-to-tr from-orange-900 to-rose-900 border border-orange-500/30', text: 'text-orange-50', accent: 'text-orange-300', chart: '#f97316' },
-  { id: 'paper', name: 'Minimal', bg: 'bg-slate-100 border border-slate-300 shadow-xl', text: 'text-slate-900', accent: 'text-blue-600', chart: '#2563eb' }
+  { id: 'default', name: 'Glass', bg: 'glass-panel', text: 'text-white', accent: 'text-cyan-400', chart: '#06b6d4', iconColor: 'bg-cyan-500' },
+  { id: 'terminal', name: 'Matrix', bg: 'bg-black border-2 border-green-500 font-mono', text: 'text-green-500', accent: 'text-green-300', chart: '#22c55e', iconColor: 'bg-green-500' },
+  { id: 'royal', name: 'Royal', bg: 'bg-gradient-to-br from-indigo-900 to-purple-900 border border-yellow-500/50', text: 'text-yellow-50', accent: 'text-yellow-400', chart: '#fbbf24', iconColor: 'bg-yellow-500' },
+  { id: 'sunset', name: 'Sunset', bg: 'bg-gradient-to-tr from-orange-900 to-rose-900 border border-orange-500/30', text: 'text-orange-50', accent: 'text-orange-300', chart: '#f97316', iconColor: 'bg-orange-500' },
+  { id: 'paper', name: 'Light', bg: 'bg-slate-100 border border-slate-300 shadow-xl', text: 'text-slate-900', accent: 'text-blue-600', chart: '#2563eb', iconColor: 'bg-blue-600' }
 ];
 
 export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, language }) => {
@@ -27,10 +27,6 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
   
   const theme = THEMES[currentThemeIdx];
   const t = TRANSLATIONS[language].results;
-
-  const toggleTheme = () => {
-    setCurrentThemeIdx((prev) => (prev + 1) % THEMES.length);
-  };
 
   const handleShare = async () => {
     const shareText = `Cognito Protocol Analysis 🧠\n\nTopic: ${data.title}\nScore: ${data.totalScore}/100\nPercentile: Top ${100 - data.humanPercentile}%\n\nAI Comment: "${data.aiComparison}"\n\nProve your humanity here:`;
@@ -60,7 +56,6 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
     if (resultsRef.current === null) return;
     setIsSaving(true);
     try {
-      // Small delay to ensure any dynamic assets are ready
       await new Promise(r => setTimeout(r, 100));
       const dataUrl = await toPng(resultsRef.current, { 
         cacheBust: true, 
@@ -91,14 +86,29 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
 
   return (
     <div className="space-y-4 animate-fade-in w-full max-w-2xl pb-10">
-      <div className="flex justify-between items-center bg-slate-900/50 p-2 rounded-xl backdrop-blur-sm border border-slate-700">
-        <span className="text-xs font-bold text-slate-400 ml-2 uppercase tracking-wider">{t.label_template}</span>
-        <button 
-          onClick={toggleTheme}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-white transition-colors border border-slate-600"
-        >
-          <Palette size={14} /> {theme.name} Mode
-        </button>
+      {/* Theme Selector UI */}
+      <div className="bg-slate-900/50 p-4 rounded-2xl backdrop-blur-sm border border-slate-700 space-y-3">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
+          <Palette size={14} className="text-cyan-400" /> {t.label_template}
+        </div>
+        <div className="grid grid-cols-5 gap-2">
+          {THEMES.map((t, idx) => (
+            <button
+              key={t.id}
+              onClick={() => setCurrentThemeIdx(idx)}
+              className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all border-2 ${
+                currentThemeIdx === idx 
+                ? 'bg-slate-800 border-cyan-500 scale-105 shadow-lg shadow-cyan-500/20' 
+                : 'bg-slate-900/40 border-transparent opacity-60 hover:opacity-100 hover:bg-slate-800'
+              }`}
+            >
+              <div className={`w-6 h-6 rounded-full ${t.iconColor} border border-white/20 shadow-sm`} />
+              <span className={`text-[10px] font-bold truncate w-full text-center ${currentThemeIdx === idx ? 'text-white' : 'text-slate-500'}`}>
+                {t.name}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div 
@@ -169,7 +179,6 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
           </ResponsiveContainer>
         </div>
 
-        {/* Removed max-h and overflow-y to show all questions at once */}
         <div className={`space-y-4 p-5 rounded-2xl ${isLightMode ? 'bg-slate-50 shadow-inner' : 'bg-black/30'}`}>
           {data.details.map((item) => (
             <div key={item.questionId} className={`border-b last:border-0 pb-3 last:pb-0 ${isLightMode ? 'border-slate-200' : 'border-white/10'}`}>
