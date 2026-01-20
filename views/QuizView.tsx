@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '../components/Button';
-import { QuizQuestion, TOPIC_IDS } from '../types';
+import { QuizQuestion } from '../types';
 
 interface QuizViewProps {
   t: any;
