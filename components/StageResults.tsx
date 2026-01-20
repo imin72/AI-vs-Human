@@ -90,7 +90,7 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
   const isLightMode = theme.id === 'paper';
 
   return (
-    <div className="space-y-4 animate-fade-in w-full max-w-2xl">
+    <div className="space-y-4 animate-fade-in w-full max-w-2xl pb-10">
       <div className="flex justify-between items-center bg-slate-900/50 p-2 rounded-xl backdrop-blur-sm border border-slate-700">
         <span className="text-xs font-bold text-slate-400 ml-2 uppercase tracking-wider">{t.label_template}</span>
         <button 
@@ -169,25 +169,28 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
           </ResponsiveContainer>
         </div>
 
-        <div className={`space-y-3 p-4 rounded-2xl max-h-48 overflow-y-auto ${isLightMode ? 'bg-slate-50' : 'bg-black/20'}`}>
+        {/* Removed max-h and overflow-y to show all questions at once */}
+        <div className={`space-y-4 p-5 rounded-2xl ${isLightMode ? 'bg-slate-50 shadow-inner' : 'bg-black/30'}`}>
           {data.details.map((item) => (
             <div key={item.questionId} className={`border-b last:border-0 pb-3 last:pb-0 ${isLightMode ? 'border-slate-200' : 'border-white/10'}`}>
-               <div className="flex justify-between items-start mb-1">
+               <div className="flex justify-between items-start mb-1.5">
                   <div className="flex items-center gap-2">
-                    {item.isCorrect ? <CheckCircle size={14} className="text-green-500" /> : <XCircle size={14} className="text-red-500" />}
-                    <span className={`text-xs font-bold ${theme.text} opacity-80`}>Question {item.questionId}</span>
+                    {item.isCorrect ? <CheckCircle size={16} className="text-green-500" /> : <XCircle size={16} className="text-red-500" />}
+                    <span className={`text-xs font-bold ${theme.text} opacity-80 uppercase tracking-tight`}>Analysis Vector {item.questionId}</span>
                   </div>
                </div>
-               <p className={`text-xs italic opacity-70 ${theme.text} mb-1`}>{item.aiComment}</p>
+               <p className={`text-xs italic opacity-90 ${theme.text} leading-relaxed mb-2`}>{item.aiComment}</p>
                {!item.isCorrect && (
-                  <p className={`text-[10px] font-bold ${theme.accent}`}>Correct: {item.correctFact}</p>
+                  <div className={`mt-1 text-[11px] p-2 rounded-lg ${isLightMode ? 'bg-white' : 'bg-white/5'} border border-rose-500/20`}>
+                    <span className={`font-bold ${theme.accent}`}>Correction:</span> <span className={theme.text}>{item.correctFact}</span>
+                  </div>
                )}
             </div>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 pt-2">
+      <div className="grid grid-cols-3 gap-2 pt-4">
         <Button onClick={onRestart} variant="outline" className="px-2">
           <RefreshCw size={18} />
         </Button>
