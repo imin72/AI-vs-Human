@@ -47,7 +47,6 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
         console.error('Share failed:', err);
       }
     } else {
-      // Fallback to clipboard
       try {
         await navigator.clipboard.writeText(`${shareText}\n${url}`);
         alert('Result copied to clipboard!');
@@ -61,8 +60,13 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
     if (resultsRef.current === null) return;
     setIsSaving(true);
     try {
-      // Increase pixelRatio for better quality
-      const dataUrl = await toPng(resultsRef.current, { cacheBust: true, pixelRatio: 2 });
+      // Small delay to ensure any dynamic assets are ready
+      await new Promise(r => setTimeout(r, 100));
+      const dataUrl = await toPng(resultsRef.current, { 
+        cacheBust: true, 
+        pixelRatio: 2,
+        backgroundColor: theme.id === 'paper' ? '#f1f5f9' : '#020617'
+      });
       const link = document.createElement('a');
       link.download = `cognito-result-${new Date().getTime()}.png`;
       link.href = dataUrl;
@@ -75,7 +79,6 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
     }
   };
 
-  // Prepare chart data
   const chartData = [
     { subject: t.chart.accuracy, A: data.totalScore, B: 100, fullMark: 100 },
     { subject: t.chart.speed, A: 85, B: 100, fullMark: 100 },
@@ -88,8 +91,6 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
 
   return (
     <div className="space-y-4 animate-fade-in w-full max-w-2xl">
-      
-      {/* Theme Toggle Bar */}
       <div className="flex justify-between items-center bg-slate-900/50 p-2 rounded-xl backdrop-blur-sm border border-slate-700">
         <span className="text-xs font-bold text-slate-400 ml-2 uppercase tracking-wider">{t.label_template}</span>
         <button 
@@ -100,26 +101,25 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
         </button>
       </div>
 
-      {/* Main Result Card */}
-      <div ref={resultsRef} className={`p-6 md:p-8 rounded-3xl transition-all duration-500 ${theme.bg}`}>
-        
-        {/* Header Badge */}
+      <div 
+        ref={resultsRef} 
+        style={{ fontFamily: theme.id === 'terminal' ? 'monospace' : 'Inter, sans-serif' }}
+        className={`p-6 md:p-8 rounded-3xl transition-all duration-500 ${theme.bg}`}
+      >
         <div className="text-center mb-6">
            <div className={`inline-block px-4 py-1 rounded-full border text-sm font-bold tracking-wider uppercase ${isLightMode ? 'bg-slate-200 border-slate-300 text-slate-600' : 'bg-white/10 border-white/20 text-white/80'}`}>
              {t.badge_complete}
            </div>
         </div>
 
-        {/* Score & Title */}
         <div className={`text-center space-y-2 mb-8 ${theme.text}`}>
-          <h2 className="text-6xl font-black">{data.totalScore}%</h2>
+          <h2 className="text-6xl font-black tracking-tighter">{data.totalScore}%</h2>
           <h3 className={`text-2xl font-bold ${theme.accent}`}>
             {data.title}
           </h3>
           <p className={`italic text-sm opacity-70`}>"{data.aiComparison}"</p>
         </div>
 
-        {/* Cohort Analysis Section */}
         {data.demographicPercentile > 0 && (
           <div className={`p-4 mb-6 rounded-2xl border ${isLightMode ? 'bg-blue-50 border-blue-200' : 'bg-blue-500/10 border-blue-400/20'}`}>
             <div className="flex items-center gap-3 mb-2">
@@ -144,7 +144,6 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
           </div>
         )}
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4 mb-8">
           <div className={`p-4 rounded-2xl border ${isLightMode ? 'bg-white border-slate-200' : 'bg-black/20 border-white/10'}`}>
             <div className={`flex justify-center mb-2 ${theme.accent}`}><Brain size={24} /></div>
@@ -158,7 +157,6 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
           </div>
         </div>
 
-        {/* Chart */}
         <div className="h-48 w-full relative mb-8">
            <ResponsiveContainer width="100%" height="100%">
             <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
@@ -171,7 +169,6 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
           </ResponsiveContainer>
         </div>
 
-        {/* Question Review (Compact) */}
         <div className={`space-y-3 p-4 rounded-2xl max-h-48 overflow-y-auto ${isLightMode ? 'bg-slate-50' : 'bg-black/20'}`}>
           {data.details.map((item) => (
             <div key={item.questionId} className={`border-b last:border-0 pb-3 last:pb-0 ${isLightMode ? 'border-slate-200' : 'border-white/10'}`}>
@@ -190,7 +187,6 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
         </div>
       </div>
 
-      {/* Actions */}
       <div className="grid grid-cols-3 gap-2 pt-2">
         <Button onClick={onRestart} variant="outline" className="px-2">
           <RefreshCw size={18} />
@@ -202,7 +198,6 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
           <Share2 size={18} /> {t.btn_share}
         </Button>
       </div>
-
     </div>
   );
 };
