@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   AppStage, 
   Language, 
@@ -7,9 +7,10 @@ import {
   Difficulty, 
   QuizQuestion, 
   UserAnswer, 
-  EvaluationResult
+  EvaluationResult,
+  TOPIC_IDS
 } from '../types';
-import { generateQuestions, evaluateAnswers, generateLocalizedTopics, generateLocalizedSubtopics } from '../services/geminiService';
+import { generateQuestions, evaluateAnswers } from '../services/geminiService';
 import { TRANSLATIONS } from '../utils/translations';
 
 export interface GameViewModel {
@@ -43,10 +44,10 @@ export interface GameViewModel {
     updateProfile: (profile: Partial<UserProfile>) => void;
     submitProfile: () => void;
     shuffleTopics: () => void;
-    selectCategory: (id: string, label: string) => void;
+    selectCategory: (id: string) => void;
     selectSubTopic: (sub: string) => void;
     setCustomTopic: (topic: string) => void;
-    shuffleSubTopics: (categoryLabel: string) => void;
+    shuffleSubTopics: () => void;
     setDifficulty: (diff: Difficulty) => void;
     startQuiz: () => Promise<void>;
     selectOption: (option: string) => void;
@@ -65,9 +66,6 @@ export const useGameViewModel = (): GameViewModel => {
   const [selectedSubTopic, setSelectedSubTopic] = useState<string>('');
   const [customTopic, setCustomTopic] = useState<string>('');
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.MEDIUM);
-  const [displayedTopics, setDisplayedTopics] = useState<{id: string, label: string}[]>([]);
-  const [displayedSubTopics, setDisplayedSubTopics] = useState<string[]>([]);
-  const [isTopicLoading, setIsTopicLoading] = useState(false);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
@@ -77,51 +75,32 @@ export const useGameViewModel = (): GameViewModel => {
 
   const t = TRANSLATIONS[language];
 
-  const fetchLocalizedTopics = useCallback(async () => {
-    setIsTopicLoading(true);
-    try {
-      const data = await generateLocalizedTopics(userProfile, language);
-      setDisplayedTopics(data.categories);
-    } catch (e) {
-      console.error(e);
-      setErrorMsg("Failed to generate topics.");
-    } finally {
-      setIsTopicLoading(false);
-    }
-  }, [userProfile, language]);
+  // Static list of categories from translation file
+  const displayedTopics = useMemo(() => {
+    return Object.entries(t.topics.categories)
+      .filter(([id]) => id !== TOPIC_IDS.CUSTOM)
+      .map(([id, label]) => ({ id, label }));
+  }, [t]);
 
-  const fetchLocalizedSubtopics = useCallback(async (label: string) => {
-    setIsTopicLoading(true);
-    try {
-      const data = await generateLocalizedSubtopics(label, userProfile, language);
-      setDisplayedSubTopics(data.subtopics);
-    } catch (e) {
-      console.error(e);
-      setErrorMsg("Failed to generate subtopics.");
-    } finally {
-      setIsTopicLoading(false);
-    }
-  }, [userProfile, language]);
+  // Static list of subtopics for the selected category
+  const displayedSubTopics = useMemo(() => {
+    if (!selectedCategory || selectedCategory === TOPIC_IDS.CUSTOM) return [];
+    return t.topics.subtopics[selectedCategory] || [];
+  }, [selectedCategory, t]);
 
   const actions = {
     setLanguage: (lang: Language) => { setLanguage(lang); setStage(AppStage.INTRO); },
     startIntro: () => setStage(AppStage.PROFILE),
     updateProfile: (profile: Partial<UserProfile>) => setUserProfile(prev => ({ ...prev, ...profile })),
-    submitProfile: () => {
-      fetchLocalizedTopics();
-      setStage(AppStage.TOPIC_SELECTION);
-    },
-    shuffleTopics: fetchLocalizedTopics,
-    selectCategory: (id: string, label: string) => {
+    submitProfile: () => setStage(AppStage.TOPIC_SELECTION),
+    shuffleTopics: () => { /* No-op for static data */ },
+    selectCategory: (id: string) => {
       setSelectedCategory(id);
       setSelectedSubTopic('');
-      if (id !== 'Custom') {
-        fetchLocalizedSubtopics(label);
-      }
     },
     selectSubTopic: (sub: string) => setSelectedSubTopic(sub),
     setCustomTopic: (topic: string) => setCustomTopic(topic),
-    shuffleSubTopics: (label: string) => fetchLocalizedSubtopics(label),
+    shuffleSubTopics: () => { /* No-op for static data */ },
     setDifficulty: (diff: Difficulty) => setDifficulty(diff),
     goBack: () => {
       if (selectedCategory) { 
@@ -135,7 +114,7 @@ export const useGameViewModel = (): GameViewModel => {
       else setStage(AppStage.TOPIC_SELECTION);
     },
     startQuiz: async () => {
-      const finalTopic = selectedCategory === 'Custom' ? customTopic : selectedSubTopic;
+      const finalTopic = selectedCategory === TOPIC_IDS.CUSTOM ? customTopic : selectedSubTopic;
       if (!finalTopic) return;
       setStage(AppStage.LOADING_QUIZ);
       try {
@@ -185,7 +164,7 @@ export const useGameViewModel = (): GameViewModel => {
   return {
     state: {
       stage, language, userProfile,
-      topicState: { selectedCategory, selectedSubTopic, customTopic, difficulty, displayedTopics, displayedSubTopics, isTopicLoading },
+      topicState: { selectedCategory, selectedSubTopic, customTopic, difficulty, displayedTopics, displayedSubTopics, isTopicLoading: false },
       quizState: { questions, currentQuestionIndex, userAnswers, selectedOption },
       resultState: { evaluation, errorMsg }
     },

@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { RefreshCcw, Play, ChevronLeft, Loader2 } from 'lucide-react';
+import { Play, ChevronLeft } from 'lucide-react';
 import { Button } from '../components/Button';
-import { Difficulty } from '../types';
+import { Difficulty, TOPIC_IDS } from '../types';
 
 interface TopicSelectionViewProps {
   t: any;
@@ -19,9 +19,9 @@ interface TopicSelectionViewProps {
   actions: {
     goBack: () => void;
     shuffleTopics: () => void;
-    selectCategory: (id: string, label: string) => void;
+    selectCategory: (id: string) => void;
     setCustomTopic: (val: string) => void;
-    shuffleSubTopics: (category: string) => void;
+    shuffleSubTopics: () => void;
     selectSubTopic: (sub: string) => void;
     setDifficulty: (diff: Difficulty) => void;
     startQuiz: () => void;
@@ -29,7 +29,7 @@ interface TopicSelectionViewProps {
 }
 
 export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state, actions }) => {
-  const { selectedCategory, selectedSubTopic, customTopic, difficulty, displayedTopics, displayedSubTopics, isTopicLoading, errorMsg } = state;
+  const { selectedCategory, selectedSubTopic, customTopic, difficulty, displayedTopics, displayedSubTopics, errorMsg } = state;
 
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-6 animate-fade-in relative overflow-hidden min-h-[400px]">
@@ -45,29 +45,18 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
         <h2 className="text-2xl font-bold text-center">
           {!selectedCategory ? t.title_select : t.title_config}
         </h2>
-        <div className="w-10 flex justify-end">
-          {!selectedCategory && (
-            <button onClick={actions.shuffleTopics} disabled={isTopicLoading} className="p-2 bg-slate-800 rounded-full hover:bg-cyan-600 text-slate-400 transition-all border border-slate-700 disabled:opacity-50">
-              <RefreshCcw size={16} className={isTopicLoading ? "animate-spin" : ""} />
-            </button>
-          )}
-        </div>
+        <div className="w-10"></div>
       </div>
       
       {errorMsg && <div className="text-red-400 text-center text-sm bg-red-900/20 p-2 rounded">{errorMsg}</div>}
 
-      {isTopicLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-          <Loader2 className="text-cyan-400 animate-spin" size={40} />
-          <p className="text-slate-400 text-sm animate-pulse">AI is curating your personalized fields...</p>
-        </div>
-      ) : !selectedCategory ? (
-        <div className="space-y-4">
+      {!selectedCategory ? (
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
           <div className="grid grid-cols-2 gap-3">
             {displayedTopics.map((topic) => (
               <button
                 key={topic.id}
-                onClick={() => actions.selectCategory(topic.id, topic.label)}
+                onClick={() => actions.selectCategory(topic.id)}
                 className="p-4 rounded-xl border bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white hover:border-cyan-500 transition-all flex flex-col items-center gap-2 h-24 justify-center shadow-lg"
               >
                 <span className="font-bold text-center text-sm">{topic.label}</span>
@@ -79,13 +68,13 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
             <span className="flex-shrink-0 mx-4 text-slate-500 text-xs uppercase tracking-wider">OR</span>
             <div className="flex-grow border-t border-slate-800"></div>
           </div>
-          <button onClick={() => actions.selectCategory('Custom', 'Custom')} className="w-full p-3 rounded-xl border border-slate-700 bg-slate-900/50 text-slate-400 hover:text-white hover:border-rose-500 transition-all font-bold text-sm">
-            {t.categories['Custom']}
+          <button onClick={() => actions.selectCategory(TOPIC_IDS.CUSTOM)} className="w-full p-3 rounded-xl border border-slate-700 bg-slate-900/50 text-slate-400 hover:text-white hover:border-rose-500 transition-all font-bold text-sm">
+            {t.categories[TOPIC_IDS.CUSTOM]}
           </button>
         </div>
       ) : (
         <div className="space-y-6 animate-fade-in">
-          {selectedCategory === 'Custom' ? (
+          {selectedCategory === TOPIC_IDS.CUSTOM ? (
             <div>
               <label className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-2 block">{t.label_custom}</label>
               <input type="text" placeholder={t.ph_custom} value={customTopic} onChange={(e) => actions.setCustomTopic(e.target.value)} className="w-full bg-slate-900/80 border border-slate-600 rounded-xl p-4 text-white focus:ring-2 focus:ring-cyan-500 outline-none" />
@@ -93,9 +82,9 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           ) : (
             <div>
               <label className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-2 block">{t.label_field}</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2 max-h-[30vh] overflow-y-auto custom-scrollbar pr-1">
                 {displayedSubTopics.map(sub => (
-                  <button key={sub} onClick={() => actions.selectSubTopic(sub)} className={`p-3 rounded-lg text-sm font-medium border transition-all ${selectedSubTopic === sub ? 'bg-cyan-600/20 border-cyan-500 text-cyan-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'}`}>
+                  <button key={sub} onClick={() => actions.selectSubTopic(sub)} className={`p-3 rounded-lg text-xs font-medium border transition-all ${selectedSubTopic === sub ? 'bg-cyan-600/20 border-cyan-500 text-cyan-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'}`}>
                     {sub}
                   </button>
                 ))}
@@ -110,7 +99,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
               ))}
             </div>
           </div>
-          <Button onClick={actions.startQuiz} disabled={(selectedCategory === 'Custom' && !customTopic) || (selectedCategory !== 'Custom' && !selectedSubTopic)} fullWidth className="mt-4">
+          <Button onClick={actions.startQuiz} disabled={(selectedCategory === TOPIC_IDS.CUSTOM && !customTopic) || (selectedCategory !== TOPIC_IDS.CUSTOM && !selectedSubTopic)} fullWidth className="mt-4">
             {t.btn_start_sim} <Play size={18} />
           </Button>
         </div>
