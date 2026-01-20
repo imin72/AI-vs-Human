@@ -1,20 +1,23 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language } from "../types";
 
-// Ensure API Key exists to prevent silent failures
-if (!process.env.API_KEY) {
-  console.error("CRITICAL ERROR: API_KEY is missing. Please check your Vercel Environment Variables.");
+// Robustly retrieve API Key:
+// 1. Try the injected process.env.API_KEY (from vite.config.ts define)
+// 2. Try import.meta.env.VITE_API_KEY (standard Vite way)
+const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_API_KEY;
+
+if (!apiKey) {
+  console.error("CRITICAL ERROR: API_KEY is missing.");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize only if key exists to avoid immediate crash, check inside functions
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 const MODEL_NAME = 'gemini-3-flash-preview';
 
 // Helper to extract JSON object from text (handles markdown and extra text)
 const cleanJson = (text: string): string => {
   try {
-    // 1. Try finding the first '{' and last '}' to extract just the JSON object
-    // This regex looks for the first { and the last } matching a JSON object structure
     const firstOpen = text.indexOf('{');
     const lastClose = text.lastIndexOf('}');
     
@@ -22,7 +25,6 @@ const cleanJson = (text: string): string => {
       return text.substring(firstOpen, lastClose + 1);
     }
     
-    // 2. Fallback: simple cleanup if regex fails
     let cleaned = text.trim();
     if (cleaned.startsWith('```')) {
       cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
@@ -34,6 +36,10 @@ const cleanJson = (text: string): string => {
 };
 
 export const generateQuestions = async (topic: string, difficulty: Difficulty, lang: Language): Promise<QuizQuestion[]> => {
+  if (!ai) {
+    throw new Error("API Key is missing. Check Vercel Environment Variables (API_KEY).");
+  }
+
   try {
     const randomSeed = Math.floor(Math.random() * 1000000);
 
@@ -95,9 +101,10 @@ export const generateQuestions = async (topic: string, difficulty: Difficulty, l
       throw new Error("Failed to parse AI response");
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating quiz:", error);
-    throw error;
+    // Propagate the actual error message
+    throw new Error(error.message || "Failed to generate questions");
   }
 };
 
@@ -108,6 +115,10 @@ export const evaluateAnswers = async (
   userProfile: UserProfile,
   lang: Language
 ): Promise<EvaluationResult> => {
+  if (!ai) {
+    throw new Error("API Key is missing.");
+  }
+
   try {
     const hasProfile = userProfile.ageGroup !== 'Skip' && userProfile.gender !== 'Skip';
     const profileText = hasProfile 
@@ -182,8 +193,8 @@ export const evaluateAnswers = async (
       throw new Error("Failed to parse AI evaluation");
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error evaluating answers:", error);
-    throw error;
+    throw new Error(error.message || "Failed to evaluate answers");
   }
 };

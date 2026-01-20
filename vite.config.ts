@@ -4,17 +4,18 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, (process as any).cwd(), '');
   
+  // Prioritize Vercel system env vars (process.env) over .env file vars
+  // Also check for VITE_API_KEY as a fallback standard
+  const apiKey = process.env.API_KEY || env.API_KEY || process.env.VITE_API_KEY || env.VITE_API_KEY || '';
+
   return {
     plugins: [react()],
-    base: './', // Use relative base path to support subdirectories
+    base: './', 
     define: {
-      // Vital for Vercel: This replaces `process.env.API_KEY` in the client code 
-      // with the actual string value from the environment at build time.
-      // Added fallback to '' to prevent JSON.stringify(undefined) which results in 'undefined'
-      'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY || '')
+      // Inject the key directly into the code
+      'process.env.API_KEY': JSON.stringify(apiKey)
     }
   };
 });

@@ -164,8 +164,10 @@ export const useGameViewModel = (): GameViewModel => {
         const qs = await generateQuestions(finalTopic, difficulty, language);
         setQuestions(qs);
         setStage(AppStage.QUIZ);
-      } catch (e) {
-        setErrorMsg("Connection to AI Neural Net failed. Try again.");
+      } catch (e: any) {
+        console.error("Quiz Generation Failed:", e);
+        // Display the actual error message for debugging
+        setErrorMsg(e.message || "Connection to AI Neural Net failed.");
         setStage(AppStage.TOPIC_SELECTION);
       }
     },
@@ -239,9 +241,9 @@ export const useGameViewModel = (): GameViewModel => {
       
       setEvaluation(result);
       setStage(AppStage.RESULTS);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      setErrorMsg("Failed to analyze results.");
+      setErrorMsg(e.message || "Failed to analyze results.");
       setStage(AppStage.ERROR);
     }
   };
