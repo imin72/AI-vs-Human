@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Play, 
   ChevronLeft, 
@@ -88,8 +88,6 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
   const handleRefreshSubtopics = () => {
     const shuffled = [...displayedSubTopics].sort(() => 0.5 - Math.random());
     setSubsetSubTopics(shuffled.slice(0, 4));
-    // If the currently selected subtopic is not in the new subset, we don't necessarily clear it, 
-    // but the UI will show it's not selected among the visible ones.
   };
 
   const handleRandomCategory = () => {
@@ -183,7 +181,6 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
             </div>
           ) : (
             <div>
-              {/* Shuffle/Random Selection Button for Subtopics */}
               <button
                 onClick={handleRefreshSubtopics}
                 className="w-full flex items-center justify-center gap-2 py-3 mb-4 rounded-2xl bg-gradient-to-r from-cyan-600/20 to-blue-600/20 border border-blue-500/30 text-blue-400 font-bold text-sm hover:from-cyan-600/40 hover:to-blue-600/40 transition-all group shadow-lg"
