@@ -27,7 +27,7 @@ export const useGameViewModel = () => {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [isPending, setIsPending] = useState(false); // API 중복 요청 방지 가드
+  const [isPending, setIsPending] = useState(false); // API guard
 
   const t = TRANSLATIONS[language];
 
@@ -55,7 +55,7 @@ export const useGameViewModel = () => {
     setCustomTopic: (topic: string) => setCustomTopic(topic),
     setDifficulty: (diff: Difficulty) => setDifficulty(diff),
     goBack: () => {
-      if (isPending) return; // 로딩 중 뒤로가기 방지
+      if (isPending) return;
       if (selectedCategory) { setSelectedCategory(''); setSelectedSubTopic(''); }
       else if (stage === AppStage.TOPIC_SELECTION) setStage(AppStage.PROFILE);
       else if (stage === AppStage.PROFILE) setStage(AppStage.INTRO);
