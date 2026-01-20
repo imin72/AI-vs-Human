@@ -5,10 +5,10 @@ import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language } fro
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
- * 'gemini-3-flash-preview'는 Gemini 3 시리즈 중 가장 빠르고 
- * 일일 제공량이 넉넉하여 실시간 퀴즈 생성 및 분석에 최적화된 모델입니다.
+ * 사용자 요청에 따라 'gemini-1.5-flash' 모델을 사용합니다.
+ * 이 모델은 빠른 응답 속도와 효율적인 리소스 사용이 특징입니다.
  */
-const MODEL_NAME = 'gemini-3-flash-preview';
+const MODEL_NAME = 'gemini-1.5-flash';
 
 const cleanJson = (text: string | undefined): string => {
   if (!text) return "";
