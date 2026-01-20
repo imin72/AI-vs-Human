@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
     plugins: [react()],
+    base: './', // Use relative base path to support deployment to subdirectories (e.g. GitHub Pages)
     define: {
       // Allow usage of process.env.API_KEY in the client-side code
       'process.env.API_KEY': JSON.stringify(env.API_KEY)
