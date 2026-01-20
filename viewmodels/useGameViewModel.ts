@@ -7,8 +7,7 @@ import {
   Difficulty, 
   QuizQuestion, 
   UserAnswer, 
-  EvaluationResult,
-  TOPIC_IDS
+  EvaluationResult
 } from '../types';
 import { generateQuestions, evaluateAnswers, generateLocalizedTopics, generateLocalizedSubtopics } from '../services/geminiService';
 import { TRANSLATIONS } from '../utils/translations';
@@ -86,18 +85,20 @@ export const useGameViewModel = (): GameViewModel => {
       setDisplayedTopics(data.categories);
     } catch (e) {
       console.error(e);
+      setErrorMsg("Failed to generate topics.");
     } finally {
       setIsTopicLoading(false);
     }
   }, [userProfile, language]);
 
-  const fetchLocalizedSubtopics = useCallback(async (categoryLabel: string) => {
+  const fetchLocalizedSubtopics = useCallback(async (label: string) => {
     setIsTopicLoading(true);
     try {
-      const data = await generateLocalizedSubtopics(categoryLabel, userProfile, language);
+      const data = await generateLocalizedSubtopics(label, userProfile, language);
       setDisplayedSubTopics(data.subtopics);
     } catch (e) {
       console.error(e);
+      setErrorMsg("Failed to generate subtopics.");
     } finally {
       setIsTopicLoading(false);
     }
@@ -125,9 +126,12 @@ export const useGameViewModel = (): GameViewModel => {
     shuffleSubTopics: (label: string) => fetchLocalizedSubtopics(label),
     setDifficulty: (diff: Difficulty) => setDifficulty(diff),
     goBack: () => {
-      if (selectedCategory) { setSelectedCategory(''); setSelectedSubTopic(''); }
+      if (selectedCategory) { setSelectedCategory(''); setSelectedSubTopic(''); setSelectedCategoryLabel(''); }
       else if (stage === AppStage.TOPIC_SELECTION) setStage(AppStage.PROFILE);
-      else setStage(AppStage.INTRO);
+      else if (stage === AppStage.PROFILE) setStage(AppStage.INTRO);
+      else if (stage === AppStage.INTRO) setStage(AppStage.LANGUAGE);
+      else if (stage === AppStage.QUIZ) { if (window.confirm(t.common.confirm_exit)) setStage(AppStage.TOPIC_SELECTION); }
+      else setStage(AppStage.TOPIC_SELECTION);
     },
     startQuiz: async () => {
       const finalTopic = selectedCategory === 'Custom' ? customTopic : selectedSubTopic;
@@ -153,7 +157,7 @@ export const useGameViewModel = (): GameViewModel => {
       if (currentQuestionIndex < questions.length - 1) setCurrentQuestionIndex(prev => prev + 1);
       else finishQuiz(updated);
     },
-    resetApp: () => { setStage(AppStage.LANGUAGE); setUserProfile({ gender: '', ageGroup: '', nationality: '' }); }
+    resetApp: () => { setStage(AppStage.LANGUAGE); setUserProfile({ gender: '', ageGroup: '', nationality: '' }); setEvaluation(null); setUserAnswers([]); setCurrentQuestionIndex(0); setSelectedCategory(''); }
   };
 
   const finishQuiz = async (finalAnswers: UserAnswer[]) => {

@@ -5,7 +5,8 @@ import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language } fro
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const MODEL_NAME = 'gemini-3-flash-preview';
 
-const cleanJson = (text: string): string => {
+const cleanJson = (text: string | undefined): string => {
+  if (!text) return "";
   try {
     const firstOpen = text.indexOf('{');
     const lastClose = text.lastIndexOf('}');
@@ -14,7 +15,7 @@ const cleanJson = (text: string): string => {
     }
     return text.trim();
   } catch (e) {
-    return text;
+    return text || "";
   }
 };
 
@@ -31,7 +32,7 @@ export const generateLocalizedTopics = async (
   const prompt = `
     As an expert in cultural studies and education for ${userProfile.nationality}, suggest 8 diverse quiz categories.
     These should reflect what a person from ${userProfile.nationality} (Age: ${userProfile.ageGroup}) would find engaging, challenging, or culturally significant.
-    Include both global topics and highly specific local topics (e.g., local history, regional food, popular culture of ${userProfile.nationality}).
+    Include both global topics and highly specific local topics of ${userProfile.nationality}.
     Output strictly in JSON format.
     Language: ${targetLang}.
   `;
@@ -60,8 +61,10 @@ export const generateLocalizedTopics = async (
         }
       }
     });
-    return JSON.parse(cleanJson(response.text));
+    const cleaned = cleanJson(response.text);
+    return cleaned ? JSON.parse(cleaned) : { categories: [] };
   } catch (error) {
+    console.error("Failed to generate topics:", error);
     return { categories: [] };
   }
 };
@@ -96,8 +99,10 @@ export const generateLocalizedSubtopics = async (
         }
       }
     });
-    return JSON.parse(cleanJson(response.text));
+    const cleaned = cleanJson(response.text);
+    return cleaned ? JSON.parse(cleaned) : { subtopics: [] };
   } catch (error) {
+    console.error("Failed to generate subtopics:", error);
     return { subtopics: [] };
   }
 };
@@ -142,7 +147,8 @@ export const generateQuestions = async (
         }
       }
     });
-    return JSON.parse(cleanJson(response.text)).questions;
+    const cleaned = cleanJson(response.text);
+    return cleaned ? JSON.parse(cleaned).questions : [];
   } catch (error: any) {
     handleApiError(error);
     return [];
@@ -152,7 +158,7 @@ export const generateQuestions = async (
 export const evaluateAnswers = async (
   topic: string, 
   score: number,
-  results: any[],
+  _results: any[],
   userProfile: UserProfile,
   lang: Language
 ): Promise<EvaluationResult> => {
@@ -190,7 +196,9 @@ export const evaluateAnswers = async (
         }
       }
     });
-    return { ...JSON.parse(cleanJson(response.text)), totalScore: score };
+    const cleaned = cleanJson(response.text);
+    const evaluation = cleaned ? JSON.parse(cleaned) : {};
+    return { ...evaluation, totalScore: score };
   } catch (error: any) {
     handleApiError(error);
     return {} as EvaluationResult;
