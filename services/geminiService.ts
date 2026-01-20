@@ -3,7 +3,12 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-const MODEL_NAME = 'gemini-2.5-flash-latest';
+
+/**
+ * 'gemini-3-flash-preview'는 Gemini 3 시리즈 중 가장 빠르고 
+ * 일일 제공량이 넉넉하여 실시간 퀴즈 생성 및 분석에 최적화된 모델입니다.
+ */
+const MODEL_NAME = 'gemini-3-flash-preview';
 
 const cleanJson = (text: string | undefined): string => {
   if (!text) return "";
@@ -31,6 +36,10 @@ const handleApiError = (error: any, lang: Language): never => {
     message = lang === 'ko'
       ? "AI 서버에 일시적인 오류가 발생했습니다. 다시 시도해 주세요."
       : "AI server is temporarily unavailable. Please try again.";
+  } else if (message.includes("404")) {
+    message = lang === 'ko'
+      ? "시스템 구성 오류: 지원되지 않는 모델입니다."
+      : "System Configuration Error: Model not found.";
   }
   
   throw new Error(message);

@@ -75,8 +75,22 @@ const getCategoryIcon = (id: string) => {
 export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state, actions }) => {
   const { selectedCategory, selectedSubTopic, customTopic, difficulty, displayedTopics, displayedSubTopics, errorMsg } = state;
   
-  // Local state to manage the 4 subtopics being displayed
+  // Local states for subsets
+  const [subsetCategories, setSubsetCategories] = useState<{id: string, label: string}[]>([]);
   const [subsetSubTopics, setSubsetSubTopics] = useState<string[]>([]);
+
+  // Initial set for Categories
+  useEffect(() => {
+    if (displayedTopics.length > 0 && subsetCategories.length === 0) {
+      handleRefreshCategories();
+    }
+  }, [displayedTopics]);
+
+  // Handle Refresh for Categories
+  const handleRefreshCategories = () => {
+    const shuffled = [...displayedTopics].sort(() => 0.5 - Math.random());
+    setSubsetCategories(shuffled.slice(0, 4));
+  };
 
   // When category changes, pick 4 random subtopics
   useEffect(() => {
@@ -90,9 +104,8 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
     setSubsetSubTopics(shuffled.slice(0, 4));
   };
 
-  const handleRandomCategory = () => {
-    const randomIdx = Math.floor(Math.random() * displayedTopics.length);
-    actions.selectCategory(displayedTopics[randomIdx].id);
+  const getImageUrl = (keyword: string) => {
+    return `https://images.unsplash.com/photo-1500000000000?auto=format&fit=crop&w=600&q=80&sig=${encodeURIComponent(keyword)}`;
   };
 
   return (
@@ -117,15 +130,15 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
       {!selectedCategory ? (
         <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
           <button
-            onClick={handleRandomCategory}
+            onClick={handleRefreshCategories}
             className="w-full flex items-center justify-center gap-2 py-3 mb-2 rounded-2xl bg-gradient-to-r from-purple-600/20 to-cyan-600/20 border border-cyan-500/30 text-cyan-400 font-bold text-sm hover:from-purple-600/40 hover:to-cyan-600/40 transition-all group shadow-lg"
           >
             <Dices size={18} className="group-hover:rotate-12 transition-transform" />
-            RANDOM SELECTION
+            RANDOM SELECTION (SHUFFLE)
           </button>
 
           <div className="grid grid-cols-2 gap-3">
-            {displayedTopics.map((topic) => (
+            {subsetCategories.map((topic) => (
               <button
                 key={topic.id}
                 onClick={() => actions.selectCategory(topic.id)}
@@ -207,7 +220,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                   >
                     <div 
                       className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-                      style={{ backgroundImage: `url('https://images.unsplash.com/photo-1500000000000?auto=format&fit=crop&w=400&q=80&sig=${encodeURIComponent(sub)}')` }}
+                      style={{ backgroundImage: `url('${getImageUrl(sub)}')` }}
                     />
                     <div className={`absolute inset-0 bg-gradient-to-t transition-colors ${
                       selectedSubTopic === sub 
