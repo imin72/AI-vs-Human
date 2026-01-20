@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language } from "../types";
 
@@ -32,7 +33,6 @@ const handleApiError = (error: any): never => {
   
   let errorMessage = error.message || "Unknown error occurred";
 
-  // Try to parse if the error message is a JSON string (common with Google API errors)
   try {
     if (typeof errorMessage === 'string' && errorMessage.startsWith('{')) {
       const parsed = JSON.parse(errorMessage);
@@ -40,11 +40,8 @@ const handleApiError = (error: any): never => {
         errorMessage = parsed.error.message;
       }
     }
-  } catch (e) {
-    // If parsing fails, use the original message
-  }
+  } catch (e) { }
 
-  // Friendly override for specific errors
   if (errorMessage.includes("API key not valid")) {
     throw new Error("Invalid API Key. Please check your Vercel Settings.");
   }
@@ -52,20 +49,31 @@ const handleApiError = (error: any): never => {
   throw new Error(errorMessage);
 };
 
-export const generateQuestions = async (topic: string, difficulty: Difficulty, lang: Language): Promise<QuizQuestion[]> => {
+export const generateQuestions = async (
+  topic: string, 
+  difficulty: Difficulty, 
+  lang: Language,
+  userProfile?: UserProfile
+): Promise<QuizQuestion[]> => {
   if (!process.env.API_KEY) {
     throw new Error("API Key is missing. Please check App Settings.");
   }
 
   try {
     const randomSeed = Math.floor(Math.random() * 1000000);
+    const culturalContext = userProfile && userProfile.nationality !== 'Skip' 
+      ? `Tailor the cultural nuance, educational standards, and specific trivia depth to a citizen of ${userProfile.nationality}.` 
+      : "Use a neutral global perspective.";
 
     const prompt = `
       Generate 5 unique and randomized multiple-choice trivia questions about "${topic}" in ${lang === 'ko' ? 'Korean' : lang === 'ja' ? 'Japanese' : lang === 'es' ? 'Spanish' : 'English'}.
       Difficulty Level: ${difficulty}.
+      Target Nationality: ${userProfile?.nationality || 'Global'}.
+      ${culturalContext}
       Random Seed: ${randomSeed}.
       
       Requirements:
+      - Reflect the specific educational level and cultural common knowledge of the target nationality where applicable.
       - The Questions, Options, and Context MUST be in the target language (${lang}).
       - 4 options per question.
       - Only 1 correct answer.
@@ -119,7 +127,7 @@ export const generateQuestions = async (topic: string, difficulty: Difficulty, l
 
   } catch (error: any) {
     handleApiError(error);
-    return []; // Unreachable due to throw, but satisfies Typescript
+    return [];
   }
 };
 
@@ -136,9 +144,7 @@ export const evaluateAnswers = async (
 
   try {
     const hasProfile = userProfile.ageGroup !== 'Skip' && userProfile.gender !== 'Skip';
-    const profileText = hasProfile 
-      ? `User Demographic: ${userProfile.gender}, Age Group: ${userProfile.ageGroup}.` 
-      : "User Demographic: Anonymous Human.";
+    const profileText = `User Demographic: Nationality: ${userProfile.nationality}, Gender: ${userProfile.gender}, Age Group: ${userProfile.ageGroup}.`;
 
     const targetLangName = lang === 'ko' ? 'Korean' : lang === 'ja' ? 'Japanese' : lang === 'es' ? 'Spanish' : 'English';
 
@@ -151,8 +157,8 @@ export const evaluateAnswers = async (
 
       Task:
       1. Assign a "Human Percentile" (mock statistic vs general population).
-      2. ${hasProfile ? `Assign a "Demographic Percentile" (mock statistic specifically comparing them to other ${userProfile.ageGroup} ${userProfile.gender}s).` : 'Set demographicPercentile to same as humanPercentile.'}
-      3. ${hasProfile ? `Write a "Demographic Comment" in ${targetLangName} comparing them to their peer group.` : 'Write a generic demographic comment.'}
+      2. Assign a "Demographic Percentile" comparing them specifically to other ${userProfile.nationality} citizens of their age/gender group.
+      3. Write a "Demographic Comment" in ${targetLangName} comparing them to their peer group, considering cultural and educational background.
       4. Create a "Title" for the user in ${targetLangName}.
       5. Write a witty/sarcastic "AI Comparison" regarding their intellect in ${targetLangName}.
       6. For each question, provide a short, snarky or praising comment in ${targetLangName}.
@@ -209,6 +215,6 @@ export const evaluateAnswers = async (
 
   } catch (error: any) {
     handleApiError(error);
-    return {} as EvaluationResult; // Unreachable
+    return {} as EvaluationResult;
   }
 };

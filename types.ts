@@ -1,3 +1,4 @@
+
 export enum AppStage {
   LANGUAGE = 'LANGUAGE',
   INTRO = 'INTRO',
@@ -21,6 +22,7 @@ export enum Difficulty {
 export interface UserProfile {
   gender: string;
   ageGroup: string;
+  nationality: string;
 }
 
 export interface QuizQuestion {
@@ -56,7 +58,6 @@ export interface EvaluationResult {
   title: string;
 }
 
-// 16 Categories + Custom
 export const TOPIC_IDS = {
   HISTORY: "History",
   SCIENCE: "Science",

@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { 
   AppStage, 
@@ -62,7 +63,11 @@ export const useGameViewModel = (): GameViewModel => {
   const [stage, setStage] = useState<AppStage>(AppStage.LANGUAGE);
   const [language, setLanguage] = useState<Language>('en');
   
-  const [userProfile, setUserProfile] = useState<UserProfile>({ gender: '', ageGroup: '' });
+  const [userProfile, setUserProfile] = useState<UserProfile>({ 
+    gender: '', 
+    ageGroup: '',
+    nationality: ''
+  });
 
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSubTopic, setSelectedSubTopic] = useState<string>('');
@@ -102,7 +107,7 @@ export const useGameViewModel = (): GameViewModel => {
         const shuffled = [...allSubtopics].sort(() => 0.5 - Math.random());
         setDisplayedSubTopics(shuffled.slice(0, 4));
     }
-  }, [language, t.topics.subtopics]); // Depend on language/translation updates
+  }, [language, t.topics.subtopics]);
 
   // --- ACTIONS ---
 
@@ -121,6 +126,7 @@ export const useGameViewModel = (): GameViewModel => {
     submitProfile: () => {
       if (!userProfile.gender) setUserProfile(p => ({ ...p, gender: 'Skip' }));
       if (!userProfile.ageGroup) setUserProfile(p => ({ ...p, ageGroup: 'Skip' }));
+      if (!userProfile.nationality) setUserProfile(p => ({ ...p, nationality: 'Skip' }));
       shuffleTopics();
       setStage(AppStage.TOPIC_SELECTION);
     },
@@ -137,7 +143,7 @@ export const useGameViewModel = (): GameViewModel => {
     selectSubTopic: (sub: string) => setSelectedSubTopic(sub),
     setCustomTopic: (topic: string) => setCustomTopic(topic),
     
-    shuffleSubTopics, // Expose for refresh button
+    shuffleSubTopics, 
     
     setDifficulty: (diff: Difficulty) => setDifficulty(diff),
 
@@ -194,12 +200,11 @@ export const useGameViewModel = (): GameViewModel => {
       setStage(AppStage.LOADING_QUIZ);
       setErrorMsg('');
       try {
-        const qs = await generateQuestions(finalTopic, difficulty, language);
+        const qs = await generateQuestions(finalTopic, difficulty, language, userProfile);
         setQuestions(qs);
         setStage(AppStage.QUIZ);
       } catch (e: any) {
         console.error("Quiz Generation Failed:", e);
-        // Display the actual error message for debugging
         setErrorMsg(e.message || "Connection to AI Neural Net failed.");
         setStage(AppStage.TOPIC_SELECTION);
       }
@@ -236,7 +241,7 @@ export const useGameViewModel = (): GameViewModel => {
 
     resetApp: () => {
       setStage(AppStage.LANGUAGE); 
-      setUserProfile({ gender: '', ageGroup: '' });
+      setUserProfile({ gender: '', ageGroup: '', nationality: '' });
       setSelectedCategory('');
       setSelectedSubTopic('');
       setCustomTopic('');
@@ -249,7 +254,6 @@ export const useGameViewModel = (): GameViewModel => {
     }
   };
 
-  // Internal Logic
   const finishQuiz = async (finalAnswers: UserAnswer[]) => {
     setStage(AppStage.ANALYZING);
     try {

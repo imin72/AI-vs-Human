@@ -1,3 +1,4 @@
+
 import { Language, Difficulty, TOPIC_IDS } from '../types';
 
 interface TranslationData {
@@ -16,10 +17,12 @@ interface TranslationData {
     desc: string;
     label_gender: string;
     label_age: string;
+    label_nationality: string;
     btn_submit: string;
     skip: string;
     genders: { [key: string]: string };
     ages: { [key: string]: string };
+    nationalities: { [key: string]: string };
   };
   topics: {
     title_select: string;
@@ -71,6 +74,15 @@ interface TranslationData {
   };
 }
 
+const nationalList = {
+  "South Korea": "South Korea",
+  "USA": "USA",
+  "Japan": "Japan",
+  "Spain": "Spain",
+  "UK": "UK",
+  "Other": "Other"
+};
+
 export const TRANSLATIONS: Record<Language, TranslationData> = {
   en: {
     common: {
@@ -85,14 +97,17 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     },
     profile: {
       title: "Subject Profile",
-      desc: "Optional. Used for cohort analysis.",
+      desc: "Used for cultural and educational context optimization.",
       label_gender: "GENDER",
       label_age: "AGE GROUP",
+      label_nationality: "NATIONALITY",
       btn_submit: "Confirm Profile",
       skip: "Skip & Continue",
       genders: { Male: "Male", Female: "Female", Other: "Other" },
-      ages: { "Under 18": "< 18", "18-24": "18-24", "25-34": "25-34", "35-44": "35-44", "45-54": "45-54", "55+": "55+" }
+      ages: { "Under 18": "< 18", "18-24": "18-24", "25-34": "25-34", "35-44": "35-44", "45-54": "45-54", "55+": "55+" },
+      nationalities: nationalList
     },
+    // ... rest of en translations (topics, quiz, results, etc.)
     topics: {
       title_select: "Select Domain",
       title_config: "Configuration",
@@ -187,14 +202,24 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     },
     profile: {
       title: "대상자 프로필",
-      desc: "선택 사항입니다. 집단 분석(Cohort Analysis)에 사용됩니다.",
+      desc: "사용자의 국가별 문화 특성 및 교육 수준 최적화를 위해 사용됩니다.",
       label_gender: "성별",
       label_age: "연령대",
+      label_nationality: "국적",
       btn_submit: "프로필 확정",
       skip: "건너뛰기",
       genders: { Male: "남성", Female: "여성", Other: "기타" },
-      ages: { "Under 18": "18세 미만", "18-24": "18-24세", "25-34": "25-34세", "35-44": "35-44세", "45-54": "45-54세", "55+": "55세 이상" }
+      ages: { "Under 18": "18세 미만", "18-24": "18-24세", "25-34": "25-34세", "35-44": "35-44세", "45-54": "45-54세", "55+": "55세 이상" },
+      nationalities: {
+        "South Korea": "대한민국",
+        "USA": "미국",
+        "Japan": "일본",
+        "Spain": "스페인",
+        "UK": "영국",
+        "Other": "기타"
+      }
     },
+    // ... rest of ko translations
     topics: {
       title_select: "영역 선택",
       title_config: "구성 설정",
@@ -289,14 +314,24 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     },
     profile: {
       title: "被験者プロファイル",
-      desc: "任意。コホート分析に使用されます。",
+      desc: "文化的背景や教育レベルに合わせた最適化に使用されます。",
       label_gender: "性別",
       label_age: "年齢層",
+      label_nationality: "国籍",
       btn_submit: "プロファイル確定",
       skip: "スキップ",
       genders: { Male: "男性", Female: "女性", Other: "その他" },
-      ages: { "Under 18": "18歳未満", "18-24": "18-24歳", "25-34": "25-34歳", "35-44": "35-44歳", "45-54": "45-54歳", "55+": "55歳以上" }
+      ages: { "Under 18": "18歳未満", "18-24": "18-24歳", "25-34": "25-34歳", "35-44": "35-44歳", "45-54": "45-54歳", "55+": "55歳以上" },
+      nationalities: {
+        "South Korea": "韓国",
+        "USA": "アメリカ",
+        "Japan": "日本",
+        "Spain": "スペイン",
+        "UK": "イギリス",
+        "Other": "その他"
+      }
     },
+    // ... rest of ja translations
     topics: {
       title_select: "領域選択",
       title_config: "構成設定",
@@ -340,7 +375,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
         [TOPIC_IDS.LITERATURE]: ["シェイクスピア", "古典小説", "ディストピア", "ファンタジー", "SF小説", "詩", "ホラー小説", "ミステリー", "漫画", "ノーベル文学賞", "童話", "叙事詩", "ロシア文学", "アメリカ文学", "イギリス文学", "劇作家"],
         [TOPIC_IDS.NATURE]: ["哺乳類", "鳥類", "昆虫", "海洋生物", "恐竜", "熱帯雨林", "砂漠", "天気", "花", "樹木", "国立公園", "サバイバル", "進化", "絶滅危惧種", "菌類", "宝石・鉱物"],
         [TOPIC_IDS.FOOD]: ["イタリア料理", "フランス料理", "メキシコ料理", "日本料理", "中華料理", "インド料理", "デザート", "ワイン", "コーヒー", "チーズ", "スパイス", "屋台料理", "ファストフード", "製菓", "ビーガン", "カクテル"],
-        [TOPIC_IDS.SPACE]: ["太陽系", "ブラックホール", "火星", "月面着陸", "星座", "恒星", "銀河", "宇宙飛行士", "宇宙開発競争", "望遠鏡", "系外惑星", "重力", "ロケット", "SETI", "ISS", "ビッグバン"],
+        [TOPIC_IDS.SPACE]: ["太陽系", "ブラックホール", "火星", "月面着陸", "星座", "恒星", "銀河", "宇宙飛行士", "宇宙開発競争", "망원경", "系外惑星", "重力", "ロケット", "SETI", "ISS", "ビッグバン"],
         [TOPIC_IDS.PHILOSOPHY]: ["倫理学", "論理学", "形而上学", "実存主義", "ストア派", "ニヒリズム", "政治哲学", "東洋哲学", "古代ギリシャ", "啓蒙思想", "功利主義", "美学", "認識論", "心の哲学", "名言", "パラドックス"],
         [TOPIC_IDS.CUSTOM]: []
       }
@@ -357,7 +392,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       label_correct: "正解数",
       label_cohort: "コホート分析",
       label_template: "結果テンプレート",
-      label_bottom: "下位 1%",
+      label_bottom: "下위 1%",
       label_top: "上位",
       btn_retry: "リトライ",
       btn_share: "結果を共有",
@@ -391,14 +426,24 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     },
     profile: {
       title: "Perfil del Sujeto",
-      desc: "Opcional. Usado para análisis de cohortes.",
+      desc: "Utilizado para la optimización del contexto cultural y nivel educativo.",
       label_gender: "GÉNERO",
       label_age: "GRUPO DE EDAD",
+      label_nationality: "NACIONALIDAD",
       btn_submit: "Confirmar Perfil",
       skip: "Saltar y Continuar",
       genders: { Male: "Masculino", Female: "Femenino", Other: "Otro" },
-      ages: { "Under 18": "< 18", "18-24": "18-24", "25-34": "25-34", "35-44": "35-44", "45-54": "45-54", "55+": "55+" }
+      ages: { "Under 18": "< 18", "18-24": "18-24", "25-34": "25-34", "35-44": "35-44", "45-54": "45-54", "55+": "55+" },
+      nationalities: {
+        "South Korea": "Corea del Sur",
+        "USA": "EE. UU.",
+        "Japan": "Japón",
+        "Spain": "España",
+        "UK": "Reino Unido",
+        "Other": "Otro"
+      }
     },
+    // ... rest of es translations
     topics: {
       title_select: "Seleccionar Dominio",
       title_config: "Configuración",
@@ -443,7 +488,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
         [TOPIC_IDS.NATURE]: ["Mamíferos", "Aves", "Insectos", "Vida Marina", "Dinosaurios", "Selvas Tropicales", "Desiertos", "Clima", "Flores", "Árboles", "Parques Nacionales", "Supervivencia", "Evolución", "Especies en Peligro", "Hongos", "Gemas y Minerales"],
         [TOPIC_IDS.FOOD]: ["Cocina Italiana", "Cocina Francesa", "Comida Mexicana", "Comida Japonesa", "Comida China", "Comida India", "Postres", "Vino", "Café", "Queso", "Especias", "Comida Callejera", "Comida Rápida", "Repostería", "Vegano", "Cócteles"],
         [TOPIC_IDS.SPACE]: ["Sistema Solar", "Agujeros Negros", "Marte", "Alunizaje", "Constelaciones", "Estrellas", "Galaxias", "Astronautas", "Carrera Espacial", "Telescopios", "Exoplanetas", "Gravedad", "Cohetes", "SETI", "ISS", "Big Bang"],
-        [TOPIC_IDS.PHILOSOPHY]: ["Ética", "Lógica", "Metafísica", "Existencialismo", "Estoicismo", "Nihilismo", "Filosofía Política", "Filosofía Oriental", "Antigua Grecia", "Ilustración", "Utilitarismo", "Estética", "Epistemología", "Filosofía de la Mente", "Citas Famosas", "Paradojas"],
+        [TOPIC_IDS.PHILOSOPHY]: ["Ética", "Logic", "Metafísica", "Existencialismo", "Estoicismo", "Nihilismo", "Filosofía Política", "Filosofía Oriental", "Antigua Grecia", "Ilustración", "Utilitarismo", "Estética", "Epistemología", "Filosofía de la Mente", "Citas Famosas", "Paradojas"],
         [TOPIC_IDS.CUSTOM]: []
       }
     },
