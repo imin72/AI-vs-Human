@@ -62,7 +62,6 @@ export const useGameViewModel = (): GameViewModel => {
   const [language, setLanguage] = useState<Language>('en');
   const [userProfile, setUserProfile] = useState<UserProfile>({ gender: '', ageGroup: '', nationality: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [selectedCategoryLabel, setSelectedCategoryLabel] = useState<string>('');
   const [selectedSubTopic, setSelectedSubTopic] = useState<string>('');
   const [customTopic, setCustomTopic] = useState<string>('');
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.MEDIUM);
@@ -115,7 +114,6 @@ export const useGameViewModel = (): GameViewModel => {
     shuffleTopics: fetchLocalizedTopics,
     selectCategory: (id: string, label: string) => {
       setSelectedCategory(id);
-      setSelectedCategoryLabel(label);
       setSelectedSubTopic('');
       if (id !== 'Custom') {
         fetchLocalizedSubtopics(label);
@@ -126,7 +124,10 @@ export const useGameViewModel = (): GameViewModel => {
     shuffleSubTopics: (label: string) => fetchLocalizedSubtopics(label),
     setDifficulty: (diff: Difficulty) => setDifficulty(diff),
     goBack: () => {
-      if (selectedCategory) { setSelectedCategory(''); setSelectedSubTopic(''); setSelectedCategoryLabel(''); }
+      if (selectedCategory) { 
+        setSelectedCategory(''); 
+        setSelectedSubTopic(''); 
+      }
       else if (stage === AppStage.TOPIC_SELECTION) setStage(AppStage.PROFILE);
       else if (stage === AppStage.PROFILE) setStage(AppStage.INTRO);
       else if (stage === AppStage.INTRO) setStage(AppStage.LANGUAGE);
@@ -157,7 +158,14 @@ export const useGameViewModel = (): GameViewModel => {
       if (currentQuestionIndex < questions.length - 1) setCurrentQuestionIndex(prev => prev + 1);
       else finishQuiz(updated);
     },
-    resetApp: () => { setStage(AppStage.LANGUAGE); setUserProfile({ gender: '', ageGroup: '', nationality: '' }); setEvaluation(null); setUserAnswers([]); setCurrentQuestionIndex(0); setSelectedCategory(''); }
+    resetApp: () => { 
+      setStage(AppStage.LANGUAGE); 
+      setUserProfile({ gender: '', ageGroup: '', nationality: '' }); 
+      setEvaluation(null); 
+      setUserAnswers([]); 
+      setCurrentQuestionIndex(0); 
+      setSelectedCategory(''); 
+    }
   };
 
   const finishQuiz = async (finalAnswers: UserAnswer[]) => {
