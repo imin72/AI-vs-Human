@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { 
   AppStage, 
   Language, 
@@ -10,10 +10,9 @@ import {
   EvaluationResult,
   TOPIC_IDS
 } from '../types';
-import { generateQuestions, evaluateAnswers } from '../services/geminiService';
+import { generateQuestions, evaluateAnswers, generateLocalizedTopics, generateLocalizedSubtopics } from '../services/geminiService';
 import { TRANSLATIONS } from '../utils/translations';
 
-// Defines the interface for the ViewModel to ensure strict typing for Views
 export interface GameViewModel {
   state: {
     stage: AppStage;
@@ -24,8 +23,9 @@ export interface GameViewModel {
       selectedSubTopic: string;
       customTopic: string;
       difficulty: Difficulty;
-      displayedTopics: string[];
+      displayedTopics: {id: string, label: string}[];
       displayedSubTopics: string[];
+      isTopicLoading: boolean;
     };
     quizState: {
       questions: QuizQuestion[];
@@ -44,10 +44,10 @@ export interface GameViewModel {
     updateProfile: (profile: Partial<UserProfile>) => void;
     submitProfile: () => void;
     shuffleTopics: () => void;
-    selectCategory: (id: string) => void;
+    selectCategory: (id: string, label: string) => void;
     selectSubTopic: (sub: string) => void;
     setCustomTopic: (topic: string) => void;
-    shuffleSubTopics: (category: string) => void;
+    shuffleSubTopics: (categoryLabel: string) => void;
     setDifficulty: (diff: Difficulty) => void;
     startQuiz: () => Promise<void>;
     selectOption: (option: string) => void;
@@ -55,267 +55,127 @@ export interface GameViewModel {
     resetApp: () => void;
     goBack: () => void;
   };
-  t: typeof TRANSLATIONS['en']; // Current translation object
+  t: typeof TRANSLATIONS['en'];
 }
 
 export const useGameViewModel = (): GameViewModel => {
-  // --- STATE ---
   const [stage, setStage] = useState<AppStage>(AppStage.LANGUAGE);
   const [language, setLanguage] = useState<Language>('en');
-  
-  const [userProfile, setUserProfile] = useState<UserProfile>({ 
-    gender: '', 
-    ageGroup: '',
-    nationality: ''
-  });
-
+  const [userProfile, setUserProfile] = useState<UserProfile>({ gender: '', ageGroup: '', nationality: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategoryLabel, setSelectedCategoryLabel] = useState<string>('');
   const [selectedSubTopic, setSelectedSubTopic] = useState<string>('');
   const [customTopic, setCustomTopic] = useState<string>('');
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.MEDIUM);
-  
-  const [displayedTopics, setDisplayedTopics] = useState<string[]>([]);
+  const [displayedTopics, setDisplayedTopics] = useState<{id: string, label: string}[]>([]);
   const [displayedSubTopics, setDisplayedSubTopics] = useState<string[]>([]);
-
+  const [isTopicLoading, setIsTopicLoading] = useState(false);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   const t = TRANSLATIONS[language];
 
-  // --- LOGIC HELPERS ---
-
-  const TOPIC_KEYS_WITHOUT_CUSTOM = useMemo(() => 
-    Object.values(TOPIC_IDS).filter(id => id !== TOPIC_IDS.CUSTOM), 
-  []);
-
-  const shuffleTopics = useCallback(() => {
-    const shuffled = [...TOPIC_KEYS_WITHOUT_CUSTOM].sort(() => 0.5 - Math.random());
-    // Display 6 random main categories for more variety
-    setDisplayedTopics(shuffled.slice(0, 6));
-    setSelectedCategory('');
-    setSelectedSubTopic('');
-  }, [TOPIC_KEYS_WITHOUT_CUSTOM]);
-
-  const shuffleSubTopics = useCallback((category: string) => {
-    if (!category || category === TOPIC_IDS.CUSTOM) return;
-    const allSubtopics = t.topics.subtopics[category] || [];
-    
-    // Select 6 random subtopics from the pool for a more dynamic feel
-    const count = 6;
-    if (allSubtopics.length <= count) {
-        setDisplayedSubTopics(allSubtopics);
-    } else {
-        const shuffled = [...allSubtopics].sort(() => 0.5 - Math.random());
-        setDisplayedSubTopics(shuffled.slice(0, count));
+  const fetchLocalizedTopics = useCallback(async () => {
+    setIsTopicLoading(true);
+    try {
+      const data = await generateLocalizedTopics(userProfile, language);
+      setDisplayedTopics(data.categories);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsTopicLoading(false);
     }
-  }, [t.topics.subtopics]);
+  }, [userProfile, language]);
 
-  // --- ACTIONS ---
+  const fetchLocalizedSubtopics = useCallback(async (categoryLabel: string) => {
+    setIsTopicLoading(true);
+    try {
+      const data = await generateLocalizedSubtopics(categoryLabel, userProfile, language);
+      setDisplayedSubTopics(data.subtopics);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsTopicLoading(false);
+    }
+  }, [userProfile, language]);
 
   const actions = {
-    setLanguage: (lang: Language) => {
-      setLanguage(lang);
-      setStage(AppStage.INTRO);
-    },
-
+    setLanguage: (lang: Language) => { setLanguage(lang); setStage(AppStage.INTRO); },
     startIntro: () => setStage(AppStage.PROFILE),
-
-    updateProfile: (profile: Partial<UserProfile>) => {
-      setUserProfile(prev => ({ ...prev, ...profile }));
-    },
-
+    updateProfile: (profile: Partial<UserProfile>) => setUserProfile(prev => ({ ...prev, ...profile })),
     submitProfile: () => {
-      if (!userProfile.gender) setUserProfile(p => ({ ...p, gender: 'Skip' }));
-      if (!userProfile.ageGroup) setUserProfile(p => ({ ...p, ageGroup: 'Skip' }));
-      if (!userProfile.nationality) setUserProfile(p => ({ ...p, nationality: 'Skip' }));
-      shuffleTopics();
+      fetchLocalizedTopics();
       setStage(AppStage.TOPIC_SELECTION);
     },
-
-    shuffleTopics,
-    
-    selectCategory: (id: string) => {
+    shuffleTopics: fetchLocalizedTopics,
+    selectCategory: (id: string, label: string) => {
       setSelectedCategory(id);
-      setSelectedSubTopic(''); // Reset subtopic when category changes
-      if (id !== TOPIC_IDS.CUSTOM) {
-        shuffleSubTopics(id);
+      setSelectedCategoryLabel(label);
+      setSelectedSubTopic('');
+      if (id !== 'Custom') {
+        fetchLocalizedSubtopics(label);
       }
     },
-
     selectSubTopic: (sub: string) => setSelectedSubTopic(sub),
     setCustomTopic: (topic: string) => setCustomTopic(topic),
-    
-    shuffleSubTopics, 
-    
+    shuffleSubTopics: (label: string) => fetchLocalizedSubtopics(label),
     setDifficulty: (diff: Difficulty) => setDifficulty(diff),
-
     goBack: () => {
-      switch (stage) {
-        case AppStage.INTRO:
-          setStage(AppStage.LANGUAGE);
-          break;
-        case AppStage.PROFILE:
-          setStage(AppStage.INTRO);
-          break;
-        case AppStage.TOPIC_SELECTION:
-          if (selectedCategory) {
-            setSelectedCategory('');
-            setSelectedSubTopic('');
-            setCustomTopic('');
-          } else {
-            setStage(AppStage.PROFILE);
-          }
-          break;
-        case AppStage.QUIZ:
-          if (window.confirm(t.common.confirm_exit)) {
-            setStage(AppStage.TOPIC_SELECTION);
-            setQuestions([]);
-            setCurrentQuestionIndex(0);
-            setUserAnswers([]);
-            setSelectedOption(null);
-          }
-          break;
-        case AppStage.RESULTS:
-        case AppStage.ERROR:
-          setStage(AppStage.TOPIC_SELECTION);
-          setQuestions([]);
-          setCurrentQuestionIndex(0);
-          setUserAnswers([]);
-          setSelectedOption(null);
-          setEvaluation(null);
-          break;
-      }
+      if (selectedCategory) { setSelectedCategory(''); setSelectedSubTopic(''); }
+      else if (stage === AppStage.TOPIC_SELECTION) setStage(AppStage.PROFILE);
+      else setStage(AppStage.INTRO);
     },
-
     startQuiz: async () => {
-      let finalTopic = '';
-      if (selectedCategory === TOPIC_IDS.CUSTOM) {
-        finalTopic = customTopic;
-      } else {
-        const categoryLabel = t.topics.categories[selectedCategory];
-        // Ensure we prioritize the selected subtopic, otherwise fall back to category
-        finalTopic = selectedSubTopic || categoryLabel;
-      }
-
+      const finalTopic = selectedCategory === 'Custom' ? customTopic : selectedSubTopic;
       if (!finalTopic) return;
-
       setStage(AppStage.LOADING_QUIZ);
-      setErrorMsg('');
       try {
         const qs = await generateQuestions(finalTopic, difficulty, language, userProfile);
         setQuestions(qs);
         setStage(AppStage.QUIZ);
       } catch (e: any) {
-        console.error("Quiz Generation Failed:", e);
-        setErrorMsg(e.message || "Connection to AI Neural Net failed.");
+        setErrorMsg(e.message);
         setStage(AppStage.TOPIC_SELECTION);
       }
     },
-
     selectOption: (option: string) => setSelectedOption(option),
-
     confirmAnswer: () => {
       if (!selectedOption) return;
-
       const question = questions[currentQuestionIndex];
-      const isCorrect = selectedOption === question.correctAnswer;
-      
-      const newAnswers = [
-        ...userAnswers,
-        {
-          questionId: question.id,
-          questionText: question.question,
-          selectedOption: selectedOption,
-          correctAnswer: question.correctAnswer,
-          isCorrect: isCorrect
-        }
-      ];
-      setUserAnswers(newAnswers);
+      const answer = { questionId: question.id, questionText: question.question, selectedOption, correctAnswer: question.correctAnswer, isCorrect: selectedOption === question.correctAnswer };
+      const updated = [...userAnswers, answer];
+      setUserAnswers(updated);
       setSelectedOption(null);
-
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1);
-      } else {
-        finishQuiz(newAnswers);
-      }
+      if (currentQuestionIndex < questions.length - 1) setCurrentQuestionIndex(prev => prev + 1);
+      else finishQuiz(updated);
     },
-
-    resetApp: () => {
-      setStage(AppStage.LANGUAGE); 
-      setUserProfile({ gender: '', ageGroup: '', nationality: '' });
-      setSelectedCategory('');
-      setSelectedSubTopic('');
-      setCustomTopic('');
-      setDifficulty(Difficulty.MEDIUM);
-      setQuestions([]);
-      setCurrentQuestionIndex(0);
-      setUserAnswers([]);
-      setSelectedOption(null);
-      setEvaluation(null);
-    }
+    resetApp: () => { setStage(AppStage.LANGUAGE); setUserProfile({ gender: '', ageGroup: '', nationality: '' }); }
   };
 
   const finishQuiz = async (finalAnswers: UserAnswer[]) => {
     setStage(AppStage.ANALYZING);
     try {
-      const correctCount = finalAnswers.filter(a => a.isCorrect).length;
-      const score = Math.round((correctCount / finalAnswers.length) * 100);
-
-      const categoryLabel = t.topics.categories[selectedCategory];
-      const subtopicLabel = selectedCategory === TOPIC_IDS.CUSTOM ? customTopic : (selectedSubTopic || categoryLabel);
-      
-      const result = await evaluateAnswers(
-        subtopicLabel, 
-        score, 
-        finalAnswers.map(a => ({
-          question: a.questionText,
-          selected: a.selectedOption,
-          correct: a.correctAnswer,
-          isCorrect: a.isCorrect
-        })),
-        userProfile,
-        language
-      );
-      
-      setEvaluation(result);
+      const score = Math.round((finalAnswers.filter(a => a.isCorrect).length / finalAnswers.length) * 100);
+      const res = await evaluateAnswers(selectedSubTopic || customTopic, score, finalAnswers, userProfile, language);
+      setEvaluation(res);
       setStage(AppStage.RESULTS);
     } catch (e: any) {
-      console.error(e);
-      setErrorMsg(e.message || "Failed to analyze results.");
+      setErrorMsg(e.message);
       setStage(AppStage.ERROR);
     }
   };
 
   return {
     state: {
-      stage,
-      language,
-      userProfile,
-      topicState: {
-        selectedCategory,
-        selectedSubTopic,
-        customTopic,
-        difficulty,
-        displayedTopics,
-        displayedSubTopics
-      },
-      quizState: {
-        questions,
-        currentQuestionIndex,
-        userAnswers,
-        selectedOption
-      },
-      resultState: {
-        evaluation,
-        errorMsg
-      }
+      stage, language, userProfile,
+      topicState: { selectedCategory, selectedSubTopic, customTopic, difficulty, displayedTopics, displayedSubTopics, isTopicLoading },
+      quizState: { questions, currentQuestionIndex, userAnswers, selectedOption },
+      resultState: { evaluation, errorMsg }
     },
-    actions,
-    t
+    actions, t
   };
 };
