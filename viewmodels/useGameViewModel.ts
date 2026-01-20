@@ -96,18 +96,21 @@ export const useGameViewModel = (): GameViewModel => {
     setDisplayedTopics(shuffled.slice(0, 4));
     setSelectedCategory('');
     setSelectedSubTopic('');
-  }, []);
+  }, [TOPIC_KEYS_WITHOUT_CUSTOM]);
 
   const shuffleSubTopics = useCallback((category: string) => {
     if (!category || category === TOPIC_IDS.CUSTOM) return;
     const allSubtopics = t.topics.subtopics[category] || [];
-    if (allSubtopics.length <= 4) {
+    
+    // Select 6 random subtopics from the pool for a more dynamic feel
+    const count = 6;
+    if (allSubtopics.length <= count) {
         setDisplayedSubTopics(allSubtopics);
     } else {
         const shuffled = [...allSubtopics].sort(() => 0.5 - Math.random());
-        setDisplayedSubTopics(shuffled.slice(0, 4));
+        setDisplayedSubTopics(shuffled.slice(0, count));
     }
-  }, [language, t.topics.subtopics]);
+  }, [t.topics.subtopics]);
 
   // --- ACTIONS ---
 
@@ -135,6 +138,7 @@ export const useGameViewModel = (): GameViewModel => {
     
     selectCategory: (id: string) => {
       setSelectedCategory(id);
+      setSelectedSubTopic(''); // Reset subtopic when category changes
       if (id !== TOPIC_IDS.CUSTOM) {
         shuffleSubTopics(id);
       }
@@ -191,8 +195,8 @@ export const useGameViewModel = (): GameViewModel => {
         finalTopic = customTopic;
       } else {
         const categoryLabel = t.topics.categories[selectedCategory];
-        const subtopicLabel = selectedSubTopic || categoryLabel;
-        finalTopic = subtopicLabel;
+        // Ensure we prioritize the selected subtopic, otherwise fall back to category
+        finalTopic = selectedSubTopic || categoryLabel;
       }
 
       if (!finalTopic) return;
@@ -225,8 +229,7 @@ export const useGameViewModel = (): GameViewModel => {
           questionText: question.question,
           selectedOption: selectedOption,
           correctAnswer: question.correctAnswer,
-          isCorrect: isCorrect,
-          answer: selectedOption 
+          isCorrect: isCorrect
         }
       ];
       setUserAnswers(newAnswers);

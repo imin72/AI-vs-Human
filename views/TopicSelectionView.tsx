@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { RefreshCcw, Play, ChevronLeft } from 'lucide-react';
 import { Button } from '../components/Button';
@@ -112,7 +113,8 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                     <RefreshCcw size={12} /> {t.btn_refresh}
                   </button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              {/* Increased grid for better randomization display */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {displayedSubTopics.map(sub => (
                   <button
                     key={sub}
