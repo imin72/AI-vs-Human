@@ -1,26 +1,53 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language } from "../types";
 
+// Ensure API Key exists to prevent silent failures
+if (!process.env.API_KEY) {
+  console.error("CRITICAL ERROR: API_KEY is missing. Please check your Vercel Environment Variables.");
+}
+
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const MODEL_NAME = 'gemini-3-flash-preview';
 
+// Helper to extract JSON object from text (handles markdown and extra text)
+const cleanJson = (text: string): string => {
+  try {
+    // 1. Try finding the first '{' and last '}' to extract just the JSON object
+    // This regex looks for the first { and the last } matching a JSON object structure
+    const firstOpen = text.indexOf('{');
+    const lastClose = text.lastIndexOf('}');
+    
+    if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+      return text.substring(firstOpen, lastClose + 1);
+    }
+    
+    // 2. Fallback: simple cleanup if regex fails
+    let cleaned = text.trim();
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    }
+    return cleaned;
+  } catch (e) {
+    return text;
+  }
+};
+
 export const generateQuestions = async (topic: string, difficulty: Difficulty, lang: Language): Promise<QuizQuestion[]> => {
   try {
-    // Inject a random seed to ensure different questions every time the user retries the same topic
     const randomSeed = Math.floor(Math.random() * 1000000);
 
     const prompt = `
       Generate 5 unique and randomized multiple-choice trivia questions about "${topic}" in ${lang === 'ko' ? 'Korean' : lang === 'ja' ? 'Japanese' : lang === 'es' ? 'Spanish' : 'English'}.
       Difficulty Level: ${difficulty}.
-      Random Seed: ${randomSeed} (Use this to vary the questions significantly from previous generations).
+      Random Seed: ${randomSeed}.
       
       Requirements:
       - The Questions, Options, and Context MUST be in the target language (${lang}).
       - 4 options per question.
       - Only 1 correct answer.
       - "context" should be a subtle hint.
-      - Return pure JSON.
+      - Return pure JSON only.
     `;
 
     const response = await ai.models.generateContent({
@@ -58,8 +85,15 @@ export const generateQuestions = async (topic: string, difficulty: Difficulty, l
     const text = response.text;
     if (!text) throw new Error("No data returned from AI");
     
-    const parsed = JSON.parse(text);
-    return parsed.questions;
+    // Clean and Parse
+    try {
+      const cleanedText = cleanJson(text);
+      const parsed = JSON.parse(cleanedText);
+      return parsed.questions;
+    } catch (parseError) {
+      console.error("JSON Parse Error. Raw text:", text);
+      throw new Error("Failed to parse AI response");
+    }
 
   } catch (error) {
     console.error("Error generating quiz:", error);
@@ -135,11 +169,18 @@ export const evaluateAnswers = async (
     const text = response.text;
     if (!text) throw new Error("No evaluation returned");
     
-    const aiData = JSON.parse(text);
-    return {
-      ...aiData,
-      totalScore: score
-    };
+    // Clean and Parse
+    try {
+      const cleanedText = cleanJson(text);
+      const aiData = JSON.parse(cleanedText);
+      return {
+        ...aiData,
+        totalScore: score
+      };
+    } catch (parseError) {
+      console.error("JSON Parse Error in Eval. Raw text:", text);
+      throw new Error("Failed to parse AI evaluation");
+    }
 
   } catch (error) {
     console.error("Error evaluating answers:", error);

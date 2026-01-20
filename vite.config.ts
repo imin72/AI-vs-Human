@@ -3,14 +3,18 @@ import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Use '.' instead of process.cwd() to prevent TS error "Property 'cwd' does not exist on type 'Process'"
-  const env = loadEnv(mode, '.', '');
+  // Load env file based on `mode` in the current working directory.
+  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
+  const env = loadEnv(mode, (process as any).cwd(), '');
+  
   return {
     plugins: [react()],
-    base: './', // Use relative base path to support deployment to subdirectories (e.g. GitHub Pages)
+    base: './', // Use relative base path to support subdirectories
     define: {
-      // Allow usage of process.env.API_KEY in the client-side code
-      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+      // Vital for Vercel: This replaces `process.env.API_KEY` in the client code 
+      // with the actual string value from the environment at build time.
+      // Added fallback to '' to prevent JSON.stringify(undefined) which results in 'undefined'
+      'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY || '')
     }
   };
 });

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { EvaluationResult, Language } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, Zap, Palette, CheckCircle, XCircle, Users } from 'lucide-react';
+import { Share2, RefreshCw, Brain, Zap, Palette, CheckCircle, XCircle, Users, Copy } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { TRANSLATIONS } from '../utils/translations';
 
