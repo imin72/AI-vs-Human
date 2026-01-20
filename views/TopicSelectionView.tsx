@@ -20,7 +20,12 @@ import {
   Orbit, 
   Lightbulb,
   PlusCircle,
-  Hash
+  Hash,
+  Star,
+  Target,
+  Sparkles,
+  Search,
+  Dices
 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Difficulty, TOPIC_IDS } from '../types';
@@ -71,8 +76,34 @@ const getCategoryIcon = (id: string) => {
   }
 };
 
+const getSubtopicIcon = (sub: string) => {
+  const s = sub.toLowerCase();
+  if (s.includes('egypt') || s.includes('ancient') || s.includes('myth')) return <Scroll size={14} />;
+  if (s.includes('war') || s.includes('battle')) return <Target size={14} />;
+  if (s.includes('quantum') || s.includes('physics') || s.includes('chem')) return <FlaskConical size={14} />;
+  if (s.includes('space') || s.includes('star') || s.includes('orbit')) return <Orbit size={14} />;
+  if (s.includes('art') || s.includes('design')) return <Palette size={14} />;
+  if (s.includes('music') || s.includes('pop') || s.includes('rock')) return <Music size={14} />;
+  if (s.includes('game') || s.includes('nintendo') || s.includes('retro')) return <Gamepad2 size={14} />;
+  if (s.includes('movie') || s.includes('film') || s.includes('oscar')) return <Film size={14} />;
+  if (s.includes('tech') || s.includes('ai') || s.includes('code')) return <Cpu size={14} />;
+  if (s.includes('food') || s.includes('cuisine') || s.includes('cook')) return <Utensils size={14} />;
+  if (s.includes('nature') || s.includes('animal') || s.includes('life')) return <Leaf size={14} />;
+  return <Sparkles size={14} />;
+};
+
 export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state, actions }) => {
   const { selectedCategory, selectedSubTopic, customTopic, difficulty, displayedTopics, displayedSubTopics, errorMsg } = state;
+
+  const handleRandomCategory = () => {
+    const randomIdx = Math.floor(Math.random() * displayedTopics.length);
+    actions.selectCategory(displayedTopics[randomIdx].id);
+  };
+
+  const handleRandomSubtopic = () => {
+    const randomIdx = Math.floor(Math.random() * displayedSubTopics.length);
+    actions.selectSubTopic(displayedSubTopics[randomIdx]);
+  };
 
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-6 animate-fade-in relative overflow-hidden min-h-[400px]">
@@ -85,37 +116,42 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
 
       <div className="flex items-center justify-between mb-2 pt-2">
         <div className="w-10"></div>
-        <h2 className="text-2xl font-bold text-center tracking-tight">
+        <h2 className="text-2xl font-bold text-center tracking-tight text-white drop-shadow-md">
           {!selectedCategory ? t.title_select : t.title_config}
         </h2>
         <div className="w-10"></div>
       </div>
       
-      {errorMsg && <div className="text-red-400 text-center text-sm bg-red-900/20 p-2 rounded border border-red-500/20">{errorMsg}</div>}
+      {errorMsg && <div className="text-red-400 text-center text-sm bg-red-900/20 p-2 rounded border border-red-500/20 animate-pulse">{errorMsg}</div>}
 
       {!selectedCategory ? (
         <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+          {/* Random Selection Button for Category */}
+          <button
+            onClick={handleRandomCategory}
+            className="w-full flex items-center justify-center gap-2 py-3 mb-2 rounded-2xl bg-gradient-to-r from-purple-600/20 to-cyan-600/20 border border-cyan-500/30 text-cyan-400 font-bold text-sm hover:from-purple-600/40 hover:to-cyan-600/40 transition-all group"
+          >
+            <Dices size={18} className="group-hover:rotate-12 transition-transform" />
+            RANDOM SELECTION
+          </button>
+
           <div className="grid grid-cols-2 gap-3">
             {displayedTopics.map((topic) => (
               <button
                 key={topic.id}
                 onClick={() => actions.selectCategory(topic.id)}
-                className="group relative h-32 rounded-2xl overflow-hidden border border-slate-700/50 hover:border-cyan-500/50 transition-all shadow-xl active:scale-[0.98]"
+                className="group relative h-32 rounded-2xl overflow-hidden border border-slate-700/50 hover:border-cyan-500 transition-all shadow-xl active:scale-[0.98]"
               >
-                {/* Background Image */}
                 <div 
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
                   style={{ backgroundImage: `url('${t.categoryImages[topic.id]}')` }}
                 />
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent group-hover:via-slate-950/60" />
-                
-                {/* Content */}
-                <div className="absolute inset-x-0 bottom-0 p-3 flex flex-col items-center gap-1">
-                  <div className="text-cyan-400 group-hover:text-cyan-300 transition-colors drop-shadow-md">
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent group-hover:from-slate-950 group-hover:via-slate-950/50" />
+                <div className="absolute inset-x-0 bottom-0 p-4 flex flex-col items-center gap-1.5 translate-y-2 group-hover:translate-y-0 transition-transform">
+                  <div className="text-cyan-400 group-hover:text-cyan-300 transition-colors drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                     {getCategoryIcon(topic.id)}
                   </div>
-                  <span className="font-extrabold text-center text-xs text-white uppercase tracking-wider drop-shadow-lg">
+                  <span className="font-extrabold text-center text-xs text-white uppercase tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
                     {topic.label}
                   </span>
                 </div>
@@ -131,7 +167,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           
           <button 
             onClick={() => actions.selectCategory(TOPIC_IDS.CUSTOM)} 
-            className="w-full p-4 rounded-2xl border border-slate-700 bg-slate-900/50 text-slate-400 hover:text-white hover:border-rose-500 transition-all font-bold text-sm flex items-center justify-center gap-2 group"
+            className="w-full p-4 rounded-2xl border border-slate-700 bg-slate-900/50 text-slate-400 hover:text-white hover:border-rose-500 transition-all font-bold text-sm flex items-center justify-center gap-2 group shadow-inner"
           >
             <PlusCircle size={18} className="group-hover:text-rose-500 transition-colors" />
             {t.categories[TOPIC_IDS.CUSTOM]}
@@ -141,37 +177,54 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
         <div className="space-y-6 animate-fade-in">
           {selectedCategory === TOPIC_IDS.CUSTOM ? (
             <div>
-              <label className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-3 block">{t.label_custom}</label>
+              <label className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-3 block pl-1">{t.label_custom}</label>
               <div className="relative">
                  <input 
                   type="text" 
+                  autoFocus
                   placeholder={t.ph_custom} 
                   value={customTopic} 
                   onChange={(e) => actions.setCustomTopic(e.target.value)} 
-                  className="w-full bg-slate-900/80 border border-slate-700 rounded-2xl p-4 pl-12 text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all" 
+                  className="w-full bg-slate-900/80 border border-slate-700 rounded-2xl p-4 pl-12 text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600" 
                 />
                 <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
               </div>
             </div>
           ) : (
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="text-cyan-500">{getCategoryIcon(selectedCategory)}</div>
-                <label className="text-xs text-slate-400 uppercase tracking-widest font-bold block">{t.label_field}</label>
+              <div className="flex items-center justify-between mb-4 pl-1">
+                <div className="flex items-center gap-2">
+                  <div className="text-cyan-500 drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">{getCategoryIcon(selectedCategory)}</div>
+                  <label className="text-xs text-slate-400 uppercase tracking-widest font-bold block">{t.label_field}</label>
+                </div>
+                {/* Random Selection Button for Subtopic */}
+                <button 
+                  onClick={handleRandomSubtopic}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-cyan-400 text-[10px] font-black uppercase hover:border-cyan-500 transition-all active:scale-95"
+                >
+                  <Dices size={14} /> {t.btn_refresh || 'Random'}
+                </button>
               </div>
-              <div className="grid grid-cols-2 gap-2 max-h-[30vh] overflow-y-auto custom-scrollbar pr-1">
+              <div className="grid grid-cols-2 gap-2.5 max-h-[35vh] overflow-y-auto custom-scrollbar pr-1">
                 {displayedSubTopics.map(sub => (
                   <button 
                     key={sub} 
                     onClick={() => actions.selectSubTopic(sub)} 
-                    className={`p-3 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 ${
+                    className={`group p-3 rounded-xl text-xs font-bold border transition-all flex items-center gap-3 relative overflow-hidden ${
                       selectedSubTopic === sub 
-                        ? 'bg-cyan-600 border-cyan-400 text-white shadow-lg shadow-cyan-500/20' 
-                        : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                        ? 'bg-cyan-600 border-cyan-400 text-white shadow-[0_4px_12px_rgba(8,145,178,0.3)]' 
+                        : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-600 hover:bg-slate-800/60 hover:text-slate-200'
                     }`}
                   >
-                    <div className={`w-2 h-2 rounded-full ${selectedSubTopic === sub ? 'bg-white animate-pulse' : 'bg-slate-700'}`} />
-                    <span className="truncate">{sub}</span>
+                    <div className={`flex-shrink-0 p-1.5 rounded-lg transition-colors ${
+                      selectedSubTopic === sub ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-500 group-hover:text-slate-300'
+                    }`}>
+                      {getSubtopicIcon(sub)}
+                    </div>
+                    <span className="truncate pr-1">{sub}</span>
+                    {selectedSubTopic === sub && (
+                      <div className="absolute right-2 w-1.5 h-1.5 bg-white rounded-full animate-pulse shadow-[0_0_8px_white]" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -179,15 +232,15 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           )}
           
           <div className="space-y-3">
-            <label className="text-xs text-slate-400 uppercase tracking-widest font-bold block">{t.label_difficulty}</label>
-            <div className="flex gap-2 bg-slate-950/50 p-1.5 rounded-2xl border border-slate-800">
+            <label className="text-xs text-slate-400 uppercase tracking-widest font-bold block pl-1">{t.label_difficulty}</label>
+            <div className="flex gap-2 bg-slate-950/60 p-1.5 rounded-2xl border border-slate-800/50 shadow-inner">
               {Object.values(Difficulty).map((diff) => (
                 <button 
                   key={diff} 
                   onClick={() => actions.setDifficulty(diff)} 
-                  className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                  className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all ${
                     difficulty === diff 
-                      ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg' 
+                      ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-[0_4px_10px_rgba(0,0,0,0.3)] border border-white/10' 
                       : 'text-slate-500 hover:text-slate-300'
                   }`}
                 >
@@ -201,9 +254,12 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
             onClick={actions.startQuiz} 
             disabled={(selectedCategory === TOPIC_IDS.CUSTOM && !customTopic) || (selectedCategory !== TOPIC_IDS.CUSTOM && !selectedSubTopic)} 
             fullWidth 
-            className="mt-4 py-4 rounded-2xl text-lg shadow-2xl shadow-cyan-500/20 group"
+            className="mt-4 py-4 rounded-2xl text-base font-black tracking-widest uppercase shadow-[0_8px_30px_rgba(8,145,178,0.25)] group relative overflow-hidden"
           >
-            {t.btn_start_sim} <Play size={20} className="group-hover:translate-x-1 transition-transform" />
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {t.btn_start_sim} <Play size={20} className="group-hover:translate-x-1 transition-transform fill-white" />
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           </Button>
         </div>
       )}
