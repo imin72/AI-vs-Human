@@ -1,4 +1,3 @@
-import React from 'react';
 import { Layout } from './components/Layout';
 import { StageResults } from './components/StageResults';
 import { AppStage, TOPIC_IDS } from './types';
