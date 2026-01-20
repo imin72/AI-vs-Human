@@ -29,7 +29,7 @@ export const useGameViewModel = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [isPending, setIsPending] = useState(false);
 
-  const t = TRANSLATIONS[language];
+  const t = useMemo(() => TRANSLATIONS[language], [language]);
 
   const displayedTopics = useMemo(() => {
     return Object.entries(t.topics.categories)
@@ -39,31 +39,26 @@ export const useGameViewModel = () => {
 
   const displayedSubTopics = useMemo(() => {
     if (!selectedCategory || selectedCategory === TOPIC_IDS.CUSTOM) return [];
+    // 현재 선택된 언어(t)의 서브토픽 목록을 반환
     return t.topics.subtopics[selectedCategory] || [];
   }, [selectedCategory, t]);
 
-  // 클라이언트에서 즉시 점수 및 결과 분석 데이터 준비
   const finishQuiz = async (finalAnswers: UserAnswer[], currentTopic: string, profile: UserProfile, lang: Language) => {
     if (isPending) return;
     setIsPending(true);
     setStage(AppStage.ANALYZING);
     
     try {
-      // 1. 점수 계산 (클라이언트 측 처리)
       const correctCount = finalAnswers.filter(a => a.isCorrect).length;
       const totalCount = finalAnswers.length;
       const score = Math.round((correctCount / totalCount) * 100);
       
-      // 2. 오답 분석 데이터 간소화 (AI 전달용)
       const performanceSummary = finalAnswers.map(a => ({
         id: a.questionId,
         ok: a.isCorrect
       }));
 
-      // 3. AI 분석 요청 (심층 리포트만 생성하도록 유도)
       const res = await evaluateAnswers(currentTopic, score, profile, lang, performanceSummary);
-      
-      // AI가 점수를 잘못 계산하는 경우를 대비해 클라이언트 점수로 강제 덮어쓰기
       setEvaluation({ ...res, totalScore: score });
       setStage(AppStage.RESULTS);
     } catch (e: any) {
@@ -75,7 +70,10 @@ export const useGameViewModel = () => {
   };
 
   const actions = useMemo(() => ({
-    setLanguage: (lang: Language) => { setLanguage(lang); setStage(AppStage.INTRO); },
+    setLanguage: (lang: Language) => { 
+      setLanguage(lang); 
+      setStage(AppStage.INTRO); 
+    },
     startIntro: () => setStage(AppStage.PROFILE),
     updateProfile: (profile: Partial<UserProfile>) => setUserProfile(prev => ({ ...prev, ...profile })),
     submitProfile: () => setStage(AppStage.TOPIC_SELECTION),
@@ -148,7 +146,7 @@ export const useGameViewModel = () => {
     },
     shuffleTopics: () => {},
     shuffleSubTopics: () => {}
-  }), [isPending, selectedCategory, customTopic, selectedSubTopic, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t.common.confirm_exit]);
+  }), [isPending, selectedCategory, customTopic, selectedSubTopic, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t]);
 
   return {
     state: {

@@ -85,7 +85,6 @@ const nationalList = {
   "Other": "Other"
 };
 
-// 최적화된 이미지 파라미터 적용
 const OPT = "&w=400&q=80&auto=format&fit=crop";
 
 const CATEGORY_IMAGES = {
@@ -109,23 +108,22 @@ const CATEGORY_IMAGES = {
 };
 
 const SUBTOPIC_IMAGES = {
-  "고대 이집트": `https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?${OPT}`,
-  "로마 제국": `https://images.unsplash.com/photo-1552832230-c0197dd311b5?${OPT}`,
   "Ancient Egypt": `https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?${OPT}`,
   "Roman Empire": `https://images.unsplash.com/photo-1552832230-c0197dd311b5?${OPT}`,
-  "양자 역학": `https://images.unsplash.com/photo-1635070041078-e363dbe005cb?${OPT}`,
   "Quantum Physics": `https://images.unsplash.com/photo-1635070041078-e363dbe005cb?${OPT}`,
   "Astronomy": `https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?${OPT}`,
-  "천문학": `https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?${OPT}`,
   "Artificial Intelligence": `https://images.unsplash.com/photo-1677442136019-21780ecad995?${OPT}`,
-  "인공지능": `https://images.unsplash.com/photo-1677442136019-21780ecad995?${OPT}`,
-  "Space": `https://images.unsplash.com/photo-1451187580459-43490279c0fa?${OPT}`,
   "Solar System": `https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?${OPT}`,
-  "태양계": `https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?${OPT}`,
   "Nintendo": `https://images.unsplash.com/photo-1527181152855-fc03fc7949c8?${OPT}`,
-  "닌텐도": `https://images.unsplash.com/photo-1527181152855-fc03fc7949c8?${OPT}`,
   "Marvel Cinematic Universe": `https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?${OPT}`,
-  "마블 시네마틱 유니버스": `https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?${OPT}`,
+  "고대 이집트": `https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?${OPT}`,
+  "로마 제국": `https://images.unsplash.com/photo-1552832230-c0197dd311b5?${OPT}`,
+  "양자 역학": `https://images.unsplash.com/photo-1635070041078-e363dbe005cb?${OPT}`,
+  "천문학": `https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?${OPT}`,
+  "인공지능": `https://images.unsplash.com/photo-1677442136019-21780ecad995?${OPT}`,
+  "태양계": `https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?${OPT}`,
+  "닌텐도": `https://images.unsplash.com/photo-1527181152855-fc03fc7949c8?${OPT}`,
+  "마블 시네마틱 유니버스": `https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?${OPT}`
 };
 
 const ENGLISH_BASE: TranslationData = {
@@ -296,6 +294,25 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
         [TOPIC_IDS.SPACE]: "우주",
         [TOPIC_IDS.PHILOSOPHY]: "철학",
         [TOPIC_IDS.CUSTOM]: "직접 입력"
+      },
+      subtopics: {
+        [TOPIC_IDS.HISTORY]: ["고대 이집트", "로마 제국", "제2차 세계 대전", "냉전", "르네상스", "산업 혁명", "프랑스 혁명", "미국 내전", "봉건 시대 일본", "바이킹", "아즈텍 제국", "몽골 제국", "십자군 전쟁", "빅토리아 시대", "선사 시대", "탈식민지화"],
+        [TOPIC_IDS.SCIENCE]: ["양자 역학", "유전학", "유기 화학", "뇌과학", "식물학", "천문학", "지질학", "열역학", "해양 생물학", "진화론", "입자 물리학", "면역학", "고생물학", "기상학", "로봇 공학", "생태학"],
+        [TOPIC_IDS.ARTS]: ["인상주의", "르네상스 미술", "입체파", "초현실주의", "바로크", "모더니즘", "조각", "그래픽 디자인", "패션 히스토리", "사진", "연극", "오페라", "추상 표현주의", "도예", "서예", "고딕 건축"],
+        [TOPIC_IDS.GENERAL]: ["80년대 트라이비아", "90년대 트라이비아", "발명품", "세계의 수도", "화폐", "노벨상", "공포증", "브랜드 로고", "암호화폐", "바이럴 트렌드", "보드 게임", "카드 게임", "슈퍼히어로", "클래식 장난감", "칵테일", "자동차 브랜드"],
+        [TOPIC_IDS.GEOGRAPHY]: ["수도", "랜드마크", "산맥", "강", "사막", "섬", "화산", "국기", "인구 통계", "기후대", "해양", "미국 주", "유럽 국가", "아시아 도시", "아프리카 국가", "국경"],
+        [TOPIC_IDS.MOVIES]: ["오스카", "SF", "공포 영화", "마블 시네마틱 유니버스", "스타워즈", "픽사", "80년대 영화", "90년대 영화", "유명 감독", "영화 사운드트랙", "컬트 클래식", "애니메이션 영화", "프랑스 영화", "무성 영화 시대", "특수 효과", "영화 빌런"],
+        [TOPIC_IDS.MUSIC]: ["록큰롤", "팝 음악", "재즈", "클래식", "힙합", "K-Pop", "EDM", "헤비메탈", "블루스", "컨트리", "오페라", "악기", "90년대 히트곡", "원히트 원더", "음악 이론", "우드스탁"],
+        [TOPIC_IDS.GAMING]: ["닌텐도", "플레이스테이션", "엑스박스", "PC 게임", "RPG", "FPS", "아케이드 클래식", "레트로 게임", "e스포츠", "마인크래프트", "포켓몬", "젤다의 전설", "마리오", "인디 게임", "스피드런", "MMO"],
+        [TOPIC_IDS.SPORTS]: ["축구", "농구", "야구", "테니스", "골프", "F1", "올림픽", "복싱", "MMA", "크리켓", "럭비", "수영", "겨울 스포츠", "스케이트보드", "프로레슬링", "월드컵"],
+        [TOPIC_IDS.TECH]: ["인공지능", "스마트폰", "인터넷 역사", "소셜 미디어", "코딩", "사이버 보안", "우주 기술", "VR/AR", "블록체인", "로봇", "컴퓨터 하드웨어", "빅데이터", "스타트업", "해커", "게이밍 테크", "5G"],
+        [TOPIC_IDS.MYTHOLOGY]: ["그리스 신화", "북유럽 신화", "이집트 신화", "로마 신화", "일본 전설", "중국 신화", "켈트 신화", "아즈텍 신화", "힌두 신화", "북미 원주민 신화", "전설의 괴물", "서사시 영웅", "지하 세계", "창세 신화", "전쟁의 신", "트릭스터"],
+        [TOPIC_IDS.LITERATURE]: ["셰익스피어", "고전 소설", "디스토피아 소설", "판타지", "SF 소설", "시", "공포", "미스터리", "만화 및 망가", "노벨상 작가", "동화", "그리스 서사시", "러시아 문학", "미국 문학", "영국 문학", "극작가"],
+        [TOPIC_IDS.NATURE]: ["포유류", "조류", "곤충", "해양 생물", "공룡", "열대 우림", "사막", "날씨", "꽃", "나무", "국립공원", "생존 기술", "진화", "멸종 위기종", "균류", "보석 및 광물"],
+        [TOPIC_IDS.FOOD]: ["이탈리아 요리", "프랑스 요리", "멕시코 음식", "일본 음식", "중국 음식", "인도 음식", "디저트", "와인", "커피", "치즈", "향신료", "길거리 음식", "패스트푸드", "베이킹", "비건", "칵테일"],
+        [TOPIC_IDS.SPACE]: ["태양계", "블랙홀", "화성", "달 착륙", "별자리", "항성", "은하", "우주 비행사", "우주 경쟁", "망원경", "외계 행성", "중력", "로켓", "SETI", "ISS", "빅뱅"],
+        [TOPIC_IDS.PHILOSOPHY]: ["윤리학", "논리학", "형이상학", "실존주의", "스토아학파", "허무주의", "정치 철학", "동양 철학", "고대 그리스", "계몽주의", "공리주의", "미학", "인식론", "심리 철학", "유명한 명언", "역설"],
+        [TOPIC_IDS.CUSTOM]: []
       }
     },
     quiz: {
