@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCcw, Play } from 'lucide-react';
+import { RefreshCcw, Play, ChevronLeft } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Difficulty, TOPIC_IDS } from '../types';
 
@@ -31,14 +31,12 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
 
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-6 animate-fade-in relative overflow-hidden">
-      {selectedCategory && (
-          <button 
-            onClick={actions.goBack}
-            className="absolute top-4 left-4 text-slate-400 hover:text-white text-sm flex items-center gap-1"
-          >
-            ← {t.btn_back}
-          </button>
-      )}
+      <button 
+        onClick={actions.goBack}
+        className="absolute top-4 left-4 text-slate-400 hover:text-white text-sm flex items-center gap-1 transition-colors"
+      >
+        <ChevronLeft size={16} /> {t.btn_back}
+      </button>
 
       {/* Header with Refresh */}
       <div className="flex items-center justify-between mb-4 pt-2">

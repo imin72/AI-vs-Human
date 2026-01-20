@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserCircle2, ChevronRight } from 'lucide-react';
+import { UserCircle2, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from '../components/Button';
 import { UserProfile } from '../types';
 
@@ -8,12 +8,21 @@ interface ProfileViewProps {
   userProfile: UserProfile;
   onUpdate: (profile: Partial<UserProfile>) => void;
   onSubmit: () => void;
+  onBack: () => void;
+  backLabel: string;
 }
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, onUpdate, onSubmit }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, onUpdate, onSubmit, onBack, backLabel }) => {
   return (
-    <div className="glass-panel p-6 rounded-3xl space-y-6 animate-fade-in">
-      <div className="text-center">
+    <div className="glass-panel p-6 rounded-3xl space-y-6 animate-fade-in relative">
+      <button 
+        onClick={onBack}
+        className="absolute top-4 left-4 text-slate-400 hover:text-white text-sm flex items-center gap-1 transition-colors"
+      >
+        <ChevronLeft size={16} /> {backLabel}
+      </button>
+
+      <div className="text-center mt-2">
         <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 text-cyan-400">
            <UserCircle2 size={24} />
         </div>

@@ -1,26 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language } from "../types";
 
-// Robustly retrieve API Key
-// Vercel or other envs might inject the key with surrounding quotes or whitespace.
-// We must sanitize it before sending to Google.
-let keyString = process.env.API_KEY || (import.meta as any).env?.VITE_API_KEY || "";
-
-// Sanitize: 
-// 1. Remove surrounding quotes (common mistake in Vercel dashboard values: "AIza..." -> AIza...)
-// 2. Trim whitespace
-const apiKey = keyString.replace(/["']/g, "").trim();
-
-if (!apiKey) {
-  console.error("CRITICAL ERROR: API_KEY is missing.");
-}
-
-// Initialize only if key exists to avoid immediate crash, check inside functions
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+// Always use process.env.API_KEY directly as per guidelines
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const MODEL_NAME = 'gemini-3-flash-preview';
 
-// Helper to extract JSON object from text (handles markdown and extra text)
+// Helper to extract JSON object from text
 const cleanJson = (text: string): string => {
   try {
     const firstOpen = text.indexOf('{');
@@ -40,9 +26,35 @@ const cleanJson = (text: string): string => {
   }
 };
 
+// Helper to parse Google API Errors
+const handleApiError = (error: any): never => {
+  console.error("Gemini API Error:", error);
+  
+  let errorMessage = error.message || "Unknown error occurred";
+
+  // Try to parse if the error message is a JSON string (common with Google API errors)
+  try {
+    if (typeof errorMessage === 'string' && errorMessage.startsWith('{')) {
+      const parsed = JSON.parse(errorMessage);
+      if (parsed.error && parsed.error.message) {
+        errorMessage = parsed.error.message;
+      }
+    }
+  } catch (e) {
+    // If parsing fails, use the original message
+  }
+
+  // Friendly override for specific errors
+  if (errorMessage.includes("API key not valid")) {
+    throw new Error("Invalid API Key. Please check your Vercel Settings.");
+  }
+  
+  throw new Error(errorMessage);
+};
+
 export const generateQuestions = async (topic: string, difficulty: Difficulty, lang: Language): Promise<QuizQuestion[]> => {
-  if (!ai) {
-    throw new Error("API Key is missing. Check Vercel Environment Variables (API_KEY).");
+  if (!process.env.API_KEY) {
+    throw new Error("API Key is missing. Please check App Settings.");
   }
 
   try {
@@ -96,7 +108,6 @@ export const generateQuestions = async (topic: string, difficulty: Difficulty, l
     const text = response.text;
     if (!text) throw new Error("No data returned from AI");
     
-    // Clean and Parse
     try {
       const cleanedText = cleanJson(text);
       const parsed = JSON.parse(cleanedText);
@@ -107,9 +118,8 @@ export const generateQuestions = async (topic: string, difficulty: Difficulty, l
     }
 
   } catch (error: any) {
-    console.error("Error generating quiz:", error);
-    // Propagate the actual error message
-    throw new Error(error.message || "Failed to generate questions");
+    handleApiError(error);
+    return []; // Unreachable due to throw, but satisfies Typescript
   }
 };
 
@@ -120,7 +130,7 @@ export const evaluateAnswers = async (
   userProfile: UserProfile,
   lang: Language
 ): Promise<EvaluationResult> => {
-  if (!ai) {
+  if (!process.env.API_KEY) {
     throw new Error("API Key is missing.");
   }
 
@@ -185,7 +195,6 @@ export const evaluateAnswers = async (
     const text = response.text;
     if (!text) throw new Error("No evaluation returned");
     
-    // Clean and Parse
     try {
       const cleanedText = cleanJson(text);
       const aiData = JSON.parse(cleanedText);
@@ -199,7 +208,7 @@ export const evaluateAnswers = async (
     }
 
   } catch (error: any) {
-    console.error("Error evaluating answers:", error);
-    throw new Error(error.message || "Failed to evaluate answers");
+    handleApiError(error);
+    return {} as EvaluationResult; // Unreachable
   }
 };

@@ -52,7 +52,7 @@ export interface GameViewModel {
     selectOption: (option: string) => void;
     confirmAnswer: () => void;
     resetApp: () => void;
-    goBackToTopics: () => void;
+    goBack: () => void;
   };
   t: typeof TRANSLATIONS['en']; // Current translation object
 }
@@ -141,9 +141,42 @@ export const useGameViewModel = (): GameViewModel => {
     
     setDifficulty: (diff: Difficulty) => setDifficulty(diff),
 
-    goBackToTopics: () => {
-      setSelectedCategory('');
-      setSelectedSubTopic('');
+    goBack: () => {
+      switch (stage) {
+        case AppStage.INTRO:
+          setStage(AppStage.LANGUAGE);
+          break;
+        case AppStage.PROFILE:
+          setStage(AppStage.INTRO);
+          break;
+        case AppStage.TOPIC_SELECTION:
+          if (selectedCategory) {
+            setSelectedCategory('');
+            setSelectedSubTopic('');
+            setCustomTopic('');
+          } else {
+            setStage(AppStage.PROFILE);
+          }
+          break;
+        case AppStage.QUIZ:
+          if (window.confirm(t.common.confirm_exit)) {
+            setStage(AppStage.TOPIC_SELECTION);
+            setQuestions([]);
+            setCurrentQuestionIndex(0);
+            setUserAnswers([]);
+            setSelectedOption(null);
+          }
+          break;
+        case AppStage.RESULTS:
+        case AppStage.ERROR:
+          setStage(AppStage.TOPIC_SELECTION);
+          setQuestions([]);
+          setCurrentQuestionIndex(0);
+          setUserAnswers([]);
+          setSelectedOption(null);
+          setEvaluation(null);
+          break;
+      }
     },
 
     startQuiz: async () => {

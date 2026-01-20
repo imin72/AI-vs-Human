@@ -1,6 +1,10 @@
 import { Language, Difficulty, TOPIC_IDS } from '../types';
 
 interface TranslationData {
+  common: {
+    btn_back: string;
+    confirm_exit: string;
+  };
   intro: {
     human_label: string;
     ai_label: string;
@@ -20,7 +24,6 @@ interface TranslationData {
   topics: {
     title_select: string;
     title_config: string;
-    btn_back: string;
     btn_refresh: string;
     label_custom: string;
     ph_custom: string;
@@ -69,6 +72,10 @@ interface TranslationData {
 
 export const TRANSLATIONS: Record<Language, TranslationData> = {
   en: {
+    common: {
+      btn_back: "Back",
+      confirm_exit: "Are you sure you want to exit the quiz? Progress will be lost."
+    },
     intro: {
       human_label: "HUMAN",
       ai_label: "AI",
@@ -88,7 +95,6 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     topics: {
       title_select: "Select Domain",
       title_config: "Configuration",
-      btn_back: "Back",
       btn_refresh: "Shuffle",
       label_custom: "CUSTOM TOPIC",
       ph_custom: "e.g. '80s Synthwave', 'Quantum Mechanics'",
@@ -167,6 +173,10 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     }
   },
   ko: {
+    common: {
+      btn_back: "뒤로",
+      confirm_exit: "퀴즈를 종료하시겠습니까? 진행 상황이 손실됩니다."
+    },
     intro: {
       human_label: "인간",
       ai_label: "인공지능",
@@ -186,7 +196,6 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     topics: {
       title_select: "영역 선택",
       title_config: "구성 설정",
-      btn_back: "뒤로",
       btn_refresh: "새로고침",
       label_custom: "사용자 지정 주제",
       ph_custom: "예: '80년대 신스웨이브', '양자 역학'",
@@ -265,6 +274,10 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     }
   },
   ja: {
+    common: {
+      btn_back: "戻る",
+      confirm_exit: "クイズを終了しますか？進行状況は失われます。"
+    },
     intro: {
       human_label: "人間",
       ai_label: "人工知能",
@@ -284,7 +297,6 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     topics: {
       title_select: "領域選択",
       title_config: "構成設定",
-      btn_back: "戻る",
       btn_refresh: "更新",
       label_custom: "カスタムトピック",
       ph_custom: "例: '80年代シンセウェーブ'、'量子力学'",
@@ -363,6 +375,10 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     }
   },
   es: {
+    common: {
+      btn_back: "Atrás",
+      confirm_exit: "¿Estás seguro de que quieres salir del cuestionario? Se perderá el progreso."
+    },
     intro: {
       human_label: "HUMANO",
       ai_label: "IA",
@@ -382,7 +398,6 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     topics: {
       title_select: "Seleccionar Dominio",
       title_config: "Configuración",
-      btn_back: "Atrás",
       btn_refresh: "Barajar",
       label_custom: "TEMA PERSONALIZADO",
       ph_custom: "ej. 'Rock de los 80', 'Mecánica Cuántica'",

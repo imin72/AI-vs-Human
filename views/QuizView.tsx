@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from '../components/Button';
 import { QuizQuestion } from '../types';
 
@@ -11,6 +11,8 @@ interface QuizViewProps {
   topicLabel: string;
   onSelectOption: (opt: string) => void;
   onConfirm: () => void;
+  onBack: () => void;
+  backLabel: string;
 }
 
 export const QuizView: React.FC<QuizViewProps> = ({ 
@@ -20,13 +22,22 @@ export const QuizView: React.FC<QuizViewProps> = ({
   selectedOption, 
   topicLabel, 
   onSelectOption, 
-  onConfirm 
+  onConfirm,
+  onBack,
+  backLabel
 }) => {
   const question = questions[currentIndex];
 
   return (
-    <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6 animate-fade-in w-full max-w-2xl">
-      <div className="flex justify-between items-center text-sm text-slate-400 uppercase tracking-wider">
+    <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6 animate-fade-in w-full max-w-2xl relative">
+      <button 
+        onClick={onBack}
+        className="absolute top-6 left-6 text-slate-500 hover:text-white text-sm flex items-center gap-1 transition-colors"
+      >
+        <ChevronLeft size={16} /> {backLabel}
+      </button>
+
+      <div className="flex justify-between items-center text-sm text-slate-400 uppercase tracking-wider pl-16">
         <span className="bg-slate-800 px-3 py-1 rounded-full text-xs font-bold border border-slate-700">
             {topicLabel}
         </span>

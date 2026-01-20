@@ -23,7 +23,12 @@ export default function App() {
       )}
       
       {stage === AppStage.INTRO && (
-        <IntroView t={t.intro} onStart={actions.startIntro} />
+        <IntroView 
+          t={t.intro} 
+          onStart={actions.startIntro} 
+          onBack={actions.goBack}
+          backLabel={t.common.btn_back}
+        />
       )}
       
       {stage === AppStage.PROFILE && (
@@ -32,18 +37,20 @@ export default function App() {
           userProfile={userProfile} 
           onUpdate={actions.updateProfile}
           onSubmit={actions.submitProfile}
+          onBack={actions.goBack}
+          backLabel={t.common.btn_back}
         />
       )}
       
       {stage === AppStage.TOPIC_SELECTION && (
         <TopicSelectionView 
-          t={{...t.topics, difficulty: t.difficulty, btn_back: t.topics.btn_back}} 
+          t={{...t.topics, difficulty: t.difficulty, btn_back: t.common.btn_back}} 
           state={{
             ...topicState,
             errorMsg: resultState.errorMsg
           }}
           actions={{
-            goBack: actions.goBackToTopics,
+            goBack: actions.goBack,
             shuffleTopics: actions.shuffleTopics,
             selectCategory: actions.selectCategory,
             setCustomTopic: actions.setCustomTopic,
@@ -68,6 +75,8 @@ export default function App() {
           topicLabel={topicState.selectedCategory === TOPIC_IDS.CUSTOM ? topicState.customTopic : topicState.selectedSubTopic}
           onSelectOption={actions.selectOption}
           onConfirm={actions.confirmAnswer}
+          onBack={actions.goBack}
+          backLabel={t.common.btn_back}
         />
       )}
       
