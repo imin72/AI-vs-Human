@@ -19,9 +19,22 @@ const cleanJson = (text: string | undefined): string => {
   }
 };
 
-const handleApiError = (error: any): never => {
-  console.error("Gemini API Error:", error);
-  throw new Error(error.message || "Unknown error occurred");
+const handleApiError = (error: any, lang: Language): never => {
+  console.error("Gemini API Error details:", error);
+  let message = error.message || "Unknown error occurred";
+  
+  // Handle Quota Exceeded (429)
+  if (message.includes("429") || message.toLowerCase().includes("quota") || message.toLowerCase().includes("limit")) {
+    message = lang === 'ko' 
+      ? "AI 서비스 요청 한도를 초과했습니다. 약 1분 후 다시 시도해 주세요." 
+      : "AI request quota exceeded. Please wait a minute and try again.";
+  } else if (message.includes("500") || message.toLowerCase().includes("server error")) {
+    message = lang === 'ko'
+      ? "AI 서버에 일시적인 오류가 발생했습니다. 다시 시도해 주세요."
+      : "AI server is temporarily unavailable. Please try again.";
+  }
+  
+  throw new Error(message);
 };
 
 export const generateLocalizedTopics = async (
@@ -150,7 +163,7 @@ export const generateQuestions = async (
     const cleaned = cleanJson(response.text);
     return cleaned ? JSON.parse(cleaned).questions : [];
   } catch (error: any) {
-    handleApiError(error);
+    handleApiError(error, lang);
     return [];
   }
 };
@@ -200,7 +213,7 @@ export const evaluateAnswers = async (
     const evaluation = cleaned ? JSON.parse(cleaned) : {};
     return { ...evaluation, totalScore: score };
   } catch (error: any) {
-    handleApiError(error);
+    handleApiError(error, lang);
     return {} as EvaluationResult;
   }
 };

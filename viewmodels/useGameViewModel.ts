@@ -144,7 +144,7 @@ export const useGameViewModel = (): GameViewModel => {
         setStage(AppStage.QUIZ);
       } catch (e: any) {
         setErrorMsg(e.message);
-        setStage(AppStage.TOPIC_SELECTION);
+        setStage(AppStage.ERROR);
       }
     },
     selectOption: (option: string) => setSelectedOption(option),
@@ -165,6 +165,7 @@ export const useGameViewModel = (): GameViewModel => {
       setUserAnswers([]); 
       setCurrentQuestionIndex(0); 
       setSelectedCategory(''); 
+      setErrorMsg('');
     }
   };
 
