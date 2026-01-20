@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { 
   Play, 
   ChevronLeft, 
@@ -21,18 +21,7 @@ import {
   Lightbulb,
   PlusCircle,
   Hash,
-  Target,
-  Sparkles,
-  Dices,
-  Atom,
-  Sword,
-  Clapperboard,
-  Pizza,
-  Microscope,
-  Mountain,
-  Ghost,
-  Cpu as TechIcon,
-  Tent
+  Dices
 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Difficulty, TOPIC_IDS } from '../types';
@@ -83,45 +72,29 @@ const getCategoryIcon = (id: string) => {
   }
 };
 
-const getSubtopicIcon = (sub: string) => {
-  const s = sub.toLowerCase();
-  
-  if (s.includes('ancient') || s.includes('egypt') || s.includes('myth') || s.includes('folklore')) return <Scroll size={14} />;
-  if (s.includes('war') || s.includes('battle') || s.includes('crusades') || s.includes('civil')) return <Sword size={14} />;
-  if (s.includes('renaissance') || s.includes('empire') || s.includes('era')) return <History size={14} />;
-  if (s.includes('quantum') || s.includes('physics') || s.includes('atom')) return <Atom size={14} />;
-  if (s.includes('neuro') || s.includes('genetic') || s.includes('bio') || s.includes('medical')) return <Microscope size={14} />;
-  if (s.includes('ai') || s.includes('code') || s.includes('robotic') || s.includes('hard') || s.includes('cyber')) return <TechIcon size={14} />;
-  if (s.includes('solar') || s.includes('planet') || s.includes('moon') || s.includes('galaxy') || s.includes('star')) return <Orbit size={14} />;
-  if (s.includes('art') || s.includes('paint') || s.includes('sculpt') || s.includes('design')) return <Palette size={14} />;
-  if (s.includes('book') || s.includes('novel') || s.includes('writer') || s.includes('liter')) return <Book size={14} />;
-  if (s.includes('movie') || s.includes('film') || s.includes('oscar') || s.includes('cinema')) return <Clapperboard size={14} />;
-  if (s.includes('music') || s.includes('pop') || s.includes('rock') || s.includes('jazz')) return <Music size={14} />;
-  if (s.includes('game') || s.includes('retro') || s.includes('playstation') || s.includes('nintendo')) return <Gamepad2 size={14} />;
-  if (s.includes('mount') || s.includes('river') || s.includes('island')) return <Mountain size={14} />;
-  if (s.includes('animal') || s.includes('bird') || s.includes('ocean') || s.includes('forest')) return <Leaf size={14} />;
-  if (s.includes('surviv')) return <Tent size={14} />;
-  if (s.includes('soccer') || s.includes('basket') || s.includes('ball') || s.includes('olympic')) return <Trophy size={14} />;
-  if (s.includes('cuisine') || s.includes('food') || s.includes('dessert') || s.includes('cook')) return <Pizza size={14} />;
-  if (s.includes('horror') || s.includes('ghost')) return <Ghost size={14} />;
-  if (s.includes('phobia') || s.includes('quiz')) return <Target size={14} />;
-  
-  return <Sparkles size={14} />;
-};
-
 export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state, actions }) => {
   const { selectedCategory, selectedSubTopic, customTopic, difficulty, displayedTopics, displayedSubTopics, errorMsg } = state;
+  
+  // Local state to manage the 4 subtopics being displayed
+  const [subsetSubTopics, setSubsetSubTopics] = useState<string[]>([]);
+
+  // When category changes, pick 4 random subtopics
+  useEffect(() => {
+    if (selectedCategory && displayedSubTopics.length > 0) {
+      handleRefreshSubtopics();
+    }
+  }, [selectedCategory, displayedSubTopics.length]);
+
+  const handleRefreshSubtopics = () => {
+    const shuffled = [...displayedSubTopics].sort(() => 0.5 - Math.random());
+    setSubsetSubTopics(shuffled.slice(0, 4));
+    // If the currently selected subtopic is not in the new subset, we don't necessarily clear it, 
+    // but the UI will show it's not selected among the visible ones.
+  };
 
   const handleRandomCategory = () => {
     const randomIdx = Math.floor(Math.random() * displayedTopics.length);
     actions.selectCategory(displayedTopics[randomIdx].id);
-  };
-
-  const handleRandomSubtopic = () => {
-    if (displayedSubTopics.length > 0) {
-      const randomIdx = Math.floor(Math.random() * displayedSubTopics.length);
-      actions.selectSubTopic(displayedSubTopics[randomIdx]);
-    }
   };
 
   return (
@@ -192,7 +165,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           </button>
         </div>
       ) : (
-        <div className="space-y-6 animate-fade-in max-h-[70vh] overflow-y-auto custom-scrollbar pr-1">
+        <div className="space-y-6 animate-fade-in">
           {selectedCategory === TOPIC_IDS.CUSTOM ? (
             <div>
               <label className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-3 block pl-1">{t.label_custom}</label>
@@ -210,13 +183,13 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
             </div>
           ) : (
             <div>
-              {/* Random Selection Button for Subtopic - Repositioned to Top */}
+              {/* Shuffle/Random Selection Button for Subtopics */}
               <button
-                onClick={handleRandomSubtopic}
+                onClick={handleRefreshSubtopics}
                 className="w-full flex items-center justify-center gap-2 py-3 mb-4 rounded-2xl bg-gradient-to-r from-cyan-600/20 to-blue-600/20 border border-blue-500/30 text-blue-400 font-bold text-sm hover:from-cyan-600/40 hover:to-blue-600/40 transition-all group shadow-lg"
               >
                 <Dices size={18} className="group-hover:rotate-12 transition-transform" />
-                RANDOM SELECTION
+                RANDOM SELECTION (SHUFFLE)
               </button>
 
               <div className="flex items-center gap-2 mb-4 pl-1">
@@ -224,25 +197,37 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                 <label className="text-xs text-slate-400 uppercase tracking-widest font-bold block">{t.label_field}</label>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 mb-6">
-                {displayedSubTopics.map(sub => (
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {subsetSubTopics.map(sub => (
                   <button 
                     key={sub} 
                     onClick={() => actions.selectSubTopic(sub)} 
-                    className={`group p-3 rounded-xl text-xs font-bold border transition-all flex items-center gap-3 relative overflow-hidden ${
+                    className={`group relative h-24 rounded-xl overflow-hidden border transition-all active:scale-[0.98] ${
                       selectedSubTopic === sub 
-                        ? 'bg-cyan-600 border-cyan-400 text-white shadow-[0_4px_12px_rgba(8,145,178,0.3)]' 
-                        : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-600 hover:bg-slate-800/60 hover:text-slate-200'
+                        ? 'border-cyan-400 ring-2 ring-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]' 
+                        : 'border-slate-800 hover:border-slate-500'
                     }`}
                   >
-                    <div className={`flex-shrink-0 p-1.5 rounded-lg transition-colors ${
-                      selectedSubTopic === sub ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-500 group-hover:text-slate-300'
-                    }`}>
-                      {getSubtopicIcon(sub)}
+                    <div 
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+                      style={{ backgroundImage: `url('https://images.unsplash.com/photo-1500000000000?auto=format&fit=crop&w=400&q=80&sig=${encodeURIComponent(sub)}')` }}
+                    />
+                    <div className={`absolute inset-0 bg-gradient-to-t transition-colors ${
+                      selectedSubTopic === sub 
+                        ? 'from-cyan-900/95 via-cyan-900/60 to-cyan-900/40' 
+                        : 'from-slate-950/90 via-slate-950/30 to-transparent group-hover:from-slate-950/95'
+                    }`} />
+                    
+                    <div className="absolute inset-0 p-3 flex flex-col justify-end">
+                      <span className={`text-[12px] font-black text-center leading-tight transition-colors drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase tracking-wide ${
+                        selectedSubTopic === sub ? 'text-white' : 'text-slate-100'
+                      }`}>
+                        {sub}
+                      </span>
                     </div>
-                    <span className="truncate pr-1">{sub}</span>
+                    
                     {selectedSubTopic === sub && (
-                      <div className="absolute right-2 w-1.5 h-1.5 bg-white rounded-full animate-pulse shadow-[0_0_8px_white]" />
+                      <div className="absolute top-2 right-2 w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_cyan]" />
                     )}
                   </button>
                 ))}
