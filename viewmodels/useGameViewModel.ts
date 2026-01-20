@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   AppStage, 
   Language, 
@@ -122,7 +122,6 @@ export const useGameViewModel = () => {
     setStage(AppStage.ANALYZING);
     try {
       const score = Math.round((finalAnswers.filter(a => a.isCorrect).length / finalAnswers.length) * 100);
-      // evaluateAnswers 호출 시 클라이언트에서 계산된 score만 전달하여 모델 부담 최소화
       const res = await evaluateAnswers(selectedSubTopic || customTopic, score, userProfile, language);
       setEvaluation(res);
       setStage(AppStage.RESULTS);

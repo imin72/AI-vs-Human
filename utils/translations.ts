@@ -105,23 +105,29 @@ const CATEGORY_IMAGES = {
   [TOPIC_IDS.CUSTOM]: ""
 };
 
-// 세부 분야별 고정 이미지 (CDN 캐싱 최적화)
 const SUBTOPIC_IMAGES = {
   // 역사
   "고대 이집트": "https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=400&q=80",
   "로마 제국": "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&q=80",
-  "제2차 세계 대전": "https://images.unsplash.com/photo-1505051508008-923feaf90180?w=400&q=80",
-  "냉전": "https://images.unsplash.com/photo-1563206767-5b18f218e7de?w=400&q=80",
+  "Ancient Egypt": "https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=400&q=80",
+  "Roman Empire": "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&q=80",
   // 과학
   "양자 역학": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80",
-  "유전학": "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=400&q=80",
+  "Quantum Physics": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80",
+  "Astronomy": "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=400&q=80",
   "천문학": "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=400&q=80",
-  // 영화
-  "아카데미상": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&q=80",
+  // 기술
+  "Artificial Intelligence": "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&q=80",
+  "인공지능": "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&q=80",
+  // 우주
+  "Space": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=80",
+  "Solar System": "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=400&q=80",
+  "태양계": "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=400&q=80",
+  // 영화/게임
+  "Nintendo": "https://images.unsplash.com/photo-1527181152855-fc03fc7949c8?w=400&q=80",
+  "닌텐도": "https://images.unsplash.com/photo-1527181152855-fc03fc7949c8?w=400&q=80",
+  "Marvel Cinematic Universe": "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&q=80",
   "마블 시네마틱 유니버스": "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&q=80",
-  // 게임
-  "슈퍼 마리오": "https://images.unsplash.com/photo-1612444530582-fc66183b16f7?w=400&q=80",
-  "포켓몬": "https://images.unsplash.com/photo-1613771404721-1f92d799e49f?w=400&q=80",
 };
 
 const ENGLISH_BASE: TranslationData = {
