@@ -85,49 +85,47 @@ const nationalList = {
   "Other": "Other"
 };
 
+// 최적화된 이미지 파라미터 적용
+const OPT = "&w=400&q=80&auto=format&fit=crop";
+
 const CATEGORY_IMAGES = {
-  [TOPIC_IDS.HISTORY]: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.SCIENCE]: "https://images.unsplash.com/photo-1507413245164-6160d8298b31?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.ARTS]: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.GENERAL]: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.GEOGRAPHY]: "https://images.unsplash.com/photo-1521295121783-8a321d551ad2?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.MOVIES]: "https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.MUSIC]: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.GAMING]: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.SPORTS]: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.TECH]: "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.MYTHOLOGY]: "https://images.unsplash.com/photo-1599739291060-4578e77dac5d?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.LITERATURE]: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.NATURE]: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.FOOD]: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.SPACE]: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=400&auto=format&fit=crop",
-  [TOPIC_IDS.PHILOSOPHY]: "https://images.unsplash.com/photo-1505664194779-8beaceb93744?q=80&w=400&auto=format&fit=crop",
+  [TOPIC_IDS.HISTORY]: `https://images.unsplash.com/photo-1461360370896-922624d12aa1?${OPT}`,
+  [TOPIC_IDS.SCIENCE]: `https://images.unsplash.com/photo-1507413245164-6160d8298b31?${OPT}`,
+  [TOPIC_IDS.ARTS]: `https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?${OPT}`,
+  [TOPIC_IDS.GENERAL]: `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?${OPT}`,
+  [TOPIC_IDS.GEOGRAPHY]: `https://images.unsplash.com/photo-1521295121783-8a321d551ad2?${OPT}`,
+  [TOPIC_IDS.MOVIES]: `https://images.unsplash.com/photo-1485846234645-a62644f84728?${OPT}`,
+  [TOPIC_IDS.MUSIC]: `https://images.unsplash.com/photo-1511379938547-c1f69419868d?${OPT}`,
+  [TOPIC_IDS.GAMING]: `https://images.unsplash.com/photo-1542751371-adc38448a05e?${OPT}`,
+  [TOPIC_IDS.SPORTS]: `https://images.unsplash.com/photo-1461896836934-ffe607ba8211?${OPT}`,
+  [TOPIC_IDS.TECH]: `https://images.unsplash.com/photo-1518770660439-4636190af475?${OPT}`,
+  [TOPIC_IDS.MYTHOLOGY]: `https://images.unsplash.com/photo-1599739291060-4578e77dac5d?${OPT}`,
+  [TOPIC_IDS.LITERATURE]: `https://images.unsplash.com/photo-1495446815901-a7297e633e8d?${OPT}`,
+  [TOPIC_IDS.NATURE]: `https://images.unsplash.com/photo-1441974231531-c6227db76b6e?${OPT}`,
+  [TOPIC_IDS.FOOD]: `https://images.unsplash.com/photo-1504674900247-0877df9cc836?${OPT}`,
+  [TOPIC_IDS.SPACE]: `https://images.unsplash.com/photo-1451187580459-43490279c0fa?${OPT}`,
+  [TOPIC_IDS.PHILOSOPHY]: `https://images.unsplash.com/photo-1505664194779-8beaceb93744?${OPT}`,
   [TOPIC_IDS.CUSTOM]: ""
 };
 
 const SUBTOPIC_IMAGES = {
-  // 역사
-  "고대 이집트": "https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=400&q=80",
-  "로마 제국": "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&q=80",
-  "Ancient Egypt": "https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=400&q=80",
-  "Roman Empire": "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&q=80",
-  // 과학
-  "양자 역학": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80",
-  "Quantum Physics": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80",
-  "Astronomy": "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=400&q=80",
-  "천문학": "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=400&q=80",
-  // 기술
-  "Artificial Intelligence": "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&q=80",
-  "인공지능": "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&q=80",
-  // 우주
-  "Space": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=80",
-  "Solar System": "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=400&q=80",
-  "태양계": "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=400&q=80",
-  // 영화/게임
-  "Nintendo": "https://images.unsplash.com/photo-1527181152855-fc03fc7949c8?w=400&q=80",
-  "닌텐도": "https://images.unsplash.com/photo-1527181152855-fc03fc7949c8?w=400&q=80",
-  "Marvel Cinematic Universe": "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&q=80",
-  "마블 시네마틱 유니버스": "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&q=80",
+  "고대 이집트": `https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?${OPT}`,
+  "로마 제국": `https://images.unsplash.com/photo-1552832230-c0197dd311b5?${OPT}`,
+  "Ancient Egypt": `https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?${OPT}`,
+  "Roman Empire": `https://images.unsplash.com/photo-1552832230-c0197dd311b5?${OPT}`,
+  "양자 역학": `https://images.unsplash.com/photo-1635070041078-e363dbe005cb?${OPT}`,
+  "Quantum Physics": `https://images.unsplash.com/photo-1635070041078-e363dbe005cb?${OPT}`,
+  "Astronomy": `https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?${OPT}`,
+  "천문학": `https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?${OPT}`,
+  "Artificial Intelligence": `https://images.unsplash.com/photo-1677442136019-21780ecad995?${OPT}`,
+  "인공지능": `https://images.unsplash.com/photo-1677442136019-21780ecad995?${OPT}`,
+  "Space": `https://images.unsplash.com/photo-1451187580459-43490279c0fa?${OPT}`,
+  "Solar System": `https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?${OPT}`,
+  "태양계": `https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?${OPT}`,
+  "Nintendo": `https://images.unsplash.com/photo-1527181152855-fc03fc7949c8?${OPT}`,
+  "닌텐도": `https://images.unsplash.com/photo-1527181152855-fc03fc7949c8?${OPT}`,
+  "Marvel Cinematic Universe": `https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?${OPT}`,
+  "마블 시네마틱 유니버스": `https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?${OPT}`,
 };
 
 const ENGLISH_BASE: TranslationData = {
@@ -240,7 +238,7 @@ const ENGLISH_BASE: TranslationData = {
 export const TRANSLATIONS: Record<Language, TranslationData> = {
   en: ENGLISH_BASE,
   ko: {
-    ...ENGLISH_BASE, // 기본 구조 상속
+    ...ENGLISH_BASE,
     common: {
       btn_back: "뒤로",
       confirm_exit: "퀴즈를 종료하시겠습니까? 진행 상황이 손실됩니다."
@@ -271,7 +269,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       }
     },
     topics: {
-      ...ENGLISH_BASE.topics, // 영문 데이터 상속 후 한글로 덮어쓰기
+      ...ENGLISH_BASE.topics,
       title_select: "영역 선택",
       title_config: "구성 설정",
       btn_refresh: "새로고침",
@@ -298,25 +296,6 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
         [TOPIC_IDS.SPACE]: "우주",
         [TOPIC_IDS.PHILOSOPHY]: "철학",
         [TOPIC_IDS.CUSTOM]: "직접 입력"
-      },
-      subtopics: {
-        [TOPIC_IDS.HISTORY]: ["고대 이집트", "로마 제국", "제2차 세계 대전", "냉전", "르네상스", "산업 혁명", "프랑스 혁명", "미국 남북 전쟁", "일본 전국시대", "바이킹", "아즈텍 제국", "몽골 제국", "십자군 전쟁", "빅토리아 시대", "선사 시대", "탈식민지화"],
-        [TOPIC_IDS.SCIENCE]: ["양자 역학", "유전학", "유기 화학", "신경 과학", "식물학", "천문학", "지질학", "열역학", "해양 생물학", "진화론", "입자 물리학", "면역학", "고생물학", "기상학", "로봇 공학", "생태학"],
-        [TOPIC_IDS.ARTS]: ["인상주의", "르네상스 미술", "입체파", "초현실주의", "바로크", "모더니즘", "조각", "그래픽 디자인", "패션의 역사", "사진", "연극", "오페라", "추상 표현주의", "도예", "서예", "고딕 건축"],
-        [TOPIC_IDS.GENERAL]: ["80년대 퀴즈", "90년대 퀴즈", "위대한 발명", "세계 수도", "화폐 단위", "노벨상", "공포증", "브랜드 로고", "암호화폐", "바이럴 트렌드", "보드게임", "카드게임", "슈퍼히어로", "고전 장난감", "칵테일", "자동차 브랜드"],
-        [TOPIC_IDS.GEOGRAPHY]: ["수도 이름", "랜드마크", "산맥", "강과 호수", "사막", "섬", "화산", "국기", "인구 통계", "기후대", "대양", "미국 주", "유럽 국가", "아시아 도시", "아프리카 국가", "국경선"],
-        [TOPIC_IDS.MOVIES]: ["아카데미상", "SF 영화", "공포 영화", "마블 시네마틱 유니버스", "스타워즈", "픽사", "80년대 영화", "90년대 영화", "유명 감독", "영화 OST", "컬트 영화", "애니메이션 영화", "프랑스 영화", "무성 영화", "특수 효과", "영화 속 악당"],
-        [TOPIC_IDS.MUSIC]: ["록앤롤", "팝 음악", "재즈", "클래식", "힙합", "K-Pop", "EDM", "헤비메탈", "블루스", "컨트리", "오페라", "악기", "90년대 히트곡", "원히트 원더", "음악 이론", "우드스탁"],
-        [TOPIC_IDS.GAMING]: ["닌텐도", "플레이스테이션", "Xbox", "PC 게임", "RPG", "FPS", "아케이드 고전", "레트로 게임", "E스포츠", "마인크래프트", "포켓몬", "젤다의 전설", "슈퍼 마리오", "인디 게임", "스피드런", "MMORPG"],
-        [TOPIC_IDS.SPORTS]: ["축구", "농구", "야구", "테니스", "골프", "F1", "올림픽", "복싱", "UFC/MMA", "크리켓", "럭비", "수영", "동계 스포츠", "스케이트보드", "프로레슬링", "월드컵"],
-        [TOPIC_IDS.TECH]: ["인공지능", "스마트폰", "인터넷 역사", "소셜 미디어", "코딩", "사이버 보안", "우주 기술", "VR/AR", "블록체인", "로봇", "컴퓨터 하드웨어", "빅데이터", "스타트업", "해커", "게이밍 기어", "5G 통신"],
-        [TOPIC_IDS.MYTHOLOGY]: ["그리스 신화", "북유럽 신화", "이집트 신화", "로마 신화", "일본 요괴", "중국 신화", "켈트 신화", "아즈텍 신화", "힌두 신화", "북미 원주민 신화", "전설의 괴물", "영웅 서사시", "저승/사후세계", "창조 신화", "전쟁의 신", "트릭스터"],
-        [TOPIC_IDS.LITERATURE]: ["셰익스피어", "고전 소설", "디스토피아", "판타지 소설", "SF 소설", "시", "공포 소설", "추리 소설", "만화", "노벨 문학상", "동화", "그리스 서사시", "러시아 문학", "미국 문학", "영국 문학", "희곡 작가"],
-        [TOPIC_IDS.NATURE]: ["포유류", "조류", "곤충", "해양 생물", "공룡", "열대 우림", "사막 생태계", "날씨", "꽃", "나무", "국립공원", "생존 기술", "진화", "멸종 위기종", "균류(버섯)", "보석과 광물"],
-        [TOPIC_IDS.FOOD]: ["이탈리아 요리", "프랑스 요리", "멕시코 음식", "일본 요리", "중국 요리", "인도 요리", "디저트", "와인", "커피", "치즈", "향신료", "길거리 음식", "패스트푸드", "제과 제빵", "비건", "칵테일 레시피"],
-        [TOPIC_IDS.SPACE]: ["태양계", "블랙홀", "화성", "달 착륙", "별자리", "항성", "은하", "우주비행사", "우주 경쟁", "망원경", "외계 행성", "중력", "로켓", "외계 지적생명체", "국제우주정거장", "빅뱅 이론"],
-        [TOPIC_IDS.PHILOSOPHY]: ["윤리학", "논리학", "형이상학", "실존주의", "스토아 학파", "허무주의", "정치 철학", "동양 철학", "고대 그리스", "계몽주의", "공리주의", "미학", "인식론", "심리 철학", "철학 명언", "역설"],
-        [TOPIC_IDS.CUSTOM]: []
       }
     },
     quiz: {

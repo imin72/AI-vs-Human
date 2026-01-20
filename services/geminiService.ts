@@ -8,6 +8,15 @@ const MODEL_NAME = 'gemini-3-flash-preview';
 const CACHE_KEY_QUIZ = "cognito_quiz_cache_v1";
 const CACHE_KEY_EVAL = "cognito_eval_cache_v1";
 
+// 비상용 폴백 퀴즈 (API 장애 발생 시 제공)
+const FALLBACK_QUIZ: QuizQuestion[] = [
+  { id: 1, question: "Which is not a characteristic of Human Intelligence?", options: ["Emotional Intuition", "Pattern Recognition", "Finite Biological Memory", "Infinite Electricity Consumption"], correctAnswer: "Infinite Electricity Consumption", context: "AI uses vast amounts of electricity compared to the human brain." },
+  { id: 2, question: "What is the Turing Test designed to determine?", options: ["CPU Speed", "AI's ability to exhibit human-like behavior", "Battery life", "Internet connectivity"], correctAnswer: "AI's ability to exhibit human-like behavior" },
+  { id: 3, question: "Which field is Cognito Protocol measuring?", options: ["Weightlifting", "Battle of Wits vs AI", "Cooking speed", "Running endurance"], correctAnswer: "Battle of Wits vs AI" },
+  { id: 4, question: "In AI terminology, what does 'LLM' stand for?", options: ["Light Level Monitor", "Large Language Model", "Long Logic Mode", "Lunar Landing Module"], correctAnswer: "Large Language Model" },
+  { id: 5, question: "Who is often called the father of Computer Science?", options: ["Alan Turing", "Steve Jobs", "Elon Musk", "Thomas Edison"], correctAnswer: "Alan Turing" }
+];
+
 const loadCache = (key: string): Record<string, any> => {
   try {
     const saved = localStorage.getItem(key);
@@ -27,12 +36,12 @@ const saveCache = (key: string, data: Record<string, any>) => {
   }
 };
 
-async function withRetry<T>(fn: () => Promise<T>, retries = 2, delay = 3000): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, retries = 1, delay = 2000): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
     const errorMsg = error.message?.toLowerCase() || "";
-    if (retries > 0 && (errorMsg.includes("429") || errorMsg.includes("quota"))) {
+    if (retries > 0 && (errorMsg.includes("429") || errorMsg.includes("quota") || errorMsg.includes("failed to fetch"))) {
       await new Promise(resolve => setTimeout(resolve, delay));
       return withRetry(fn, retries - 1, delay * 2);
     }
@@ -57,7 +66,7 @@ export const generateQuestions = async (
   if (quizCache[cacheKey]) return quizCache[cacheKey];
 
   try {
-    const prompt = `Topic: ${topic}, Diff: ${difficulty}, Lang: ${lang}, User: ${userProfile?.ageGroup || 'General'}. JSON 5 short Qs.`;
+    const prompt = `Topic: ${topic}, Diff: ${difficulty}, Lang: ${lang}, User: ${userProfile?.ageGroup || 'General'}. JSON 5 short Qs. Accuracy 100%.`;
 
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: MODEL_NAME,
@@ -91,7 +100,9 @@ export const generateQuestions = async (
     saveCache(CACHE_KEY_QUIZ, quizCache);
     return qs;
   } catch (error) {
-    throw new Error("API_ERROR_QUIZ");
+    console.error("Quiz Generation Failed:", error);
+    // 폴백 퀴즈 제공 (완전한 중단 방지)
+    return FALLBACK_QUIZ;
   }
 };
 
@@ -107,9 +118,8 @@ export const evaluateAnswers = async (
   if (evalCache[cacheKey]) return evalCache[cacheKey];
 
   try {
-    // 요약된 퍼포먼스 데이터만 전송하여 토큰 절약
     const perfStr = performance.map(p => `Q${p.id}:${p.ok?'OK':'FAIL'}`).join(', ');
-    const prompt = `Report on "${topic}" (Score:${score}/100). User:${userProfile.ageGroup}. Lang:${lang}. Perf:${perfStr}. JSON only. Brief & witty.`;
+    const prompt = `Witty report on "${topic}" (Score:${score}/100). User:${userProfile.ageGroup}. Lang:${lang}. Perf:${perfStr}. JSON only. Max 100 words total.`;
     
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: MODEL_NAME,
@@ -131,8 +141,8 @@ export const evaluateAnswers = async (
                 properties: {
                   questionId: { type: Type.INTEGER },
                   isCorrect: { type: Type.BOOLEAN },
-                  aiComment: { type: Type.STRING, description: "Max 12 words" },
-                  correctFact: { type: Type.STRING, description: "Correct answer key" }
+                  aiComment: { type: Type.STRING },
+                  correctFact: { type: Type.STRING }
                 }
               }
             }
@@ -146,6 +156,20 @@ export const evaluateAnswers = async (
     saveCache(CACHE_KEY_EVAL, evalCache);
     return result;
   } catch (error) {
-    throw new Error("API_ERROR_EVAL");
+    // 분석 실패 시 기본 리포트 반환
+    return {
+      totalScore: score,
+      humanPercentile: score,
+      demographicPercentile: score,
+      demographicComment: "Cognito server is temporarily offline. Your score is processed locally.",
+      aiComparison: "Human intelligence is stable; AI is currently recalibrating.",
+      title: "Local Analysis Mode",
+      details: performance.map(p => ({
+        questionId: p.id,
+        isCorrect: p.ok,
+        aiComment: "Local analysis available.",
+        correctFact: "N/A"
+      }))
+    };
   }
 };
