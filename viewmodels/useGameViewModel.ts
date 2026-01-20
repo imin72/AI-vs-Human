@@ -27,7 +27,7 @@ export const useGameViewModel = () => {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [isPending, setIsPending] = useState(false); // API guard
+  const [isPending, setIsPending] = useState(false);
 
   const t = TRANSLATIONS[language];
 
@@ -42,7 +42,25 @@ export const useGameViewModel = () => {
     return t.topics.subtopics[selectedCategory] || [];
   }, [selectedCategory, t]);
 
-  const actions = {
+  // 내부 헬퍼 함수 (재사용성)
+  const finishQuiz = async (finalAnswers: UserAnswer[], currentTopic: string, profile: UserProfile, lang: Language) => {
+    if (isPending) return;
+    setIsPending(true);
+    setStage(AppStage.ANALYZING);
+    try {
+      const score = Math.round((finalAnswers.filter(a => a.isCorrect).length / finalAnswers.length) * 100);
+      const res = await evaluateAnswers(currentTopic, score, profile, lang);
+      setEvaluation(res);
+      setStage(AppStage.RESULTS);
+    } catch (e: any) {
+      setErrorMsg(e.message);
+      setStage(AppStage.ERROR);
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { setLanguage(lang); setStage(AppStage.INTRO); },
     startIntro: () => setStage(AppStage.PROFILE),
     updateProfile: (profile: Partial<UserProfile>) => setUserProfile(prev => ({ ...prev, ...profile })),
@@ -97,10 +115,12 @@ export const useGameViewModel = () => {
       const updated = [...userAnswers, answer];
       setUserAnswers(updated);
       setSelectedOption(null);
+      
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
       } else {
-        finishQuiz(updated);
+        const currentTopic = selectedCategory === TOPIC_IDS.CUSTOM ? customTopic : selectedSubTopic;
+        finishQuiz(updated, currentTopic, userProfile, language);
       }
     },
     resetApp: () => { 
@@ -114,24 +134,7 @@ export const useGameViewModel = () => {
     },
     shuffleTopics: () => {},
     shuffleSubTopics: () => {}
-  };
-
-  const finishQuiz = async (finalAnswers: UserAnswer[]) => {
-    if (isPending) return;
-    setIsPending(true);
-    setStage(AppStage.ANALYZING);
-    try {
-      const score = Math.round((finalAnswers.filter(a => a.isCorrect).length / finalAnswers.length) * 100);
-      const res = await evaluateAnswers(selectedSubTopic || customTopic, score, userProfile, language);
-      setEvaluation(res);
-      setStage(AppStage.RESULTS);
-    } catch (e: any) {
-      setErrorMsg(e.message);
-      setStage(AppStage.ERROR);
-    } finally {
-      setIsPending(false);
-    }
-  };
+  }), [isPending, selectedCategory, customTopic, selectedSubTopic, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t.common.confirm_exit]);
 
   return {
     state: {
