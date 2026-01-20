@@ -143,7 +143,6 @@ export const evaluateAnswers = async (
   }
 
   try {
-    const hasProfile = userProfile.ageGroup !== 'Skip' && userProfile.gender !== 'Skip';
     const profileText = `User Demographic: Nationality: ${userProfile.nationality}, Gender: ${userProfile.gender}, Age Group: ${userProfile.ageGroup}.`;
 
     const targetLangName = lang === 'ko' ? 'Korean' : lang === 'ja' ? 'Japanese' : lang === 'es' ? 'Spanish' : 'English';
