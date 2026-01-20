@@ -5,48 +5,34 @@ import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language } fro
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const MODEL_NAME = 'gemini-3-flash-preview';
 
-// 캐시 키 프리픽스
 const CACHE_KEY_QUIZ = "cognito_quiz_cache_v1";
 const CACHE_KEY_EVAL = "cognito_eval_cache_v1";
 
-/**
- * 로컬 스토리지에서 캐시 로드
- */
 const loadCache = (key: string): Record<string, any> => {
   try {
     const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : {};
   } catch (e) {
-    console.warn(`Failed to load cache for ${key}`, e);
     return {};
   }
 };
 
-/**
- * 로컬 스토리지에 캐시 저장
- */
 const saveCache = (key: string, data: Record<string, any>) => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (e) {
-    console.warn(`Failed to save cache for ${key}`, e);
-    // 용량 부족 시 전체 초기화 (간단한 관리 전략)
-    if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+    if (e instanceof DOMException && (e.name === 'QuotaExceededError')) {
       localStorage.clear();
     }
   }
 };
 
-/**
- * 지수 백오프 기반 재시도 함수. 
- */
 async function withRetry<T>(fn: () => Promise<T>, retries = 2, delay = 3000): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
     const errorMsg = error.message?.toLowerCase() || "";
-    if (retries > 0 && (errorMsg.includes("429") || errorMsg.includes("quota") || errorMsg.includes("limit"))) {
-      console.warn(`API Limit reached. Retrying in ${delay}ms... (${retries} retries left)`);
+    if (retries > 0 && (errorMsg.includes("429") || errorMsg.includes("quota"))) {
       await new Promise(resolve => setTimeout(resolve, delay));
       return withRetry(fn, retries - 1, delay * 2);
     }
@@ -68,15 +54,10 @@ export const generateQuestions = async (
 ): Promise<QuizQuestion[]> => {
   const cacheKey = `${topic}_${difficulty}_${lang}`.toLowerCase();
   const quizCache = loadCache(CACHE_KEY_QUIZ);
-  
-  // 1. 로컬 캐시 확인
-  if (quizCache[cacheKey]) {
-    console.log("Using cached quiz for:", cacheKey);
-    return quizCache[cacheKey];
-  }
+  if (quizCache[cacheKey]) return quizCache[cacheKey];
 
   try {
-    const prompt = `Topic: ${topic}, Diff: ${difficulty}, Lang: ${lang}, Age: ${userProfile?.ageGroup || 'General'}. Return 5 Qs in JSON. Brief options.`;
+    const prompt = `Topic: ${topic}, Diff: ${difficulty}, Lang: ${lang}, User: ${userProfile?.ageGroup || 'General'}. JSON 5 short Qs.`;
 
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: MODEL_NAME,
@@ -105,17 +86,12 @@ export const generateQuestions = async (
       }
     }));
 
-    const cleanedText = cleanJson(response.text);
-    const qs = JSON.parse(cleanedText).questions;
-    
-    // 2. 결과 저장
+    const qs = JSON.parse(cleanJson(response.text)).questions;
     quizCache[cacheKey] = qs;
     saveCache(CACHE_KEY_QUIZ, quizCache);
-    
     return qs;
-  } catch (error: any) {
-    console.error("Gemini Error:", error);
-    throw new Error("Failed to load quiz. Please check your connection.");
+  } catch (error) {
+    throw new Error("API_ERROR_QUIZ");
   }
 };
 
@@ -123,19 +99,17 @@ export const evaluateAnswers = async (
   topic: string, 
   score: number,
   userProfile: UserProfile,
-  lang: Language
+  lang: Language,
+  performance: {id: number, ok: boolean}[]
 ): Promise<EvaluationResult> => {
-  // 결과 분석은 개인별로 다를 수 있으므로 score와 profile 정보를 조합해 키 생성
-  const cacheKey = `${topic}_${score}_${lang}_${userProfile.ageGroup}`.toLowerCase();
+  const cacheKey = `${topic}_${score}_${lang}_${userProfile.ageGroup}_p${performance.map(p=>p.ok?1:0).join('')}`.toLowerCase();
   const evalCache = loadCache(CACHE_KEY_EVAL);
-
-  if (evalCache[cacheKey]) {
-    console.log("Using cached evaluation for:", cacheKey);
-    return evalCache[cacheKey];
-  }
+  if (evalCache[cacheKey]) return evalCache[cacheKey];
 
   try {
-    const prompt = `Eval "${topic}". Score: ${score}/100. Lang: ${lang}. User: ${userProfile.ageGroup}. Witty short AI report in JSON.`;
+    // 요약된 퍼포먼스 데이터만 전송하여 토큰 절약
+    const perfStr = performance.map(p => `Q${p.id}:${p.ok?'OK':'FAIL'}`).join(', ');
+    const prompt = `Report on "${topic}" (Score:${score}/100). User:${userProfile.ageGroup}. Lang:${lang}. Perf:${perfStr}. JSON only. Brief & witty.`;
     
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: MODEL_NAME,
@@ -145,7 +119,6 @@ export const evaluateAnswers = async (
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            totalScore: { type: Type.INTEGER },
             humanPercentile: { type: Type.INTEGER },
             demographicPercentile: { type: Type.INTEGER },
             demographicComment: { type: Type.STRING },
@@ -158,8 +131,8 @@ export const evaluateAnswers = async (
                 properties: {
                   questionId: { type: Type.INTEGER },
                   isCorrect: { type: Type.BOOLEAN },
-                  aiComment: { type: Type.STRING },
-                  correctFact: { type: Type.STRING }
+                  aiComment: { type: Type.STRING, description: "Max 12 words" },
+                  correctFact: { type: Type.STRING, description: "Correct answer key" }
                 }
               }
             }
@@ -168,17 +141,11 @@ export const evaluateAnswers = async (
       }
     }));
     
-    const cleanedText = cleanJson(response.text);
-    const evaluation = JSON.parse(cleanedText);
-    const result = { ...evaluation, totalScore: score };
-    
-    // 결과 저장
+    const result = JSON.parse(cleanJson(response.text));
     evalCache[cacheKey] = result;
     saveCache(CACHE_KEY_EVAL, evalCache);
-    
     return result;
-  } catch (error: any) {
-    console.error("Gemini Error:", error);
-    throw new Error("Analysis failed. The AI is taking a short break.");
+  } catch (error) {
+    throw new Error("API_ERROR_EVAL");
   }
 };
