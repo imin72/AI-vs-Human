@@ -5,10 +5,10 @@ import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language } fro
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
- * 사용자 요청에 따라 'gemini-1.5-flash' 모델을 사용합니다.
- * 이 모델은 빠른 응답 속도와 효율적인 리소스 사용이 특징입니다.
+ * 'gemini-3-flash-preview'는 Gemini 3 시리즈 모델로, 
+ * 가이드라인에 따라 gemini-1.5-flash를 대체하며 가장 빠르고 안정적인 성능을 제공합니다.
  */
-const MODEL_NAME = 'gemini-1.5-flash';
+const MODEL_NAME = 'gemini-3-flash-preview';
 
 const cleanJson = (text: string | undefined): string => {
   if (!text) return "";
@@ -36,10 +36,10 @@ const handleApiError = (error: any, lang: Language): never => {
     message = lang === 'ko'
       ? "AI 서버에 일시적인 오류가 발생했습니다. 다시 시도해 주세요."
       : "AI server is temporarily unavailable. Please try again.";
-  } else if (message.includes("404")) {
+  } else if (message.includes("404") || message.includes("not found")) {
     message = lang === 'ko'
-      ? "시스템 구성 오류: 지원되지 않는 모델입니다."
-      : "System Configuration Error: Model not found.";
+      ? "시스템 구성 오류: 지원되지 않는 모델이거나 API 키 설정이 올바르지 않습니다."
+      : "System Configuration Error: Model not found or API key issue.";
   }
   
   throw new Error(message);
