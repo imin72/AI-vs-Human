@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { 
   AppStage, 
   Language, 
@@ -89,11 +89,14 @@ export const useGameViewModel = (): GameViewModel => {
 
   // --- LOGIC HELPERS ---
 
-  const TOPIC_KEYS_WITHOUT_CUSTOM = Object.values(TOPIC_IDS).filter(id => id !== TOPIC_IDS.CUSTOM);
+  const TOPIC_KEYS_WITHOUT_CUSTOM = useMemo(() => 
+    Object.values(TOPIC_IDS).filter(id => id !== TOPIC_IDS.CUSTOM), 
+  []);
 
   const shuffleTopics = useCallback(() => {
     const shuffled = [...TOPIC_KEYS_WITHOUT_CUSTOM].sort(() => 0.5 - Math.random());
-    setDisplayedTopics(shuffled.slice(0, 4));
+    // Display 6 random main categories for more variety
+    setDisplayedTopics(shuffled.slice(0, 6));
     setSelectedCategory('');
     setSelectedSubTopic('');
   }, [TOPIC_KEYS_WITHOUT_CUSTOM]);

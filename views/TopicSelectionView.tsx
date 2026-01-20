@@ -62,14 +62,14 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
 
       {!selectedCategory && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {displayedTopics.map((id) => (
               <button
                 key={id}
                 onClick={() => actions.selectCategory(id)}
                 className="p-4 rounded-xl border bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white hover:border-cyan-500 transition-all flex flex-col items-center gap-2 h-24 justify-center"
               >
-                <span className="font-bold text-center">{t.categories[id]}</span>
+                <span className="font-bold text-center text-sm md:text-base">{t.categories[id]}</span>
               </button>
             ))}
           </div>
@@ -113,7 +113,6 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                     <RefreshCcw size={12} /> {t.btn_refresh}
                   </button>
               </div>
-              {/* Increased grid for better randomization display */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {displayedSubTopics.map(sub => (
                   <button
