@@ -86,40 +86,23 @@ const getCategoryIcon = (id: string) => {
 const getSubtopicIcon = (sub: string) => {
   const s = sub.toLowerCase();
   
-  // History & Mythology
   if (s.includes('ancient') || s.includes('egypt') || s.includes('myth') || s.includes('folklore')) return <Scroll size={14} />;
   if (s.includes('war') || s.includes('battle') || s.includes('crusades') || s.includes('civil')) return <Sword size={14} />;
   if (s.includes('renaissance') || s.includes('empire') || s.includes('era')) return <History size={14} />;
-  
-  // Science & Tech
   if (s.includes('quantum') || s.includes('physics') || s.includes('atom')) return <Atom size={14} />;
   if (s.includes('neuro') || s.includes('genetic') || s.includes('bio') || s.includes('medical')) return <Microscope size={14} />;
   if (s.includes('ai') || s.includes('code') || s.includes('robotic') || s.includes('hard') || s.includes('cyber')) return <TechIcon size={14} />;
-  
-  // Space
   if (s.includes('solar') || s.includes('planet') || s.includes('moon') || s.includes('galaxy') || s.includes('star')) return <Orbit size={14} />;
-  
-  // Arts & Literature
   if (s.includes('art') || s.includes('paint') || s.includes('sculpt') || s.includes('design')) return <Palette size={14} />;
   if (s.includes('book') || s.includes('novel') || s.includes('writer') || s.includes('liter')) return <Book size={14} />;
-  
-  // Media & Entertainment
   if (s.includes('movie') || s.includes('film') || s.includes('oscar') || s.includes('cinema')) return <Clapperboard size={14} />;
   if (s.includes('music') || s.includes('pop') || s.includes('rock') || s.includes('jazz')) return <Music size={14} />;
   if (s.includes('game') || s.includes('retro') || s.includes('playstation') || s.includes('nintendo')) return <Gamepad2 size={14} />;
-  
-  // Geography & Nature
   if (s.includes('mount') || s.includes('river') || s.includes('island')) return <Mountain size={14} />;
   if (s.includes('animal') || s.includes('bird') || s.includes('ocean') || s.includes('forest')) return <Leaf size={14} />;
   if (s.includes('surviv')) return <Tent size={14} />;
-  
-  // Sports
   if (s.includes('soccer') || s.includes('basket') || s.includes('ball') || s.includes('olympic')) return <Trophy size={14} />;
-  
-  // Food
   if (s.includes('cuisine') || s.includes('food') || s.includes('dessert') || s.includes('cook')) return <Pizza size={14} />;
-  
-  // Others
   if (s.includes('horror') || s.includes('ghost')) return <Ghost size={14} />;
   if (s.includes('phobia') || s.includes('quiz')) return <Target size={14} />;
   
@@ -209,7 +192,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           </button>
         </div>
       ) : (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6 animate-fade-in max-h-[70vh] overflow-y-auto custom-scrollbar pr-1">
           {selectedCategory === TOPIC_IDS.CUSTOM ? (
             <div>
               <label className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-3 block pl-1">{t.label_custom}</label>
@@ -227,19 +210,21 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
             </div>
           ) : (
             <div>
-              <div className="flex items-center justify-between mb-4 pl-1">
-                <div className="flex items-center gap-2">
-                  <div className="text-cyan-500 drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">{getCategoryIcon(selectedCategory)}</div>
-                  <label className="text-xs text-slate-400 uppercase tracking-widest font-bold block">{t.label_field}</label>
-                </div>
-                <button 
-                  onClick={handleRandomSubtopic}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-cyan-400 text-[10px] font-black uppercase hover:border-cyan-500 transition-all active:scale-95 shadow-md"
-                >
-                  <Dices size={14} /> {t.btn_refresh || 'Random'}
-                </button>
+              {/* Random Selection Button for Subtopic - Repositioned to Top */}
+              <button
+                onClick={handleRandomSubtopic}
+                className="w-full flex items-center justify-center gap-2 py-3 mb-4 rounded-2xl bg-gradient-to-r from-cyan-600/20 to-blue-600/20 border border-blue-500/30 text-blue-400 font-bold text-sm hover:from-cyan-600/40 hover:to-blue-600/40 transition-all group shadow-lg"
+              >
+                <Dices size={18} className="group-hover:rotate-12 transition-transform" />
+                RANDOM SELECTION
+              </button>
+
+              <div className="flex items-center gap-2 mb-4 pl-1">
+                <div className="text-cyan-500 drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">{getCategoryIcon(selectedCategory)}</div>
+                <label className="text-xs text-slate-400 uppercase tracking-widest font-bold block">{t.label_field}</label>
               </div>
-              <div className="grid grid-cols-2 gap-2.5 max-h-[35vh] overflow-y-auto custom-scrollbar pr-1">
+
+              <div className="grid grid-cols-2 gap-2.5 mb-6">
                 {displayedSubTopics.map(sub => (
                   <button 
                     key={sub} 
