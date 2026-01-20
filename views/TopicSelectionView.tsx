@@ -21,10 +21,8 @@ import {
   Lightbulb,
   PlusCircle,
   Hash,
-  Star,
   Target,
   Sparkles,
-  Search,
   Dices
 } from 'lucide-react';
 import { Button } from '../components/Button';
@@ -78,17 +76,17 @@ const getCategoryIcon = (id: string) => {
 
 const getSubtopicIcon = (sub: string) => {
   const s = sub.toLowerCase();
-  if (s.includes('egypt') || s.includes('ancient') || s.includes('myth')) return <Scroll size={14} />;
-  if (s.includes('war') || s.includes('battle')) return <Target size={14} />;
-  if (s.includes('quantum') || s.includes('physics') || s.includes('chem')) return <FlaskConical size={14} />;
-  if (s.includes('space') || s.includes('star') || s.includes('orbit')) return <Orbit size={14} />;
-  if (s.includes('art') || s.includes('design')) return <Palette size={14} />;
-  if (s.includes('music') || s.includes('pop') || s.includes('rock')) return <Music size={14} />;
-  if (s.includes('game') || s.includes('nintendo') || s.includes('retro')) return <Gamepad2 size={14} />;
-  if (s.includes('movie') || s.includes('film') || s.includes('oscar')) return <Film size={14} />;
-  if (s.includes('tech') || s.includes('ai') || s.includes('code')) return <Cpu size={14} />;
-  if (s.includes('food') || s.includes('cuisine') || s.includes('cook')) return <Utensils size={14} />;
-  if (s.includes('nature') || s.includes('animal') || s.includes('life')) return <Leaf size={14} />;
+  if (s.includes('egypt') || s.includes('ancient') || s.includes('myth') || s.includes('empire') || s.includes('history')) return <Scroll size={14} />;
+  if (s.includes('war') || s.includes('battle') || s.includes('conflict')) return <Target size={14} />;
+  if (s.includes('quantum') || s.includes('physics') || s.includes('chem') || s.includes('bio') || s.includes('science')) return <FlaskConical size={14} />;
+  if (s.includes('space') || s.includes('star') || s.includes('orbit') || s.includes('moon') || s.includes('galaxy')) return <Orbit size={14} />;
+  if (s.includes('art') || s.includes('design') || s.includes('paint')) return <Palette size={14} />;
+  if (s.includes('music') || s.includes('pop') || s.includes('rock') || s.includes('song')) return <Music size={14} />;
+  if (s.includes('game') || s.includes('nintendo') || s.includes('retro') || s.includes('playstation')) return <Gamepad2 size={14} />;
+  if (s.includes('movie') || s.includes('film') || s.includes('oscar') || s.includes('cinema')) return <Film size={14} />;
+  if (s.includes('tech') || s.includes('ai') || s.includes('code') || s.includes('cyber')) return <Cpu size={14} />;
+  if (s.includes('food') || s.includes('cuisine') || s.includes('cook') || s.includes('eat')) return <Utensils size={14} />;
+  if (s.includes('nature') || s.includes('animal') || s.includes('life') || s.includes('earth')) return <Leaf size={14} />;
   return <Sparkles size={14} />;
 };
 
@@ -101,8 +99,10 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
   };
 
   const handleRandomSubtopic = () => {
-    const randomIdx = Math.floor(Math.random() * displayedSubTopics.length);
-    actions.selectSubTopic(displayedSubTopics[randomIdx]);
+    if (displayedSubTopics.length > 0) {
+      const randomIdx = Math.floor(Math.random() * displayedSubTopics.length);
+      actions.selectSubTopic(displayedSubTopics[randomIdx]);
+    }
   };
 
   return (
@@ -129,7 +129,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           {/* Random Selection Button for Category */}
           <button
             onClick={handleRandomCategory}
-            className="w-full flex items-center justify-center gap-2 py-3 mb-2 rounded-2xl bg-gradient-to-r from-purple-600/20 to-cyan-600/20 border border-cyan-500/30 text-cyan-400 font-bold text-sm hover:from-purple-600/40 hover:to-cyan-600/40 transition-all group"
+            className="w-full flex items-center justify-center gap-2 py-3 mb-2 rounded-2xl bg-gradient-to-r from-purple-600/20 to-cyan-600/20 border border-cyan-500/30 text-cyan-400 font-bold text-sm hover:from-purple-600/40 hover:to-cyan-600/40 transition-all group shadow-lg"
           >
             <Dices size={18} className="group-hover:rotate-12 transition-transform" />
             RANDOM SELECTION
@@ -144,14 +144,14 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
               >
                 <div 
                   className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                  style={{ backgroundImage: `url('${t.categoryImages[topic.id]}')` }}
+                  style={{ backgroundImage: `url('${t.categoryImages[topic.id] || ''}')` }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent group-hover:from-slate-950 group-hover:via-slate-950/50" />
                 <div className="absolute inset-x-0 bottom-0 p-4 flex flex-col items-center gap-1.5 translate-y-2 group-hover:translate-y-0 transition-transform">
                   <div className="text-cyan-400 group-hover:text-cyan-300 transition-colors drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                     {getCategoryIcon(topic.id)}
                   </div>
-                  <span className="font-extrabold text-center text-xs text-white uppercase tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
+                  <span className="font-extrabold text-center text-[10px] md:text-xs text-white uppercase tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
                     {topic.label}
                   </span>
                 </div>
@@ -200,7 +200,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                 {/* Random Selection Button for Subtopic */}
                 <button 
                   onClick={handleRandomSubtopic}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-cyan-400 text-[10px] font-black uppercase hover:border-cyan-500 transition-all active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-cyan-400 text-[10px] font-black uppercase hover:border-cyan-500 transition-all active:scale-95 shadow-md"
                 >
                   <Dices size={14} /> {t.btn_refresh || 'Random'}
                 </button>
