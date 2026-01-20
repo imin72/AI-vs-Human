@@ -75,24 +75,20 @@ const getCategoryIcon = (id: string) => {
 export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state, actions }) => {
   const { selectedCategory, selectedSubTopic, customTopic, difficulty, displayedTopics, displayedSubTopics, errorMsg } = state;
   
-  // Local states for subsets
   const [subsetCategories, setSubsetCategories] = useState<{id: string, label: string}[]>([]);
   const [subsetSubTopics, setSubsetSubTopics] = useState<string[]>([]);
 
-  // Initial set for Categories
   useEffect(() => {
     if (displayedTopics.length > 0 && subsetCategories.length === 0) {
       handleRefreshCategories();
     }
   }, [displayedTopics]);
 
-  // Handle Refresh for Categories
   const handleRefreshCategories = () => {
     const shuffled = [...displayedTopics].sort(() => 0.5 - Math.random());
     setSubsetCategories(shuffled.slice(0, 4));
   };
 
-  // When category changes, pick 4 random subtopics
   useEffect(() => {
     if (selectedCategory && displayedSubTopics.length > 0) {
       handleRefreshSubtopics();
@@ -104,8 +100,9 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
     setSubsetSubTopics(shuffled.slice(0, 4));
   };
 
+  // Unsplash Source API를 사용하여 키워드별 이미지를 가져옵니다.
   const getImageUrl = (keyword: string) => {
-    return `https://images.unsplash.com/photo-1500000000000?auto=format&fit=crop&w=600&q=80&sig=${encodeURIComponent(keyword)}`;
+    return `https://source.unsplash.com/featured/600x400?${encodeURIComponent(keyword)}`;
   };
 
   return (
@@ -212,25 +209,26 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                   <button 
                     key={sub} 
                     onClick={() => actions.selectSubTopic(sub)} 
-                    className={`group relative h-24 rounded-xl overflow-hidden border transition-all active:scale-[0.98] ${
+                    className={`group relative h-28 rounded-2xl overflow-hidden border transition-all active:scale-[0.98] ${
                       selectedSubTopic === sub 
                         ? 'border-cyan-400 ring-2 ring-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]' 
                         : 'border-slate-800 hover:border-slate-500'
                     }`}
                   >
                     <div 
-                      className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
                       style={{ backgroundImage: `url('${getImageUrl(sub)}')` }}
                     />
-                    <div className={`absolute inset-0 bg-gradient-to-t transition-colors ${
+                    <div className={`absolute inset-0 transition-colors duration-300 ${
                       selectedSubTopic === sub 
-                        ? 'from-cyan-900/95 via-cyan-900/60 to-cyan-900/40' 
-                        : 'from-slate-950/90 via-slate-950/30 to-transparent group-hover:from-slate-950/95'
+                        ? 'bg-cyan-950/80' 
+                        : 'bg-slate-950/40 group-hover:bg-slate-950/60'
                     }`} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                     
-                    <div className="absolute inset-0 p-3 flex flex-col justify-end">
-                      <span className={`text-[12px] font-black text-center leading-tight transition-colors drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase tracking-wide ${
-                        selectedSubTopic === sub ? 'text-white' : 'text-slate-100'
+                    <div className="absolute inset-0 p-3 flex flex-col justify-end items-center">
+                      <span className={`text-[13px] font-black text-center leading-tight transition-colors drop-shadow-[0_2px_4px_rgba(0,0,0,1)] uppercase tracking-wide ${
+                        selectedSubTopic === sub ? 'text-cyan-300' : 'text-white'
                       }`}>
                         {sub}
                       </span>
