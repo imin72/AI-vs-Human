@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { EvaluationResult, Language } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, Zap, Palette, CheckCircle, XCircle, Users } from 'lucide-react';
+import { Share2, RefreshCw, Brain, Zap, Palette, CheckCircle, XCircle, Users, Download } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import { toPng } from 'html-to-image';
 import { TRANSLATIONS } from '../utils/translations';
 
 interface StageResultsProps {
@@ -21,6 +22,9 @@ const THEMES = [
 
 export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, language }) => {
   const [currentThemeIdx, setCurrentThemeIdx] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  
   const theme = THEMES[currentThemeIdx];
   const t = TRANSLATIONS[language].results;
 
@@ -53,6 +57,24 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
     }
   };
 
+  const handleDownload = async () => {
+    if (resultsRef.current === null) return;
+    setIsSaving(true);
+    try {
+      // Increase pixelRatio for better quality
+      const dataUrl = await toPng(resultsRef.current, { cacheBust: true, pixelRatio: 2 });
+      const link = document.createElement('a');
+      link.download = `cognito-result-${new Date().getTime()}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Failed to download image', err);
+      alert('Failed to save image. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Prepare chart data
   const chartData = [
     { subject: t.chart.accuracy, A: data.totalScore, B: 100, fullMark: 100 },
@@ -79,7 +101,7 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
       </div>
 
       {/* Main Result Card */}
-      <div className={`p-6 md:p-8 rounded-3xl transition-all duration-500 ${theme.bg}`}>
+      <div ref={resultsRef} className={`p-6 md:p-8 rounded-3xl transition-all duration-500 ${theme.bg}`}>
         
         {/* Header Badge */}
         <div className="text-center mb-6">
@@ -169,9 +191,12 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 pt-2">
-        <Button onClick={onRestart} variant="outline" className="flex-1">
-          <RefreshCw size={18} /> {t.btn_retry}
+      <div className="grid grid-cols-3 gap-2 pt-2">
+        <Button onClick={onRestart} variant="outline" className="px-2">
+          <RefreshCw size={18} />
+        </Button>
+        <Button onClick={handleDownload} disabled={isSaving} variant="outline" className="flex-1">
+          <Download size={18} /> {isSaving ? "..." : t.btn_save}
         </Button>
         <Button onClick={handleShare} variant="primary" className="flex-1">
           <Share2 size={18} /> {t.btn_share}

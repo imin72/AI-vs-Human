@@ -49,6 +49,7 @@ interface TranslationData {
     label_top: string;
     btn_retry: string;
     btn_share: string;
+    btn_save: string;
     chart: {
       accuracy: string;
       speed: string;
@@ -156,6 +157,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       label_top: "Top",
       btn_retry: "Retry",
       btn_share: "Share Result",
+      btn_save: "Save Image",
       chart: { accuracy: "Accuracy", speed: "Speed", cohort: "Cohort", logic: "Logic", intuition: "Intuition" }
     },
     loading: {
@@ -257,6 +259,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       label_top: "상위",
       btn_retry: "재시도",
       btn_share: "결과 공유",
+      btn_save: "이미지 저장",
       chart: { accuracy: "정확도", speed: "속도", cohort: "집단위치", logic: "논리력", intuition: "직관력" }
     },
     loading: {
@@ -358,6 +361,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       label_top: "上位",
       btn_retry: "リトライ",
       btn_share: "結果を共有",
+      btn_save: "画像保存",
       chart: { accuracy: "正確性", speed: "速度", cohort: "集団位置", logic: "論理力", intuition: "直感力" }
     },
     loading: {
@@ -459,6 +463,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       label_top: "Superior",
       btn_retry: "Reintentar",
       btn_share: "Compartir Resultado",
+      btn_save: "Guardar",
       chart: { accuracy: "Precisión", speed: "Velocidad", cohort: "Cohorte", logic: "Lógica", intuition: "Intuición" }
     },
     loading: {
