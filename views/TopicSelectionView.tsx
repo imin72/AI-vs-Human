@@ -101,10 +101,10 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
   };
 
   /**
-   * 세부 분야 키워드별로 어울리는 고해상도 이미지를 가져옵니다.
-   * Unsplash의 추천 검색 엔진을 활용합니다.
+   * 세부 분야 키워드별로 어울리는 이미지를 가져옵니다.
    */
   const getImageUrl = (keyword: string) => {
+    // keyword를 기반으로 시각적으로 어울리는 고해상도 이미지를 로드합니다.
     return `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80&sig=${encodeURIComponent(keyword)}`;
   };
 
@@ -220,7 +220,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                   >
                     <div 
                       className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110 opacity-60"
-                      style={{ backgroundImage: `url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=300&auto=format&fit=crop&sig=${encodeURIComponent(sub)}')` }}
+                      style={{ backgroundImage: `url('${getImageUrl(sub)}')` }}
                     />
                     <div className={`absolute inset-0 transition-colors duration-300 ${
                       selectedSubTopic === sub 
