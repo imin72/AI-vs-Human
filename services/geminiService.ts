@@ -1,10 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language } from "../types";
 
-// Robustly retrieve API Key:
-// 1. Try the injected process.env.API_KEY (from vite.config.ts define)
-// 2. Try import.meta.env.VITE_API_KEY (standard Vite way)
-const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_API_KEY;
+// Robustly retrieve API Key
+// Vercel or other envs might inject the key with surrounding quotes or whitespace.
+// We must sanitize it before sending to Google.
+let keyString = process.env.API_KEY || (import.meta as any).env?.VITE_API_KEY || "";
+
+// Sanitize: 
+// 1. Remove surrounding quotes (common mistake in Vercel dashboard values: "AIza..." -> AIza...)
+// 2. Trim whitespace
+const apiKey = keyString.replace(/["']/g, "").trim();
 
 if (!apiKey) {
   console.error("CRITICAL ERROR: API_KEY is missing.");

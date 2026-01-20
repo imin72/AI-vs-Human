@@ -8,14 +8,14 @@ export default defineConfig(({ mode }) => {
   
   // Prioritize Vercel system env vars (process.env) over .env file vars
   // Also check for VITE_API_KEY as a fallback standard
-  const apiKey = process.env.API_KEY || env.API_KEY || process.env.VITE_API_KEY || env.VITE_API_KEY || '';
-
+  const rawApiKey = process.env.API_KEY || env.API_KEY || process.env.VITE_API_KEY || env.VITE_API_KEY || '';
+  
   return {
     plugins: [react()],
     base: './', 
     define: {
       // Inject the key directly into the code
-      'process.env.API_KEY': JSON.stringify(apiKey)
+      'process.env.API_KEY': JSON.stringify(rawApiKey)
     }
   };
 });
