@@ -101,11 +101,11 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
   };
 
   /**
-   * 세부 분야 키워드별로 어울리는 이미지를 가져옵니다.
+   * 세부 분야 키워드별로 매핑된 이미지를 가져옵니다.
+   * 매핑된 이미지가 없는 경우 해당 카테고리의 기본 이미지를 사용합니다.
    */
   const getImageUrl = (keyword: string) => {
-    // keyword를 기반으로 시각적으로 어울리는 고해상도 이미지를 로드합니다.
-    return `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80&sig=${encodeURIComponent(keyword)}`;
+    return t.subtopicImages[keyword] || t.categoryImages[selectedCategory] || '';
   };
 
   return (

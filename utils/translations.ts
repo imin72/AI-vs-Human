@@ -36,6 +36,7 @@ interface TranslationData {
     categories: { [key: string]: string };
     subtopics: { [key: string]: string[] };
     categoryImages: { [key: string]: string };
+    subtopicImages: { [key: string]: string };
   };
   quiz: {
     label_target: string;
@@ -104,10 +105,25 @@ const CATEGORY_IMAGES = {
   [TOPIC_IDS.CUSTOM]: ""
 };
 
-/**
- * Base English Translation used as a fallback for languages not yet fully localized.
- * Extracted to avoid circular reference errors when initializing TRANSLATIONS.
- */
+// 세부 분야별 고정 이미지 (CDN 캐싱 최적화)
+const SUBTOPIC_IMAGES = {
+  // 역사
+  "고대 이집트": "https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=400&q=80",
+  "로마 제국": "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&q=80",
+  "제2차 세계 대전": "https://images.unsplash.com/photo-1505051508008-923feaf90180?w=400&q=80",
+  "냉전": "https://images.unsplash.com/photo-1563206767-5b18f218e7de?w=400&q=80",
+  // 과학
+  "양자 역학": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80",
+  "유전학": "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=400&q=80",
+  "천문학": "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=400&q=80",
+  // 영화
+  "아카데미상": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&q=80",
+  "마블 시네마틱 유니버스": "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&q=80",
+  // 게임
+  "슈퍼 마리오": "https://images.unsplash.com/photo-1612444530582-fc66183b16f7?w=400&q=80",
+  "포켓몬": "https://images.unsplash.com/photo-1613771404721-1f92d799e49f?w=400&q=80",
+};
+
 const ENGLISH_BASE: TranslationData = {
   common: {
     btn_back: "Back",
@@ -160,6 +176,7 @@ const ENGLISH_BASE: TranslationData = {
       [TOPIC_IDS.CUSTOM]: "Custom Topic"
     },
     categoryImages: CATEGORY_IMAGES,
+    subtopicImages: SUBTOPIC_IMAGES,
     subtopics: {
       [TOPIC_IDS.HISTORY]: ["Ancient Egypt", "Roman Empire", "World War II", "Cold War", "Renaissance", "Industrial Revolution", "French Revolution", "American Civil War", "Feudal Japan", "The Vikings", "Aztec Empire", "Mongol Empire", "The Crusades", "Victorian Era", "Prehistoric Era", "Decolonization"],
       [TOPIC_IDS.SCIENCE]: ["Quantum Physics", "Genetics", "Organic Chemistry", "Neuroscience", "Botany", "Astronomy", "Geology", "Thermodynamics", "Marine Biology", "Evolution", "Particle Physics", "Immunology", "Paleontology", "Meteorology", "Robotics", "Ecology"],
@@ -217,6 +234,7 @@ const ENGLISH_BASE: TranslationData = {
 export const TRANSLATIONS: Record<Language, TranslationData> = {
   en: ENGLISH_BASE,
   ko: {
+    ...ENGLISH_BASE, // 기본 구조 상속
     common: {
       btn_back: "뒤로",
       confirm_exit: "퀴즈를 종료하시겠습니까? 진행 상황이 손실됩니다."
@@ -247,6 +265,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       }
     },
     topics: {
+      ...ENGLISH_BASE.topics, // 영문 데이터 상속 후 한글로 덮어쓰기
       title_select: "영역 선택",
       title_config: "구성 설정",
       btn_refresh: "새로고침",
@@ -274,7 +293,6 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
         [TOPIC_IDS.PHILOSOPHY]: "철학",
         [TOPIC_IDS.CUSTOM]: "직접 입력"
       },
-      categoryImages: CATEGORY_IMAGES,
       subtopics: {
         [TOPIC_IDS.HISTORY]: ["고대 이집트", "로마 제국", "제2차 세계 대전", "냉전", "르네상스", "산업 혁명", "프랑스 혁명", "미국 남북 전쟁", "일본 전국시대", "바이킹", "아즈텍 제국", "몽골 제국", "십자군 전쟁", "빅토리아 시대", "선사 시대", "탈식민지화"],
         [TOPIC_IDS.SCIENCE]: ["양자 역학", "유전학", "유기 화학", "신경 과학", "식물학", "천문학", "지질학", "열역학", "해양 생물학", "진화론", "입자 물리학", "면역학", "고생물학", "기상학", "로봇 공학", "생태학"],
