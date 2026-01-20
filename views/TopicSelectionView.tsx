@@ -23,7 +23,16 @@ import {
   Hash,
   Target,
   Sparkles,
-  Dices
+  Dices,
+  Atom,
+  Sword,
+  Clapperboard,
+  Pizza,
+  Microscope,
+  Mountain,
+  Ghost,
+  Cpu as TechIcon,
+  Tent
 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Difficulty, TOPIC_IDS } from '../types';
@@ -76,17 +85,44 @@ const getCategoryIcon = (id: string) => {
 
 const getSubtopicIcon = (sub: string) => {
   const s = sub.toLowerCase();
-  if (s.includes('egypt') || s.includes('ancient') || s.includes('myth') || s.includes('empire') || s.includes('history')) return <Scroll size={14} />;
-  if (s.includes('war') || s.includes('battle') || s.includes('conflict')) return <Target size={14} />;
-  if (s.includes('quantum') || s.includes('physics') || s.includes('chem') || s.includes('bio') || s.includes('science')) return <FlaskConical size={14} />;
-  if (s.includes('space') || s.includes('star') || s.includes('orbit') || s.includes('moon') || s.includes('galaxy')) return <Orbit size={14} />;
-  if (s.includes('art') || s.includes('design') || s.includes('paint')) return <Palette size={14} />;
-  if (s.includes('music') || s.includes('pop') || s.includes('rock') || s.includes('song')) return <Music size={14} />;
-  if (s.includes('game') || s.includes('nintendo') || s.includes('retro') || s.includes('playstation')) return <Gamepad2 size={14} />;
-  if (s.includes('movie') || s.includes('film') || s.includes('oscar') || s.includes('cinema')) return <Film size={14} />;
-  if (s.includes('tech') || s.includes('ai') || s.includes('code') || s.includes('cyber')) return <Cpu size={14} />;
-  if (s.includes('food') || s.includes('cuisine') || s.includes('cook') || s.includes('eat')) return <Utensils size={14} />;
-  if (s.includes('nature') || s.includes('animal') || s.includes('life') || s.includes('earth')) return <Leaf size={14} />;
+  
+  // History & Mythology
+  if (s.includes('ancient') || s.includes('egypt') || s.includes('myth') || s.includes('folklore')) return <Scroll size={14} />;
+  if (s.includes('war') || s.includes('battle') || s.includes('crusades') || s.includes('civil')) return <Sword size={14} />;
+  if (s.includes('renaissance') || s.includes('empire') || s.includes('era')) return <History size={14} />;
+  
+  // Science & Tech
+  if (s.includes('quantum') || s.includes('physics') || s.includes('atom')) return <Atom size={14} />;
+  if (s.includes('neuro') || s.includes('genetic') || s.includes('bio') || s.includes('medical')) return <Microscope size={14} />;
+  if (s.includes('ai') || s.includes('code') || s.includes('robotic') || s.includes('hard') || s.includes('cyber')) return <TechIcon size={14} />;
+  
+  // Space
+  if (s.includes('solar') || s.includes('planet') || s.includes('moon') || s.includes('galaxy') || s.includes('star')) return <Orbit size={14} />;
+  
+  // Arts & Literature
+  if (s.includes('art') || s.includes('paint') || s.includes('sculpt') || s.includes('design')) return <Palette size={14} />;
+  if (s.includes('book') || s.includes('novel') || s.includes('writer') || s.includes('liter')) return <Book size={14} />;
+  
+  // Media & Entertainment
+  if (s.includes('movie') || s.includes('film') || s.includes('oscar') || s.includes('cinema')) return <Clapperboard size={14} />;
+  if (s.includes('music') || s.includes('pop') || s.includes('rock') || s.includes('jazz')) return <Music size={14} />;
+  if (s.includes('game') || s.includes('retro') || s.includes('playstation') || s.includes('nintendo')) return <Gamepad2 size={14} />;
+  
+  // Geography & Nature
+  if (s.includes('mount') || s.includes('river') || s.includes('island')) return <Mountain size={14} />;
+  if (s.includes('animal') || s.includes('bird') || s.includes('ocean') || s.includes('forest')) return <Leaf size={14} />;
+  if (s.includes('surviv')) return <Tent size={14} />;
+  
+  // Sports
+  if (s.includes('soccer') || s.includes('basket') || s.includes('ball') || s.includes('olympic')) return <Trophy size={14} />;
+  
+  // Food
+  if (s.includes('cuisine') || s.includes('food') || s.includes('dessert') || s.includes('cook')) return <Pizza size={14} />;
+  
+  // Others
+  if (s.includes('horror') || s.includes('ghost')) return <Ghost size={14} />;
+  if (s.includes('phobia') || s.includes('quiz')) return <Target size={14} />;
+  
   return <Sparkles size={14} />;
 };
 
@@ -126,7 +162,6 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
 
       {!selectedCategory ? (
         <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
-          {/* Random Selection Button for Category */}
           <button
             onClick={handleRandomCategory}
             className="w-full flex items-center justify-center gap-2 py-3 mb-2 rounded-2xl bg-gradient-to-r from-purple-600/20 to-cyan-600/20 border border-cyan-500/30 text-cyan-400 font-bold text-sm hover:from-purple-600/40 hover:to-cyan-600/40 transition-all group shadow-lg"
@@ -197,7 +232,6 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                   <div className="text-cyan-500 drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">{getCategoryIcon(selectedCategory)}</div>
                   <label className="text-xs text-slate-400 uppercase tracking-widest font-bold block">{t.label_field}</label>
                 </div>
-                {/* Random Selection Button for Subtopic */}
                 <button 
                   onClick={handleRandomSubtopic}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-cyan-400 text-[10px] font-black uppercase hover:border-cyan-500 transition-all active:scale-95 shadow-md"
