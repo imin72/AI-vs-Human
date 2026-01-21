@@ -99,10 +99,9 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
   };
 
   const getImageUrl = (keyword: string) => {
-    // 1. 직접 매칭 확인 (이미지 맵에 있는 경우)
+    // 프리뷰 환경에서 절대 경로 보장을 위해 t에서 직접 이미지를 가져오거나 원문 대조
     if (t.subtopicImages && t.subtopicImages[keyword]) return t.subtopicImages[keyword];
     
-    // 2. 인덱스를 통해 영어 원문 키워드로 찾기
     const currentLangSubtopics = t.subtopics[selectedCategory] || [];
     const idx = currentLangSubtopics.indexOf(keyword);
     if (idx !== -1) {
@@ -111,13 +110,11 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
         return t.subtopicImages[englishKeyword];
       }
     }
-
-    // 3. 폴백: 카테고리 이미지
     return t.categoryImages ? t.categoryImages[selectedCategory] : '';
   };
 
   return (
-    <div className="glass-panel p-6 rounded-3xl space-y-6 animate-fade-in relative w-full">
+    <div className="glass-panel p-6 rounded-3xl space-y-6 animate-fade-in relative w-full" style={{ minWidth: '320px' }}>
       <button 
         onClick={actions.goBack}
         className="absolute top-4 left-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10"
@@ -147,16 +144,16 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
               <button
                 key={topic.id}
                 onClick={() => actions.selectCategory(topic.id)}
-                className="group relative aspect-square md:aspect-video rounded-2xl overflow-hidden border border-slate-700/50 hover:border-cyan-500 transition-all shadow-lg"
+                className="group relative aspect-square md:aspect-video rounded-2xl overflow-hidden border border-slate-700/50 hover:border-cyan-500 transition-all shadow-lg bg-slate-900"
               >
                 <div 
                   className="absolute inset-0 bg-cover bg-center"
-                  style={{ backgroundImage: `url('${t.categoryImages[topic.id] || ''}')` }}
+                  style={{ backgroundImage: `url('${t.categoryImages[topic.id] || ''}')`, backgroundSize: 'cover' }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
                 <div className="absolute inset-0 p-3 flex flex-col items-center justify-end gap-1">
                   <div className="text-cyan-400">{getCategoryIcon(topic.id)}</div>
-                  <span className="font-bold text-[10px] md:text-xs text-white uppercase text-center leading-tight">
+                  <span className="font-bold text-sm md:text-base text-white uppercase text-center leading-tight drop-shadow-md">
                     {topic.label}
                   </span>
                 </div>
@@ -180,19 +177,19 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                 <button 
                   key={sub} 
                   onClick={() => actions.selectSubTopic(sub)} 
-                  className={`group relative aspect-video rounded-2xl overflow-hidden border transition-all ${
+                  className={`group relative aspect-video rounded-2xl overflow-hidden border transition-all bg-slate-900 ${
                     selectedSubTopic === sub 
                       ? 'border-cyan-400 ring-2 ring-cyan-500/50' 
                       : 'border-slate-800 hover:border-slate-500'
                   }`}
                 >
                   <div 
-                    className="absolute inset-0 bg-cover bg-center opacity-40 transition-transform duration-500 group-hover:scale-110"
-                    style={{ backgroundImage: `url('${getImageUrl(sub)}')` }}
+                    className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-500 group-hover:scale-110"
+                    style={{ backgroundImage: `url('${getImageUrl(sub)}')`, backgroundSize: 'cover' }}
                   />
                   <div className="absolute inset-0 bg-slate-950/40 group-hover:bg-slate-950/20 transition-colors" />
                   <div className="absolute inset-0 p-3 flex items-center justify-center">
-                    <span className={`text-[11px] font-black text-center uppercase tracking-wide leading-tight ${
+                    <span className={`text-sm md:text-base font-black text-center uppercase tracking-wide leading-tight drop-shadow-lg ${
                       selectedSubTopic === sub ? 'text-cyan-300' : 'text-white'
                     }`}>
                       {sub}

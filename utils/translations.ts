@@ -170,7 +170,7 @@ const ENGLISH_BASE: TranslationData = {
   },
   topics: {
     title_select: "Select Domain",
-    title_config: "Configuration",
+    title_config: "Select Sub-Topic",
     btn_refresh: "Shuffle",
     label_custom: "",
     ph_custom: "",
@@ -233,7 +233,13 @@ const ENGLISH_BASE: TranslationData = {
     btn_retry: "Retry",
     btn_share: "Share Result",
     btn_save: "Save Image",
-    chart: { accuracy: "Accuracy", speed: "Speed", cohort: "Cohort", logic: "Logic", intuition: "Intuition" }
+    chart: {
+      accuracy: "Accuracy",
+      speed: "Speed",
+      cohort: "Cohort",
+      logic: "Logic",
+      intuition: "Intuition"
+    }
   },
   loading: {
     gen_vectors: "Generating Test Vectors...",
@@ -265,7 +271,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     },
     topics: {
       ...ENGLISH_BASE.topics,
-      title_select: "영역 선택", title_config: "구성 설정", btn_refresh: "새로고침", label_custom: "", ph_custom: "", label_field: "세부 분야", label_difficulty: "난이도", btn_start_sim: "시뮬레이션 시작",
+      title_select: "영역 선택", title_config: "세부 분야 선택", btn_refresh: "새로고침", label_custom: "", ph_custom: "", label_field: "세부 분야", label_difficulty: "난이도", btn_start_sim: "시뮬레이션 시작",
       categories: {
         [TOPIC_IDS.HISTORY]: "역사", [TOPIC_IDS.SCIENCE]: "과학", [TOPIC_IDS.ARTS]: "예술", [TOPIC_IDS.GENERAL]: "일반 상식", [TOPIC_IDS.GEOGRAPHY]: "지리", [TOPIC_IDS.MOVIES]: "영화", [TOPIC_IDS.MUSIC]: "음악", [TOPIC_IDS.GAMING]: "게임", [TOPIC_IDS.SPORTS]: "스포츠", [TOPIC_IDS.TECH]: "기술", [TOPIC_IDS.MYTHOLOGY]: "신화", [TOPIC_IDS.LITERATURE]: "문학", [TOPIC_IDS.NATURE]: "자연", [TOPIC_IDS.FOOD]: "음식", [TOPIC_IDS.SPACE]: "우주", [TOPIC_IDS.PHILOSOPHY]: "철학"
       },
@@ -302,7 +308,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     common: { btn_back: "戻る", confirm_exit: "クイズを終了しますか？進行状況は失われます。" },
     intro: { human_label: "人間", ai_label: "AI", desc: "アルゴリズムに挑戦してください。専門分野を選択し、人間の直感がいまだに優位であることを証明してください。", btn_start: "プロトコル開始" },
     profile: {
-      title: "被験者プロフィール", desc: "文化的・教育的背景の最適化に使用されます。",
+      title: "被験者プロフィール", desc: "文化的・教育적背景の最適化に使用されます。",
       label_gender: "性別", label_age: "年齢層", label_nationality: "国籍", btn_submit: "確定", skip: "スキップ",
       genders: { Male: "男性", Female: "女性", Other: "その他" },
       ages: { "Under 18": "18歳未満", "18-24": "18-24歳", "25-34": "25-34歳", "35-44": "35-44歳", "45-54": "45-54歳", "55+": "55歳以上" },
@@ -310,7 +316,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
     },
     topics: {
       ...ENGLISH_BASE.topics,
-      title_select: "ドメイン選択", title_config: "構成設定", btn_refresh: "更新", label_custom: "", ph_custom: "", label_field: "特定分野", label_difficulty: "難易度", btn_start_sim: "シミュレーション開始",
+      title_select: "ドメイン選択", title_config: "詳細分野の選択", btn_refresh: "更新", label_custom: "", ph_custom: "", label_field: "特定分野", label_difficulty: "難易度", btn_start_sim: "シミュレーション開始",
       categories: {
         [TOPIC_IDS.HISTORY]: "歴史", [TOPIC_IDS.SCIENCE]: "科学", [TOPIC_IDS.ARTS]: "芸術", [TOPIC_IDS.GENERAL]: "一般常識", [TOPIC_IDS.GEOGRAPHY]: "地理", [TOPIC_IDS.MOVIES]: "映画", [TOPIC_IDS.MUSIC]: "音楽", [TOPIC_IDS.GAMING]: "ゲーム", [TOPIC_IDS.SPORTS]: "スポーツ", [TOPIC_IDS.TECH]: "テクノロジー", [TOPIC_IDS.MYTHOLOGY]: "神話", [TOPIC_IDS.LITERATURE]: "文学", [TOPIC_IDS.NATURE]: "自然", [TOPIC_IDS.FOOD]: "料理", [TOPIC_IDS.SPACE]: "宇宙", [TOPIC_IDS.PHILOSOPHY]: "哲学"
       },
@@ -329,11 +335,11 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
         [TOPIC_IDS.LITERATURE]: ["シェイクスピア", "古典小説", "ディストピア小説", "ファンタジー", "SF小説", "詩", "ホラー", "ミステリー", "コミック・漫画", "ノーベル賞作家", "おとぎ話", "ギリシャ叙事詩", "ロシア文学", "アメリカ文学", "イギリス文学", "劇作家"],
         [TOPIC_IDS.NATURE]: ["哺乳類", "鳥類", "昆虫", "海洋生物", "恐竜", "熱帯雨林", "砂漠", "天気", "花", "木々", "国立公園", "生存技術", "進化", "絶滅危惧種", "菌類", "宝石・鉱物"],
         [TOPIC_IDS.FOOD]: ["イタリア料理", "フランス料理", "メキシコ料理", "日本料理", "中華料理", "インド料理", "デザート", "ワイン", "コーヒー", "チーズ", "スパイス", "ストリートフード", "ファストフード", "ベーキング", "ヴィーガン", "カクテル"],
-        [TOPIC_IDS.SPACE]: ["太陽系", "ブラックホール", "火星", "月面着陸", "星座", "星", "銀河", "宇宙飛行士", "宇宙開発競争", "望遠鏡", "系外惑星", "重力", "ロケット", "SETI", "国際宇宙ステーション", "ビッグバン"],
+        [TOPIC_IDS.SPACE]: ["太陽系", "ブラックホール", "火星", "月面着陸", "星座", "星", "銀河", "宇宙飛行士", "宇宙開発競争", "망원경", "系外惑星", "重力", "ロケット", "SETI", "国際宇宙ステーション", "ビッグバン"],
         [TOPIC_IDS.PHILOSOPHY]: ["倫理学", "論理学", "形而上学", "実存主義", "ストア派", "虚無主義", "政治哲学", "東洋哲学", "古代ギリシャ", "啓術主義", "功利主義", "美学", "認識論", "心の哲学", "有名な名言", "パラドックス"]
       }
     },
-    quiz: { label_target: "ターゲット", label_info: "情報", btn_next: "次へ", btn_finish: "プロトコル終了" },
+    quiz: { label_target: "ターゲット", label_info: "情報", btn_next: "次へ", btn_finish: "プロ토콜 종료" },
     results: {
       badge_complete: "分析完了", label_percentile: "グローバル偏差値", label_correct: "正解数", label_cohort: "集団分析", label_template: "結果テンプレート", label_bottom: "下位1%", label_top: "上位", btn_retry: "リトライ", btn_share: "結果を共有", btn_save: "画像を保存",
       chart: { accuracy: "正確性", speed: "速度", cohort: "集団位置", logic: "論理", intuition: "直感" }
@@ -351,11 +357,11 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       label_gender: "GÉNERO", label_age: "EDAD", label_nationality: "NACIONALIDAD", btn_submit: "Confirmar", skip: "Omitir",
       genders: { Male: "Masculino", Female: "Femenino", Other: "Otro" },
       ages: { "Under 18": "< 18", "18-24": "18-24", "25-34": "25-34", "35-44": "35-44", "45-54": "45-54", "55+": "55+" },
-      nationalities: { "South Korea": "Corea del Sur", "USA": "EE.UU.", "Japan": "Japón", "Spain": "España", "UK": "Reino Unido", "Other": "Otro" }
+      nationalities: { "South Korea": "Corea del Sur", "USA": "EE.UU.", "Japón": "Japón", "España": "España", "UK": "Reino Unido", "Other": "Otro" }
     },
     topics: {
       ...ENGLISH_BASE.topics,
-      title_select: "Seleccionar Dominio", title_config: "Configuración", btn_refresh: "Mezclar", label_custom: "", ph_custom: "", label_field: "CAMPO ESPECÍFICO", label_difficulty: "DIFICULTAD", btn_start_sim: "Iniciar Simulación",
+      title_select: "Seleccionar Dominio", title_config: "Seleccionar Subtema", btn_refresh: "Mezclar", label_custom: "", ph_custom: "", label_field: "CAMPO ESPECÍFICO", label_difficulty: "DIFICULTAD", btn_start_sim: "Iniciar Simulación",
       categories: {
         [TOPIC_IDS.HISTORY]: "Historia", [TOPIC_IDS.SCIENCE]: "Ciencia", [TOPIC_IDS.ARTS]: "Artes", [TOPIC_IDS.GENERAL]: "Cultura General", [TOPIC_IDS.GEOGRAPHY]: "Geografía", [TOPIC_IDS.MOVIES]: "Cine", [TOPIC_IDS.MUSIC]: "Música", [TOPIC_IDS.GAMING]: "Videojuegos", [TOPIC_IDS.SPORTS]: "Deportes", [TOPIC_IDS.TECH]: "Tecnología", [TOPIC_IDS.MYTHOLOGY]: "Mitología", [TOPIC_IDS.LITERATURE]: "Literatura", [TOPIC_IDS.NATURE]: "Naturaleza", [TOPIC_IDS.FOOD]: "Gastronomía", [TOPIC_IDS.SPACE]: "Espacio", [TOPIC_IDS.PHILOSOPHY]: "Filosofía"
       },
