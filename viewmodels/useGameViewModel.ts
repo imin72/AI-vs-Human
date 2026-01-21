@@ -112,6 +112,19 @@ export const useGameViewModel = () => {
           break;
       }
     },
+    goHome: () => {
+      if (isPending) return;
+      if (stage === AppStage.QUIZ) {
+        if (!window.confirm(t.common.confirm_exit)) return;
+      }
+      setStage(AppStage.LANGUAGE);
+      // Reset basic states
+      setEvaluation(null);
+      setUserAnswers([]);
+      setCurrentQuestionIndex(0);
+      setSelectedCategory('');
+      setSelectedSubTopic('');
+    },
     startQuiz: async () => {
       if (isPending) return;
       const finalTopic = selectedSubTopic;

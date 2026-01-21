@@ -28,6 +28,7 @@ export default function App() {
           t={t.intro} 
           onStart={actions.startIntro} 
           onBack={actions.goBack}
+          onHome={actions.goHome}
           backLabel={t.common.btn_back}
         />
       )}
@@ -40,6 +41,7 @@ export default function App() {
           onUpdate={actions.updateProfile}
           onSubmit={actions.submitProfile}
           onBack={actions.goBack}
+          onHome={actions.goHome}
           backLabel={t.common.btn_back}
         />
       )}
@@ -53,6 +55,7 @@ export default function App() {
           }}
           actions={{
             goBack: actions.goBack,
+            goHome: actions.goHome,
             shuffleTopics: actions.shuffleTopics,
             selectCategory: actions.selectCategory,
             setCustomTopic: actions.setCustomTopic,
@@ -77,6 +80,7 @@ export default function App() {
           onSelectOption={actions.selectOption}
           onConfirm={actions.confirmAnswer}
           onBack={actions.goBack}
+          onHome={actions.goHome}
           backLabel={t.common.btn_back}
           language={language}
         />

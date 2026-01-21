@@ -47,15 +47,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </div>
 
             </div>
-
-            {/* Subtitle / Decoration */}
-            <div className="mt-6 flex items-center gap-3 opacity-60">
-              <div className="h-px w-8 md:w-16 bg-gradient-to-r from-transparent to-slate-500"></div>
-              <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] text-slate-400">
-                Cognito Protocol
-              </span>
-              <div className="h-px w-8 md:w-16 bg-gradient-to-l from-transparent to-slate-500"></div>
-            </div>
           </header>
           
           <main className="w-full flex justify-center">

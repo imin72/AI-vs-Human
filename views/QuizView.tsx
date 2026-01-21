@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronLeft, Cpu, Terminal, Zap, Lightbulb } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Cpu, Terminal, Zap, Lightbulb, Home } from 'lucide-react';
 import { Button } from '../components/Button';
 import { QuizQuestion, Language } from '../types';
 import { TRANSLATIONS } from '../utils/translations';
@@ -13,6 +13,7 @@ interface QuizViewProps {
   onSelectOption: (opt: string) => void;
   onConfirm: () => void;
   onBack: () => void;
+  onHome: () => void;
   backLabel: string;
   language: Language;
 }
@@ -25,6 +26,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
   onSelectOption, 
   onConfirm,
   onBack,
+  onHome,
   language
 }) => {
   const question = questions[currentIndex];
@@ -100,7 +102,16 @@ export const QuizView: React.FC<QuizViewProps> = ({
   }, [aiLogs]);
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-2xl animate-fade-in pb-8">
+    <div className="flex flex-col gap-4 w-full max-w-2xl animate-fade-in pb-8 relative">
+       {/* Home Button for Quiz View */}
+      <button 
+        onClick={onHome}
+        className="absolute -top-14 right-0 md:-right-12 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10"
+        aria-label="Home"
+      >
+        <Home size={20} />
+      </button>
+
       {/* 상단 AI 상태창 */}
       <div className="glass-panel p-3 rounded-2xl border-cyan-500/30 flex items-center justify-between overflow-hidden">
         <div className="flex items-center gap-3">

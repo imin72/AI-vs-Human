@@ -19,7 +19,8 @@ import {
   Utensils, 
   Orbit, 
   Lightbulb,
-  Dices
+  Dices,
+  Home
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
 import { Difficulty, TOPIC_IDS } from '../types.ts';
@@ -38,6 +39,7 @@ interface TopicSelectionViewProps {
   };
   actions: {
     goBack: () => void;
+    goHome: () => void;
     shuffleTopics: () => void;
     selectCategory: (id: string) => void;
     shuffleSubTopics: () => void;
@@ -113,13 +115,23 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
     return t.categoryImages ? t.categoryImages[selectedCategory] : '';
   };
 
+  const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10";
+
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-6 animate-fade-in relative w-full" style={{ minWidth: '320px' }}>
       <button 
         onClick={actions.goBack}
-        className="absolute top-4 left-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10"
+        className={`${navBtnStyle} left-4`}
       >
         <ChevronLeft size={20} />
+      </button>
+
+      <button 
+        onClick={actions.goHome}
+        className={`${navBtnStyle} right-4`}
+        aria-label="Home"
+      >
+        <Home size={20} />
       </button>
 
       <div className="text-center pt-2">

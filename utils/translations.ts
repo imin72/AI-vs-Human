@@ -9,6 +9,7 @@ export interface TranslationData {
   intro: {
     human_label: string;
     ai_label: string;
+    title: string;
     desc: string;
     btn_start: string;
   };
@@ -118,7 +119,8 @@ const ENGLISH_BASE: TranslationData = {
   intro: {
     human_label: "HUMAN",
     ai_label: "AI",
-    desc: "Challenge the algorithm. Select a field of expertise and prove that human intuition still reigns supreme.",
+    title: "Challenge the AI!",
+    desc: "Select a field of expertise and prove that human intuition still reigns supreme.",
     btn_start: "Start Test"
   },
   profile: {
@@ -194,7 +196,13 @@ const ENGLISH_BASE: TranslationData = {
 const KO_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
   common: { btn_back: "뒤로", confirm_exit: "퀴즈를 종료하시겠습니까? 진행 상황이 손실됩니다." },
-  intro: { human_label: "인간", ai_label: "인공지능", desc: "알고리즘에 도전하세요. 전문 분야를 선택하고 인간의 직관이 여전히 우위임을 증명하십시오.", btn_start: "테스트 시작" },
+  intro: { 
+    human_label: "인간", 
+    ai_label: "인공지능", 
+    title: "AI에 도전하세요!",
+    desc: "전문 분야를 선택하고 인간의 직관이 여전히 우위임을 증명하십시오.", 
+    btn_start: "테스트 시작" 
+  },
   profile: {
     title: "대상자 프로필", desc: "사용자의 국가별 문화 특성 및 교육 수준 최적화를 위해 사용됩니다.",
     label_gender: "성별", label_age: "연령대", label_nationality: "국적", btn_submit: "프로필 확정", skip: "건너뛰기",
@@ -240,7 +248,13 @@ const KO_TRANSLATIONS: TranslationData = {
 const JA_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
   common: { btn_back: "戻る", confirm_exit: "クイズを終了しますか？進行状況は失われます。" },
-  intro: { human_label: "人間", ai_label: "AI", desc: "アルゴリズムに挑戦してください。専門分野を選択し、人間の直感がいまだに優位であることを証明してください。", btn_start: "テスト開始" },
+  intro: { 
+    human_label: "人間", 
+    ai_label: "AI", 
+    title: "AIに挑戦せよ！",
+    desc: "専門分野を選択し、人間の直感がいまだに優位であることを証明してください。", 
+    btn_start: "テスト開始" 
+  },
   profile: {
     title: "被験者プロフィール", desc: "文化的・教育적背景の最適化に使用されます。",
     label_gender: "性別", label_age: "年齢層", label_nationality: "国籍", btn_submit: "確定", skip: "スキップ",
@@ -286,7 +300,13 @@ const JA_TRANSLATIONS: TranslationData = {
 const ES_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
   common: { btn_back: "Volver", confirm_exit: "¿Estás seguro de que quieres salir? Se perderá el progreso." },
-  intro: { human_label: "HUMANO", ai_label: "IA", desc: "Desafía al algoritmo. Selecciona un campo de especialización y demuestra que la intuición humana aún reina.", btn_start: "Iniciar Prueba" },
+  intro: { 
+    human_label: "HUMANO", 
+    ai_label: "IA", 
+    title: "¡Desafía a la IA!",
+    desc: "Selecciona un campo de especialización y demuestra que la intuición humana aún reina.", 
+    btn_start: "Iniciar Prueba" 
+  },
   profile: {
     title: "Perfil del Sujeto", desc: "Utilizado para la optimización del contexto cultural y educativo.",
     label_gender: "GÉNERO", label_age: "EDAD", label_nationality: "NACIONALIDAD", btn_submit: "Confirmar", skip: "Omitir",
@@ -332,7 +352,13 @@ const ES_TRANSLATIONS: TranslationData = {
 const FR_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
   common: { btn_back: "Retour", confirm_exit: "Voulez-vous vraiment quitter ? La progression sera perdue." },
-  intro: { human_label: "HUMAIN", ai_label: "IA", desc: "Défiez l'algorithme. Sélectionnez un domaine d'expertise et prouvez que l'intuition humaine règne toujours.", btn_start: "Commencer le Test" },
+  intro: { 
+    human_label: "HUMAIN", 
+    ai_label: "IA", 
+    title: "Défiez l'IA !",
+    desc: "Sélectionnez un domaine d'expertise et prouvez que l'intuition humaine règne toujours.", 
+    btn_start: "Commencer le Test" 
+  },
   profile: {
     title: "Profil du Sujet", desc: "Utilisé pour l'optimisation du contexte culturel et éducatif.",
     label_gender: "GENRE", label_age: "GROUPE D'ÂGE", label_nationality: "NATIONALITÉ", btn_submit: "Confirmer le Profil", skip: "Passer & Continuer",
@@ -355,7 +381,7 @@ const FR_TRANSLATIONS: TranslationData = {
       [TOPIC_IDS.MOVIES]: ["Oscars", "Science-Fiction", "Horreur", "Univers Cinématographique Marvel", "Star Wars", "Pixar", "Films Années 80", "Films Années 90", "Réalisateurs Célèbres", "Bandes Originales", "Films Cultes", "Films d'Animation", "Cinéma Français", "Cinéma Muet", "Effets Spéciaux", "Méchants de Cinéma"],
       [TOPIC_IDS.MUSIC]: ["Rock & Roll", "Pop", "Jazz", "Classique", "Hip Hop", "K-Pop", "EDM", "Heavy Metal", "Blues", "Country", "Opéra", "Instruments", "Hits Années 90", "Succès Sans Lendemain", "Théorie Musicale", "Woodstock"],
       [TOPIC_IDS.GAMING]: ["Nintendo", "PlayStation", "Xbox", "Jeux PC", "RPG", "FPS", "Classiques Arcade", "Rétrogaming", "Esports", "Minecraft", "Pokemon", "Zelda", "Mario", "Jeux Indés", "Speedrun", "MMO"],
-      [TOPIC_IDS.SPORTS]: ["Football", "Basket-ball", "Baseball", "Tennis", "Golf", "Formule 1", "Jeux Olympiques", "Boxe", "MMA", "Cricket", "Rugby", "Natation", "Sports d'Hiver", "Skateboard", "Lutte", "Coupe du Monde"],
+      [TOPIC_IDS.SPORTS]: ["Football", "Basket-ball", "Baseball", "Tennis", "Golf", "Formule 1", "Jeux Olympiques", "Boxe", "MMA", "Cricket", "Rugby", "Natación", "Sports d'Hiver", "Skateboard", "Lutte", "Coupe du Monde"],
       [TOPIC_IDS.TECH]: ["Intelligence Artificielle", "Smartphones", "Histoire d'Internet", "Réseaux Sociaux", "Codage", "Cybersécurité", "Tech Spatiale", "VR/AR", "Blockchain", "Robots", "Matériel Informatique", "Big Data", "Startups", "Hackers", "Tech Gaming", "5G"],
       [TOPIC_IDS.MYTHOLOGY]: ["Mythologie Grecque", "Mythologie Nordique", "Mythologie Égyptienne", "Mythologie Romaine", "Folklore Japonais", "Mythologie Chinoise", "Mythologie Celtique", "Mythologie Aztèque", "Mythologie Hindoue", "Amérindiens", "Monstres Légendaires", "Héros Épiques", "Enfers", "Mythes de Création", "Dieux de la Guerre", "Tricksters"],
       [TOPIC_IDS.LITERATURE]: ["Shakespeare", "Romans Classiques", "Fiction Dystopique", "Fantasy", "Livres SF", "Poésie", "Horreur", "Mystère", "BD & Manga", "Prix Nobel (Litt)", "Contes de Fées", "Épopées Grecques", "Littérature Russe", "Littérature Américaine", "Littérature Britannique", "Dramaturges"],
@@ -378,7 +404,13 @@ const FR_TRANSLATIONS: TranslationData = {
 const ZH_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
   common: { btn_back: "返回", confirm_exit: "确定要退出测验吗？进度将会丢失。" },
-  intro: { human_label: "人类", ai_label: "人工智能", desc: "挑战算法。选择一个专业领域，证明人类直觉依然至高无上。", btn_start: "开始测试" },
+  intro: { 
+    human_label: "人类", 
+    ai_label: "人工智能", 
+    title: "挑战 AI！",
+    desc: "选择一个专业领域，证明人类直觉依然至高无上。", 
+    btn_start: "开始测试" 
+  },
   profile: {
     title: "受试者档案", desc: "用于优化文化和教育背景。",
     label_gender: "性别", label_age: "年龄组", label_nationality: "国籍", btn_submit: "确认档案", skip: "跳过并继续",

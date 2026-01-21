@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { UserCircle2, ChevronRight, ChevronLeft, Flag, Globe } from 'lucide-react';
+import { UserCircle2, ChevronRight, ChevronLeft, Flag, Globe, Home } from 'lucide-react';
 import { Button } from '../components/Button';
 import { UserProfile, Language } from '../types';
 
@@ -11,6 +11,7 @@ interface ProfileViewProps {
   onUpdate: (profile: Partial<UserProfile>) => void;
   onSubmit: () => void;
   onBack: () => void;
+  onHome: () => void;
   backLabel: string;
 }
 
@@ -41,7 +42,7 @@ const COMMON_COUNTRIES = [
   "TR", "UA", "AE", "GB", "US", "UY", "VN"
 ].sort();
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, language, onUpdate, onSubmit, onBack, backLabel }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, language, onUpdate, onSubmit, onBack, onHome, backLabel }) => {
   const isComplete = userProfile.gender && userProfile.ageGroup && userProfile.nationality;
 
   // Use Intl.DisplayNames for automatic translation of country names
@@ -65,13 +66,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, langua
     onUpdate({ nationality: e.target.value });
   };
 
+  const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10";
+
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-6 animate-fade-in relative max-h-[85vh] overflow-y-auto custom-scrollbar">
       <button 
         onClick={onBack}
-        className="absolute top-4 left-4 text-slate-400 hover:text-white text-sm flex items-center gap-1 transition-colors z-20"
+        className={`${navBtnStyle} left-4`}
+        aria-label={backLabel}
       >
-        <ChevronLeft size={16} /> {backLabel}
+        <ChevronLeft size={20} />
+      </button>
+
+      <button 
+        onClick={onHome}
+        className={`${navBtnStyle} right-4`}
+        aria-label="Home"
+      >
+        <Home size={20} />
       </button>
 
       <div className="text-center mt-2">
@@ -179,7 +191,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, langua
         </div>
       </div>
 
-      <div className="pt-2 sticky bottom-0 bg-slate-900/90 backdrop-blur-md -mx-6 px-6 py-4">
+      <div className="pt-2 sticky bottom-0 bg-slate-900/90 backdrop-blur-md -mx-6 px-6 py-4 rounded-b-3xl">
         <Button onClick={onSubmit} fullWidth>
           {isComplete ? t.btn_submit : t.skip} <ChevronRight size={18} />
         </Button>
