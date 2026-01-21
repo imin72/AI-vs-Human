@@ -44,7 +44,6 @@ interface TopicSelectionViewProps {
     selectSubTopic: (sub: string) => void;
     setDifficulty: (diff: Difficulty) => void;
     startQuiz: () => void;
-    // Added missing action from App.tsx usage
     setCustomTopic: (topic: string) => void;
   };
 }
@@ -100,16 +99,21 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
   };
 
   const getImageUrl = (keyword: string) => {
-    if (t.subtopicImages[keyword]) return t.subtopicImages[keyword];
+    // 1. 직접 매칭 확인 (이미지 맵에 있는 경우)
+    if (t.subtopicImages && t.subtopicImages[keyword]) return t.subtopicImages[keyword];
     
+    // 2. 인덱스를 통해 영어 원문 키워드로 찾기
     const currentLangSubtopics = t.subtopics[selectedCategory] || [];
     const idx = currentLangSubtopics.indexOf(keyword);
     if (idx !== -1) {
       const englishKeyword = TRANSLATIONS.en.topics.subtopics[selectedCategory]?.[idx];
-      if (englishKeyword && t.subtopicImages[englishKeyword]) return t.subtopicImages[englishKeyword];
+      if (englishKeyword && t.subtopicImages && t.subtopicImages[englishKeyword]) {
+        return t.subtopicImages[englishKeyword];
+      }
     }
 
-    return t.categoryImages[selectedCategory] || '';
+    // 3. 폴백: 카테고리 이미지
+    return t.categoryImages ? t.categoryImages[selectedCategory] : '';
   };
 
   return (
@@ -183,7 +187,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                   }`}
                 >
                   <div 
-                    className="absolute inset-0 bg-cover bg-center opacity-40"
+                    className="absolute inset-0 bg-cover bg-center opacity-40 transition-transform duration-500 group-hover:scale-110"
                     style={{ backgroundImage: `url('${getImageUrl(sub)}')` }}
                   />
                   <div className="absolute inset-0 bg-slate-950/40 group-hover:bg-slate-950/20 transition-colors" />

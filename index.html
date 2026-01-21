@@ -10,42 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     
-    <!-- Tailwind Play CDN: 실시간 프리뷰 스타일 보정 -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-            },
-          }
-        }
-      }
-    </script>
-    
-    <style type="text/tailwindcss">
-      @layer components {
-        .glass-panel {
-          @apply bg-slate-900/85 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-          @apply w-1.5;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          @apply bg-transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          @apply bg-cyan-500/20 rounded-full hover:bg-cyan-500/40;
-        }
-      }
-      #root { min-height: 100vh; }
-      body { @apply bg-slate-950 text-slate-100; margin: 0; }
-    </style>
-
-    <!-- Babel for on-the-fly TSX transformation in preview -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
     <script type="importmap">
 {
   "imports": {
@@ -66,9 +30,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- 프리뷰 환경 안정성을 위해 type="text/babel" 사용 -->
-    <script type="text/babel" data-type="module" data-presets="react,typescript">
-      import "./index.tsx";
-    </script>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
