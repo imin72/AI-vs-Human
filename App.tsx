@@ -70,7 +70,6 @@ export default function App() {
       
       {stage === AppStage.QUIZ && (
         <QuizView 
-          t={t.quiz}
           questions={quizState.questions}
           currentIndex={quizState.currentQuestionIndex}
           selectedOption={quizState.selectedOption}

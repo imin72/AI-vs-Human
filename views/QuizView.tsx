@@ -5,7 +5,6 @@ import { Button } from '../components/Button';
 import { QuizQuestion } from '../types';
 
 interface QuizViewProps {
-  t: any;
   questions: QuizQuestion[];
   currentIndex: number;
   selectedOption: string | null;
@@ -17,7 +16,6 @@ interface QuizViewProps {
 }
 
 export const QuizView: React.FC<QuizViewProps> = ({ 
-  t, 
   questions, 
   currentIndex, 
   selectedOption, 
