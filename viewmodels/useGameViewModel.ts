@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { 
   AppStage, 
   Language, 
@@ -65,6 +65,89 @@ export const useGameViewModel = () => {
     }
   };
 
+  // --- History Navigation Logic ---
+  const isNavigatingBackRef = useRef(false);
+
+  // Initialize History
+  useEffect(() => {
+    window.history.replaceState({ stage: 'root' }, '');
+  }, []);
+
+  // Sync forward navigation to history
+  useEffect(() => {
+    if (isNavigatingBackRef.current) {
+      isNavigatingBackRef.current = false;
+      return;
+    }
+    
+    // Push state when moving deeper into the app
+    // We treat LANGUAGE as root, so anything else pushes history
+    if (stage !== AppStage.LANGUAGE) {
+      // Also account for sub-states like selectedCategory in TOPIC_SELECTION
+      if (stage === AppStage.TOPIC_SELECTION && !selectedCategory) {
+         // This is the base topic selection, only push if we came from PROFILE
+      }
+      window.history.pushState({ stage, selectedCategory }, '');
+    }
+  }, [stage, selectedCategory]);
+
+  // Handle actual back logic (state updates)
+  const performBackNavigation = useCallback((): boolean => {
+    if (isPending) return false;
+
+    if (selectedCategory && stage === AppStage.TOPIC_SELECTION) { 
+      setSelectedCategory(''); 
+      setSelectedSubTopic(''); 
+      return true;
+    }
+    
+    switch (stage) {
+      case AppStage.TOPIC_SELECTION:
+        setStage(AppStage.PROFILE);
+        return true;
+      case AppStage.PROFILE:
+        setStage(AppStage.INTRO);
+        return true;
+      case AppStage.INTRO:
+        setStage(AppStage.LANGUAGE);
+        return true;
+      case AppStage.QUIZ:
+        if (window.confirm(t.common.confirm_exit)) {
+          setStage(AppStage.TOPIC_SELECTION);
+          return true;
+        }
+        return false; // Cancelled
+      case AppStage.RESULTS:
+      case AppStage.ERROR:
+        setStage(AppStage.TOPIC_SELECTION);
+        return true;
+      default:
+        return true;
+    }
+  }, [stage, selectedCategory, isPending, t]);
+
+  // Listen for browser back button (popstate)
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // If we are at LANGUAGE, allow default behavior (exit app/close tab)
+      if (stage === AppStage.LANGUAGE) {
+        return; 
+      }
+
+      isNavigatingBackRef.current = true;
+      const success = performBackNavigation();
+      
+      if (!success) {
+        // Navigation was cancelled (e.g. Quiz confirm rejected)
+        // We must push state back to restore the history stack
+        window.history.pushState({ stage, selectedCategory }, '');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [performBackNavigation, stage, selectedCategory]);
+
   const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { 
       setLanguage(lang); 
@@ -79,39 +162,16 @@ export const useGameViewModel = () => {
     },
     selectSubTopic: (sub: string) => setSelectedSubTopic(sub),
     setDifficulty: (diff: Difficulty) => setDifficulty(diff),
+    
+    // Modified goBack to use History API
     goBack: () => {
       if (isPending) return;
-
-      if (selectedCategory && stage === AppStage.TOPIC_SELECTION) { 
-        setSelectedCategory(''); 
-        setSelectedSubTopic(''); 
-        return;
-      }
+      if (stage === AppStage.LANGUAGE) return;
       
-      switch (stage) {
-        case AppStage.TOPIC_SELECTION:
-          setStage(AppStage.PROFILE);
-          break;
-        case AppStage.PROFILE:
-          setStage(AppStage.INTRO);
-          break;
-        case AppStage.INTRO:
-          setStage(AppStage.LANGUAGE);
-          break;
-        case AppStage.QUIZ:
-          if (window.confirm(t.common.confirm_exit)) {
-            setStage(AppStage.TOPIC_SELECTION);
-          }
-          break;
-        case AppStage.RESULTS:
-        case AppStage.ERROR:
-          setStage(AppStage.TOPIC_SELECTION);
-          break;
-        default:
-          setStage(AppStage.LANGUAGE);
-          break;
-      }
+      // Trigger browser back, which will fire popstate and run performBackNavigation
+      window.history.back();
     },
+    
     goHome: () => {
       if (isPending) return;
       if (stage === AppStage.QUIZ) {
@@ -180,7 +240,7 @@ export const useGameViewModel = () => {
     shuffleTopics: () => {},
     shuffleSubTopics: () => {},
     setCustomTopic: (_topic: string) => {}
-  }), [isPending, stage, selectedCategory, selectedSubTopic, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t]);
+  }), [isPending, stage, selectedCategory, selectedSubTopic, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, performBackNavigation]);
 
   return {
     state: {
