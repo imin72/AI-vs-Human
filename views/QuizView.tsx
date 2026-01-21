@@ -14,7 +14,7 @@ interface QuizViewProps {
   onConfirm: () => void;
   onBack: () => void;
   backLabel: string;
-  language: Language; // 언어 정보 추가
+  language: Language;
 }
 
 export const QuizView: React.FC<QuizViewProps> = ({ 
@@ -25,7 +25,6 @@ export const QuizView: React.FC<QuizViewProps> = ({
   onSelectOption, 
   onConfirm,
   onBack,
-  backLabel,
   language
 }) => {
   const question = questions[currentIndex];
@@ -47,7 +46,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
     ];
     
     setAiLogs([]);
-    setShowHint(false); // 문제 바뀔 때 힌트 초기화
+    setShowHint(false); 
     let i = 0;
     const interval = setInterval(() => {
       if (i < logs.length) {
@@ -119,9 +118,14 @@ export const QuizView: React.FC<QuizViewProps> = ({
           </div>
         </div>
         <div className="flex gap-1">
-          {[1,2,3].map(i => <div key={i} className="w-1 h-3 bg-cyan-500/30 rounded-full overflow-hidden">
-            <div className="w-full bg-cyan-400 animate-bounce" style={{ animationDelay: `${i * 0.2}s`, height: `${30 + i * 20}%` }}></div>
-          </div>)}
+          {[1,2,3].map(i => (
+            <div key={i} className="w-1 h-3 bg-cyan-500/30 rounded-full overflow-hidden">
+              <div 
+                className="w-full bg-cyan-400 animate-bounce" 
+                style={{ animationDelay: `${i * 0.2}s`, height: `${30 + i * 20}%` }}
+              ></div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -147,7 +151,6 @@ export const QuizView: React.FC<QuizViewProps> = ({
             {question.question}
           </h3>
           
-          {/* 힌트 시스템 */}
           <div className="mt-4">
             {!showHint ? (
               <button 
