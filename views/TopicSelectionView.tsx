@@ -115,132 +115,134 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
     return t.categoryImages ? t.categoryImages[selectedCategory] : '';
   };
 
-  const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10";
+  const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
 
   return (
-    <div className="glass-panel p-6 rounded-3xl space-y-6 animate-fade-in relative w-full" style={{ minWidth: '320px' }}>
+    <div className="w-full max-w-2xl relative pt-16 animate-fade-in">
       <button 
         onClick={actions.goBack}
-        className={`${navBtnStyle} left-4`}
+        className={`${navBtnStyle} left-0 md:-left-12`}
       >
         <ChevronLeft size={20} />
       </button>
 
       <button 
         onClick={actions.goHome}
-        className={`${navBtnStyle} right-4`}
+        className={`${navBtnStyle} right-0 md:-right-12`}
         aria-label="Home"
       >
         <Home size={20} />
       </button>
 
-      <div className="text-center pt-2">
-        <h2 className="text-2xl font-bold tracking-tight text-white">
-          {!selectedCategory ? t.title_select : t.title_config}
-        </h2>
-      </div>
-      
-      {errorMsg && <div className="text-red-400 text-center text-xs bg-red-900/20 p-3 rounded-xl border border-red-500/20 animate-pulse">{errorMsg}</div>}
-
-      {!selectedCategory ? (
-        <div className="space-y-4">
-          <button
-            onClick={handleRefreshCategories}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 font-bold text-xs hover:bg-cyan-600/20 transition-all"
-          >
-            <Dices size={16} /> {t.btn_refresh}
-          </button>
-
-          <div className="grid grid-cols-2 gap-3">
-            {subsetCategories.map((topic) => (
-              <button
-                key={topic.id}
-                onClick={() => actions.selectCategory(topic.id)}
-                className="group relative aspect-square md:aspect-video rounded-2xl overflow-hidden border border-slate-700/50 hover:border-cyan-500 transition-all shadow-lg bg-slate-900"
-              >
-                <div 
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={{ backgroundImage: `url('${t.categoryImages[topic.id] || ''}')`, backgroundSize: 'cover' }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
-                <div className="absolute inset-0 p-3 flex flex-col items-center justify-end gap-1">
-                  <div className="text-cyan-400">{getCategoryIcon(topic.id)}</div>
-                  <span className="font-bold text-sm md:text-base text-white uppercase text-center leading-tight drop-shadow-md">
-                    {topic.label}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
+      <div className="glass-panel p-6 rounded-3xl space-y-6 w-full" style={{ minWidth: '320px' }}>
+        <div className="text-center pt-2">
+          <h2 className="text-2xl font-bold tracking-tight text-white">
+            {!selectedCategory ? t.title_select : t.title_config}
+          </h2>
         </div>
-      ) : (
-        <div className="space-y-6 animate-fade-in">
+        
+        {errorMsg && <div className="text-red-400 text-center text-xs bg-red-900/20 p-3 rounded-xl border border-red-500/20 animate-pulse">{errorMsg}</div>}
+
+        {!selectedCategory ? (
           <div className="space-y-4">
-            <div className="flex items-center justify-between mb-2">
-               <div className="flex items-center gap-2">
-                  <div className="text-cyan-500">{getCategoryIcon(selectedCategory)}</div>
-                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{t.label_field}</label>
-               </div>
-               <button onClick={handleRefreshSubtopics} className="text-[10px] text-cyan-400 font-bold hover:underline">{t.btn_refresh}</button>
-            </div>
+            <button
+              onClick={handleRefreshCategories}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 font-bold text-xs hover:bg-cyan-600/20 transition-all"
+            >
+              <Dices size={16} /> {t.btn_refresh}
+            </button>
 
             <div className="grid grid-cols-2 gap-3">
-              {subsetSubTopics.map(sub => (
-                <button 
-                  key={sub} 
-                  onClick={() => actions.selectSubTopic(sub)} 
-                  className={`group relative aspect-video rounded-2xl overflow-hidden border transition-all bg-slate-900 ${
-                    selectedSubTopic === sub 
-                      ? 'border-cyan-400 ring-2 ring-cyan-500/50' 
-                      : 'border-slate-800 hover:border-slate-500'
-                  }`}
+              {subsetCategories.map((topic) => (
+                <button
+                  key={topic.id}
+                  onClick={() => actions.selectCategory(topic.id)}
+                  className="group relative aspect-square md:aspect-video rounded-2xl overflow-hidden border border-slate-700/50 hover:border-cyan-500 transition-all shadow-lg bg-slate-900"
                 >
                   <div 
-                    className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-500 group-hover:scale-110"
-                    style={{ backgroundImage: `url('${getImageUrl(sub)}')`, backgroundSize: 'cover' }}
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: `url('${t.categoryImages[topic.id] || ''}')`, backgroundSize: 'cover' }}
                   />
-                  <div className="absolute inset-0 bg-slate-950/40 group-hover:bg-slate-950/20 transition-colors" />
-                  <div className="absolute inset-0 p-3 flex items-center justify-center">
-                    <span className={`text-sm md:text-base font-black text-center uppercase tracking-wide leading-tight drop-shadow-lg ${
-                      selectedSubTopic === sub ? 'text-cyan-300' : 'text-white'
-                    }`}>
-                      {sub}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                  <div className="absolute inset-0 p-3 flex flex-col items-center justify-end gap-1">
+                    <div className="text-cyan-400">{getCategoryIcon(topic.id)}</div>
+                    <span className="font-bold text-sm md:text-base text-white uppercase text-center leading-tight drop-shadow-md">
+                      {topic.label}
                     </span>
                   </div>
                 </button>
               ))}
             </div>
           </div>
-          
-          <div className="space-y-3">
-            <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold block pl-1">{t.label_difficulty}</label>
-            <div className="flex gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
-              {Object.values(Difficulty).map((diff) => (
-                <button 
-                  key={diff} 
-                  onClick={() => actions.setDifficulty(diff)} 
-                  className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    difficulty === diff 
-                      ? 'bg-cyan-600 text-white shadow-lg' 
-                      : 'text-slate-500 hover:text-slate-300'
-                  }`}
-                >
-                  {t.difficulty[diff]}
-                </button>
-              ))}
+        ) : (
+          <div className="space-y-6 animate-fade-in">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                 <div className="flex items-center gap-2">
+                    <div className="text-cyan-500">{getCategoryIcon(selectedCategory)}</div>
+                    <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{t.label_field}</label>
+                 </div>
+                 <button onClick={handleRefreshSubtopics} className="text-[10px] text-cyan-400 font-bold hover:underline">{t.btn_refresh}</button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {subsetSubTopics.map(sub => (
+                  <button 
+                    key={sub} 
+                    onClick={() => actions.selectSubTopic(sub)} 
+                    className={`group relative aspect-video rounded-2xl overflow-hidden border transition-all bg-slate-900 ${
+                      selectedSubTopic === sub 
+                        ? 'border-cyan-400 ring-2 ring-cyan-500/50' 
+                        : 'border-slate-800 hover:border-slate-500'
+                    }`}
+                  >
+                    <div 
+                      className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-500 group-hover:scale-110"
+                      style={{ backgroundImage: `url('${getImageUrl(sub)}')`, backgroundSize: 'cover' }}
+                    />
+                    <div className="absolute inset-0 bg-slate-950/40 group-hover:bg-slate-950/20 transition-colors" />
+                    <div className="absolute inset-0 p-3 flex items-center justify-center">
+                      <span className={`text-sm md:text-base font-black text-center uppercase tracking-wide leading-tight drop-shadow-lg ${
+                        selectedSubTopic === sub ? 'text-cyan-300' : 'text-white'
+                      }`}>
+                        {sub}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
+            
+            <div className="space-y-3">
+              <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold block pl-1">{t.label_difficulty}</label>
+              <div className="flex gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+                {Object.values(Difficulty).map((diff) => (
+                  <button 
+                    key={diff} 
+                    onClick={() => actions.setDifficulty(diff)} 
+                    className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      difficulty === diff 
+                        ? 'bg-cyan-600 text-white shadow-lg' 
+                        : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    {t.difficulty[diff]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <Button 
+              onClick={actions.startQuiz} 
+              disabled={!selectedSubTopic} 
+              fullWidth 
+              className="mt-2 py-4 shadow-xl"
+            >
+              {t.btn_start_sim} <Play size={18} className="fill-white" />
+            </Button>
           </div>
-          
-          <Button 
-            onClick={actions.startQuiz} 
-            disabled={!selectedSubTopic} 
-            fullWidth 
-            className="mt-2 py-4 shadow-xl"
-          >
-            {t.btn_start_sim} <Play size={18} className="fill-white" />
-          </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

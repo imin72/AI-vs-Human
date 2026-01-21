@@ -101,12 +101,22 @@ export const QuizView: React.FC<QuizViewProps> = ({
     }
   }, [aiLogs]);
 
+  const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
+
   return (
-    <div className="flex flex-col gap-4 w-full max-w-2xl animate-fade-in pb-8 relative">
-       {/* Home Button for Quiz View */}
+    <div className="flex flex-col gap-4 w-full max-w-2xl animate-fade-in pb-8 relative pt-16">
+      {/* Navigation Buttons */}
+      <button 
+        onClick={onBack}
+        className={`${navBtnStyle} left-0 md:-left-12`}
+        aria-label="Back"
+      >
+        <ChevronLeft size={20} />
+      </button>
+
       <button 
         onClick={onHome}
-        className="absolute -top-14 right-0 md:-right-12 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10"
+        className={`${navBtnStyle} right-0 md:-right-12`}
         aria-label="Home"
       >
         <Home size={20} />
@@ -223,12 +233,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
         </div>
 
         <div className="flex gap-3">
-          <button 
-            onClick={onBack}
-            className="flex-none p-4 rounded-2xl bg-slate-900 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
-          >
-            <ChevronLeft size={20} />
-          </button>
+          {/* Bottom Back Button Removed */}
           <Button 
             onClick={onConfirm} 
             disabled={!selectedOption}

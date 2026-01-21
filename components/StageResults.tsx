@@ -1,7 +1,8 @@
+
 import React, { useState, useRef } from 'react';
 import { EvaluationResult, Language } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, Zap, Palette, CheckCircle, XCircle, Users, Download } from 'lucide-react';
+import { Share2, RefreshCw, Brain, Zap, Palette, CheckCircle, XCircle, Users, Download, Home } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { toPng } from 'html-to-image';
 import { TRANSLATIONS } from '../utils/translations';
@@ -9,6 +10,7 @@ import { TRANSLATIONS } from '../utils/translations';
 interface StageResultsProps {
   data: EvaluationResult;
   onRestart: () => void;
+  onHome: () => void;
   language: Language;
 }
 
@@ -20,7 +22,7 @@ const THEMES = [
   { id: 'paper', name: 'Light', bg: 'bg-slate-100 border border-slate-300 shadow-xl', text: 'text-slate-900', accent: 'text-blue-600', chart: '#2563eb', iconColor: 'bg-blue-600' }
 ];
 
-export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, language }) => {
+export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onHome, language }) => {
   const [currentThemeIdx, setCurrentThemeIdx] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -83,9 +85,18 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, lan
   ];
 
   const isLightMode = theme.id === 'paper';
+  const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
 
   return (
-    <div className="space-y-4 animate-fade-in w-full max-w-2xl pb-10">
+    <div className="space-y-4 animate-fade-in w-full max-w-2xl pb-10 relative pt-16">
+      <button 
+        onClick={onHome}
+        className={`${navBtnStyle} right-0 md:-right-12`}
+        aria-label="Home"
+      >
+        <Home size={20} />
+      </button>
+
       {/* Theme Selector UI */}
       <div className="bg-slate-900/50 p-4 rounded-2xl backdrop-blur-sm border border-slate-700 space-y-3">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">

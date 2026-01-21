@@ -94,6 +94,7 @@ export default function App() {
         <StageResults 
           data={resultState.evaluation} 
           onRestart={actions.resetApp} 
+          onHome={actions.goHome}
           language={language} 
         />
       )}
