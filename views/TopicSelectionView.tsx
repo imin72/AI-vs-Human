@@ -136,7 +136,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
             onClick={handleRefreshCategories}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 font-bold text-xs hover:bg-cyan-600/20 transition-all"
           >
-            <Dices size={16} /> {t.btn_refresh || 'SHUFFLE TOPICS'}
+            <Dices size={16} /> {t.btn_refresh}
           </button>
 
           <div className="grid grid-cols-2 gap-3">
@@ -169,7 +169,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                   <div className="text-cyan-500">{getCategoryIcon(selectedCategory)}</div>
                   <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{t.label_field}</label>
                </div>
-               <button onClick={handleRefreshSubtopics} className="text-[10px] text-cyan-400 font-bold hover:underline">SHUFFLE</button>
+               <button onClick={handleRefreshSubtopics} className="text-[10px] text-cyan-400 font-bold hover:underline">{t.btn_refresh}</button>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
