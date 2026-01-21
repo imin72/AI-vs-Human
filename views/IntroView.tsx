@@ -12,24 +12,6 @@ interface IntroViewProps {
 }
 
 export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome, backLabel }) => {
-  // AI 또는 IA 단어를 찾아 스타일링을 적용하는 헬퍼 함수
-  const renderStyledTitle = (text: string) => {
-    const parts = text.split(/(AI|IA)/g);
-    return parts.map((part, i) => {
-      if (part === 'AI' || part === 'IA') {
-        return (
-          <span 
-            key={i} 
-            className="text-transparent bg-clip-text bg-gradient-to-br from-cyan-300 to-blue-500 drop-shadow-[0_0_10px_rgba(6,182,212,0.8)] inline-block transform hover:scale-105 transition-transform duration-300 cursor-default"
-          >
-            {part}
-          </span>
-        );
-      }
-      return <span key={i}>{part}</span>;
-    });
-  };
-
   const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
 
   return (
@@ -69,7 +51,7 @@ export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome
         
         <div className="space-y-4 mb-8 max-w-lg">
           <h2 className="text-3xl md:text-5xl font-black text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] tracking-tight leading-tight">
-            {renderStyledTitle(t.title)}
+            {t.title}
           </h2>
           <p className="text-base md:text-lg text-slate-400 leading-relaxed font-medium">
             {t.desc}
