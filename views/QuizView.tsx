@@ -193,7 +193,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
         <div className="flex-1 font-mono text-[9px] text-slate-500 leading-tight">
           {aiLogs.map((log, i) => (
             <div key={i} className={i === aiLogs.length - 1 ? "text-cyan-400/80" : ""}>
-              > {log}
+              &gt; {log}
             </div>
           ))}
         </div>
