@@ -78,6 +78,7 @@ export default function App() {
           onConfirm={actions.confirmAnswer}
           onBack={actions.goBack}
           backLabel={t.common.btn_back}
+          language={language}
         />
       )}
       
