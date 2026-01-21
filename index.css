@@ -1,6 +1,4 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,36 +7,36 @@
   color-scheme: dark;
 }
 
-html, body {
-  height: 100%;
+body {
   margin: 0;
   padding: 0;
   background-color: #020617; /* Slate-950 */
+  overflow-x: hidden;
+  font-family: 'Inter', sans-serif;
 }
 
 #root {
-  min-height: 100%;
-  width: 100%;
+  min-height: 100vh;
 }
 
 .glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  width: 100%;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Custom Scrollbar for better UX in modals/views */
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
 }

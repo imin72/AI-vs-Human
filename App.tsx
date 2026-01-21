@@ -1,16 +1,18 @@
-import { Layout } from './components/Layout';
-import { StageResults } from './components/StageResults';
-import { AppStage, TOPIC_IDS } from './types';
-import { useGameViewModel } from './viewmodels/useGameViewModel';
+
+import React from 'react';
+import { Layout } from './components/Layout.tsx';
+import { StageResults } from './components/StageResults.tsx';
+import { AppStage, TOPIC_IDS } from './types.ts';
+import { useGameViewModel } from './viewmodels/useGameViewModel.ts';
 
 // Views
-import { LanguageView } from './views/LanguageView';
-import { IntroView } from './views/IntroView';
-import { ProfileView } from './views/ProfileView';
-import { TopicSelectionView } from './views/TopicSelectionView';
-import { QuizView } from './views/QuizView';
-import { LoadingView } from './views/LoadingView';
-import { ErrorView } from './views/ErrorView';
+import { LanguageView } from './views/LanguageView.tsx';
+import { IntroView } from './views/IntroView.tsx';
+import { ProfileView } from './views/ProfileView.tsx';
+import { TopicSelectionView } from './views/TopicSelectionView.tsx';
+import { QuizView } from './views/QuizView.tsx';
+import { LoadingView } from './views/LoadingView.tsx';
+import { ErrorView } from './views/ErrorView.tsx';
 
 export default function App() {
   const { state, actions, t } = useGameViewModel();
