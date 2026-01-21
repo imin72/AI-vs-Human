@@ -2,7 +2,7 @@
 import React from 'react';
 import { Layout } from './components/Layout.tsx';
 import { StageResults } from './components/StageResults.tsx';
-import { AppStage, TOPIC_IDS } from './types.ts';
+import { AppStage } from './types.ts';
 import { useGameViewModel } from './viewmodels/useGameViewModel.ts';
 
 // Views
@@ -37,6 +37,7 @@ export default function App() {
         <ProfileView 
           t={t.profile} 
           userProfile={userProfile} 
+          language={language}
           onUpdate={actions.updateProfile}
           onSubmit={actions.submitProfile}
           onBack={actions.goBack}
@@ -74,7 +75,7 @@ export default function App() {
           questions={quizState.questions}
           currentIndex={quizState.currentQuestionIndex}
           selectedOption={quizState.selectedOption}
-          topicLabel={topicState.selectedCategory === TOPIC_IDS.CUSTOM ? topicState.customTopic : topicState.selectedSubTopic}
+          topicLabel={topicState.selectedSubTopic || topicState.selectedCategory}
           onSelectOption={actions.selectOption}
           onConfirm={actions.confirmAnswer}
           onBack={actions.goBack}

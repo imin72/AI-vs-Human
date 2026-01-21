@@ -74,6 +74,5 @@ export const TOPIC_IDS = {
   NATURE: "Nature",
   FOOD: "Food",
   SPACE: "Space",
-  PHILOSOPHY: "Philosophy",
-  CUSTOM: "Custom"
+  PHILOSOPHY: "Philosophy"
 };

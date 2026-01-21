@@ -8,7 +8,7 @@ const MODEL_NAME = 'gemini-3-flash-preview';
 const CACHE_KEY_QUIZ = "cognito_quiz_cache_v1";
 const CACHE_KEY_EVAL = "cognito_eval_cache_v1";
 
-// 비상용 폴백 퀴즈 (API 장애 발생 시 제공)
+// 비상용 폴백 퀴즈 (API 장애 발생 시 제공 - 기본 영어지만 서비스 안정성용)
 const FALLBACK_QUIZ: QuizQuestion[] = [
   { id: 1, question: "Which is not a characteristic of Human Intelligence?", options: ["Emotional Intuition", "Pattern Recognition", "Finite Biological Memory", "Infinite Electricity Consumption"], correctAnswer: "Infinite Electricity Consumption", context: "AI uses vast amounts of electricity compared to the human brain." },
   { id: 2, question: "What is the Turing Test designed to determine?", options: ["CPU Speed", "AI's ability to exhibit human-like behavior", "Battery life", "Internet connectivity"], correctAnswer: "AI's ability to exhibit human-like behavior" },
@@ -61,12 +61,30 @@ export const generateQuestions = async (
   lang: Language,
   userProfile?: UserProfile
 ): Promise<QuizQuestion[]> => {
-  const cacheKey = `${topic}_${difficulty}_${lang}`.toLowerCase();
+  const cacheKey = `quiz_${topic}_${difficulty}_${lang}`.toLowerCase();
   const quizCache = loadCache(CACHE_KEY_QUIZ);
   if (quizCache[cacheKey]) return quizCache[cacheKey];
 
   try {
-    const prompt = `Topic: ${topic}, Diff: ${difficulty}, Lang: ${lang}, User: ${userProfile?.ageGroup || 'General'}. JSON 5 short Qs. Accuracy 100%.`;
+    // 언어에 따른 명시적 지침 추가
+    const languageNames: Record<Language, string> = {
+      en: "English",
+      ko: "Korean (한국어)",
+      ja: "Japanese (日本語)",
+      es: "Spanish (Español)"
+    };
+
+    const prompt = `
+      You are a high-level knowledge testing AI.
+      Generate 5 multiple-choice questions about the topic: "${topic}".
+      
+      CRITICAL INSTRUCTIONS:
+      1. ALL text content (question, options, context) MUST be written in ${languageNames[lang]}.
+      2. Difficulty level: ${difficulty}.
+      3. Target Audience: ${userProfile?.ageGroup || 'General'}.
+      4. Ensure technical accuracy and provide interesting 'context' (hints/facts) for each question in ${languageNames[lang]}.
+      5. Return ONLY a valid JSON object.
+    `;
 
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: MODEL_NAME,
@@ -101,7 +119,6 @@ export const generateQuestions = async (
     return qs;
   } catch (error) {
     console.error("Quiz Generation Failed:", error);
-    // 폴백 퀴즈 제공 (완전한 중단 방지)
     return FALLBACK_QUIZ;
   }
 };
@@ -113,13 +130,31 @@ export const evaluateAnswers = async (
   lang: Language,
   performance: {id: number, ok: boolean}[]
 ): Promise<EvaluationResult> => {
-  const cacheKey = `${topic}_${score}_${lang}_${userProfile.ageGroup}_p${performance.map(p=>p.ok?1:0).join('')}`.toLowerCase();
+  const cacheKey = `eval_${topic}_${score}_${lang}_${userProfile.ageGroup}_p${performance.map(p=>p.ok?1:0).join('')}`.toLowerCase();
   const evalCache = loadCache(CACHE_KEY_EVAL);
   if (evalCache[cacheKey]) return evalCache[cacheKey];
 
   try {
-    const perfStr = performance.map(p => `Q${p.id}:${p.ok?'OK':'FAIL'}`).join(', ');
-    const prompt = `Witty report on "${topic}" (Score:${score}/100). User:${userProfile.ageGroup}. Lang:${lang}. Perf:${perfStr}. JSON only. Max 100 words total.`;
+    const languageNames: Record<Language, string> = {
+      en: "English",
+      ko: "Korean (한국어)",
+      ja: "Japanese (日本語)",
+      es: "Spanish (Español)"
+    };
+
+    const perfStr = performance.map(p => `Q${p.id}:${p.ok?'Correct':'Incorrect'}`).join(', ');
+    const prompt = `
+      Generate a witty, human-vs-AI style performance report in ${languageNames[lang]}.
+      Topic: "${topic}"
+      User Score: ${score}/100
+      User Context: ${userProfile.ageGroup}, ${userProfile.nationality}
+      Performance: ${perfStr}
+      
+      REQUIREMENTS:
+      1. ALL analysis text (aiComparison, demographicComment, aiComment, correctFact) MUST be in ${languageNames[lang]}.
+      2. Be analytical yet slightly provocative, like a superior but fair AI.
+      3. Return a valid JSON.
+    `;
     
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: MODEL_NAME,
@@ -156,18 +191,17 @@ export const evaluateAnswers = async (
     saveCache(CACHE_KEY_EVAL, evalCache);
     return result;
   } catch (error) {
-    // 분석 실패 시 기본 리포트 반환
     return {
       totalScore: score,
       humanPercentile: score,
       demographicPercentile: score,
-      demographicComment: "Cognito server is temporarily offline. Your score is processed locally.",
-      aiComparison: "Human intelligence is stable; AI is currently recalibrating.",
-      title: "Local Analysis Mode",
+      demographicComment: lang === 'ko' ? "서버 연결이 원활하지 않아 로컬 분석을 수행합니다." : "Cognito server is temporarily offline. Using local analysis.",
+      aiComparison: lang === 'ko' ? "인간의 지능은 안정적이나, AI는 현재 재교정 중입니다." : "Human intelligence is stable; AI is currently recalibrating.",
+      title: lang === 'ko' ? "로컬 분석 모드" : "Local Analysis Mode",
       details: performance.map(p => ({
         questionId: p.id,
         isCorrect: p.ok,
-        aiComment: "Local analysis available.",
+        aiComment: lang === 'ko' ? "분석 완료." : "Analysis complete.",
         correctFact: "N/A"
       }))
     };

@@ -1,12 +1,13 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { UserCircle2, ChevronRight, ChevronLeft, Flag } from 'lucide-react';
 import { Button } from '../components/Button';
-import { UserProfile } from '../types';
+import { UserProfile, Language } from '../types';
 
 interface ProfileViewProps {
   t: any;
   userProfile: UserProfile;
+  language: Language;
   onUpdate: (profile: Partial<UserProfile>) => void;
   onSubmit: () => void;
   onBack: () => void;
@@ -24,8 +25,31 @@ const getFlagEmoji = (nat: string) => {
   }
 };
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, onUpdate, onSubmit, onBack, backLabel }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, language, onUpdate, onSubmit, onBack, backLabel }) => {
   const isComplete = userProfile.gender && userProfile.ageGroup && userProfile.nationality;
+
+  // 정렬된 국적 리스트 생성 (선택한 언어에 맞는 국가를 최상단으로)
+  const sortedNationalities = useMemo(() => {
+    const nats = Object.keys(t.nationalities);
+    
+    // 언어별 우선순위 맵
+    const priorityMap: Record<Language, string> = {
+      ko: 'South Korea',
+      ja: 'Japan',
+      es: 'Spain',
+      en: 'USA'
+    };
+
+    const priorityNat = priorityMap[language];
+    
+    return nats.sort((a, b) => {
+      if (a === priorityNat) return -1;
+      if (b === priorityNat) return 1;
+      if (a === 'Other') return 1; // 'Other'는 항상 마지막
+      if (b === 'Other') return -1;
+      return 0;
+    });
+  }, [t.nationalities, language]);
 
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-6 animate-fade-in relative max-h-[85vh] overflow-y-auto custom-scrollbar">
@@ -51,7 +75,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, onUpda
             <Flag size={12} className="text-cyan-500" /> {t.label_nationality}
           </label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {Object.keys(t.nationalities).map(nat => (
+            {sortedNationalities.map(nat => (
               <button
                 key={nat}
                 onClick={() => onUpdate({ nationality: nat })}

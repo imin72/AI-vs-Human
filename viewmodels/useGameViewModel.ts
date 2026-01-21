@@ -19,7 +19,6 @@ export const useGameViewModel = () => {
   const [userProfile, setUserProfile] = useState<UserProfile>({ gender: '', ageGroup: '', nationality: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSubTopic, setSelectedSubTopic] = useState<string>('');
-  const [customTopic, setCustomTopic] = useState<string>('');
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.MEDIUM);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -33,13 +32,11 @@ export const useGameViewModel = () => {
 
   const displayedTopics = useMemo(() => {
     return Object.entries(t.topics.categories)
-      .filter(([id]) => id !== TOPIC_IDS.CUSTOM)
       .map(([id, label]) => ({ id, label }));
   }, [t]);
 
   const displayedSubTopics = useMemo(() => {
-    if (!selectedCategory || selectedCategory === TOPIC_IDS.CUSTOM) return [];
-    // 현재 선택된 언어(t)의 서브토픽 목록을 반환
+    if (!selectedCategory) return [];
     return t.topics.subtopics[selectedCategory] || [];
   }, [selectedCategory, t]);
 
@@ -82,20 +79,43 @@ export const useGameViewModel = () => {
       setSelectedSubTopic('');
     },
     selectSubTopic: (sub: string) => setSelectedSubTopic(sub),
-    setCustomTopic: (topic: string) => setCustomTopic(topic),
     setDifficulty: (diff: Difficulty) => setDifficulty(diff),
     goBack: () => {
       if (isPending) return;
-      if (selectedCategory) { setSelectedCategory(''); setSelectedSubTopic(''); }
-      else if (stage === AppStage.TOPIC_SELECTION) setStage(AppStage.PROFILE);
-      else if (stage === AppStage.PROFILE) setStage(AppStage.INTRO);
-      else if (stage === AppStage.INTRO) setStage(AppStage.LANGUAGE);
-      else if (stage === AppStage.QUIZ) { if (window.confirm(t.common.confirm_exit)) setStage(AppStage.TOPIC_SELECTION); }
-      else setStage(AppStage.TOPIC_SELECTION);
+
+      if (selectedCategory && stage === AppStage.TOPIC_SELECTION) { 
+        setSelectedCategory(''); 
+        setSelectedSubTopic(''); 
+        return;
+      }
+      
+      switch (stage) {
+        case AppStage.TOPIC_SELECTION:
+          setStage(AppStage.PROFILE);
+          break;
+        case AppStage.PROFILE:
+          setStage(AppStage.INTRO);
+          break;
+        case AppStage.INTRO:
+          setStage(AppStage.LANGUAGE);
+          break;
+        case AppStage.QUIZ:
+          if (window.confirm(t.common.confirm_exit)) {
+            setStage(AppStage.TOPIC_SELECTION);
+          }
+          break;
+        case AppStage.RESULTS:
+        case AppStage.ERROR:
+          setStage(AppStage.TOPIC_SELECTION);
+          break;
+        default:
+          setStage(AppStage.LANGUAGE);
+          break;
+      }
     },
     startQuiz: async () => {
       if (isPending) return;
-      const finalTopic = selectedCategory === TOPIC_IDS.CUSTOM ? customTopic : selectedSubTopic;
+      const finalTopic = selectedSubTopic;
       if (!finalTopic) return;
       
       setIsPending(true);
@@ -131,7 +151,7 @@ export const useGameViewModel = () => {
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
       } else {
-        const currentTopic = selectedCategory === TOPIC_IDS.CUSTOM ? customTopic : selectedSubTopic;
+        const currentTopic = selectedSubTopic;
         finishQuiz(updated, currentTopic, userProfile, language);
       }
     },
@@ -141,17 +161,19 @@ export const useGameViewModel = () => {
       setUserAnswers([]); 
       setCurrentQuestionIndex(0); 
       setSelectedCategory(''); 
+      setSelectedSubTopic('');
       setErrorMsg('');
       setIsPending(false);
     },
     shuffleTopics: () => {},
-    shuffleSubTopics: () => {}
-  }), [isPending, selectedCategory, customTopic, selectedSubTopic, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t]);
+    shuffleSubTopics: () => {},
+    setCustomTopic: (_topic: string) => {}
+  }), [isPending, stage, selectedCategory, selectedSubTopic, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t]);
 
   return {
     state: {
       stage, language, userProfile,
-      topicState: { selectedCategory, selectedSubTopic, customTopic, difficulty, displayedTopics, displayedSubTopics, isTopicLoading: isPending },
+      topicState: { selectedCategory, selectedSubTopic, difficulty, displayedTopics, displayedSubTopics, isTopicLoading: isPending },
       quizState: { questions, currentQuestionIndex, userAnswers, selectedOption },
       resultState: { evaluation, errorMsg }
     },
