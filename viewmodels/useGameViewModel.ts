@@ -7,8 +7,7 @@ import {
   Difficulty, 
   QuizQuestion, 
   UserAnswer, 
-  EvaluationResult,
-  TOPIC_IDS
+  EvaluationResult
 } from '../types';
 import { generateQuestions, evaluateAnswers } from '../services/geminiService';
 import { TRANSLATIONS } from '../utils/translations';
@@ -59,7 +58,7 @@ export const useGameViewModel = () => {
       setEvaluation({ ...res, totalScore: score });
       setStage(AppStage.RESULTS);
     } catch (e: any) {
-      setErrorMsg(e.message);
+      setErrorMsg(e.message || "Unknown analysis error");
       setStage(AppStage.ERROR);
     } finally {
       setIsPending(false);
@@ -127,7 +126,7 @@ export const useGameViewModel = () => {
         setUserAnswers([]);
         setStage(AppStage.QUIZ);
       } catch (e: any) {
-        setErrorMsg(e.message);
+        setErrorMsg(e.message || "Failed to initialize protocol");
         setStage(AppStage.ERROR);
       } finally {
         setIsPending(false);

@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Layout } from './components/Layout.tsx';
 import { StageResults } from './components/StageResults.tsx';
 import { AppStage } from './types.ts';
