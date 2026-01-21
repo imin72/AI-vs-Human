@@ -128,7 +128,7 @@ export const useGameViewModel = () => {
 
   // Listen for browser back button (popstate)
   useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
+    const handlePopState = (_: PopStateEvent) => {
       // If we are at LANGUAGE, allow default behavior (exit app/close tab)
       if (stage === AppStage.LANGUAGE) {
         return; 
