@@ -36,7 +36,9 @@ export const LanguageView: React.FC<LanguageViewProps> = ({ onSelect }) => {
               onClick={() => onSelect(lang.id)} 
               onMouseEnter={() => setHeaderText(lang.titleText)}
               onMouseLeave={() => setHeaderText("Select Language")}
-              className="p-6 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-cyan-500 transition-all group"
+              onTouchStart={() => setHeaderText(lang.titleText)}
+              onTouchEnd={() => setHeaderText("Select Language")}
+              className="p-6 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-cyan-500 transition-all group select-none"
             >
               <span className="text-4xl block mb-2 group-hover:scale-110 transition-transform duration-300">{lang.flag}</span>
               <span className="font-bold text-lg text-slate-300 group-hover:text-white">{lang.label}</span>
