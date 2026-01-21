@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Globe } from 'lucide-react';
 import { Language } from '../types';
@@ -13,7 +14,7 @@ export const LanguageView: React.FC<LanguageViewProps> = ({ onSelect }) => {
          <Globe size={48} />
        </div>
        <h2 className="text-3xl font-bold text-white">Select Language</h2>
-       <div className="grid grid-cols-2 gap-4">
+       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <button onClick={() => onSelect('en')} className="p-6 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-cyan-500 transition-all">
             <span className="text-4xl block mb-2">🇺🇸</span>
             <span className="font-bold text-lg">English</span>
@@ -26,9 +27,17 @@ export const LanguageView: React.FC<LanguageViewProps> = ({ onSelect }) => {
             <span className="text-4xl block mb-2">🇯🇵</span>
             <span className="font-bold text-lg">日本語</span>
           </button>
+          <button onClick={() => onSelect('zh')} className="p-6 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-cyan-500 transition-all">
+            <span className="text-4xl block mb-2">🇨🇳</span>
+            <span className="font-bold text-lg">简体中文</span>
+          </button>
           <button onClick={() => onSelect('es')} className="p-6 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-cyan-500 transition-all">
             <span className="text-4xl block mb-2">🇪🇸</span>
             <span className="font-bold text-lg">Español</span>
+          </button>
+          <button onClick={() => onSelect('fr')} className="p-6 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-cyan-500 transition-all">
+            <span className="text-4xl block mb-2">🇫🇷</span>
+            <span className="font-bold text-lg">Français</span>
           </button>
        </div>
     </div>

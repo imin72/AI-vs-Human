@@ -71,7 +71,9 @@ export const generateQuestions = async (
       en: "English",
       ko: "Korean (한국어)",
       ja: "Japanese (日本語)",
-      es: "Spanish (Español)"
+      es: "Spanish (Español)",
+      fr: "French (Français)",
+      zh: "Chinese Simplified (简体中文)"
     };
 
     const prompt = `
@@ -139,7 +141,9 @@ export const evaluateAnswers = async (
       en: "English",
       ko: "Korean (한국어)",
       ja: "Japanese (日本語)",
-      es: "Spanish (Español)"
+      es: "Spanish (Español)",
+      fr: "French (Français)",
+      zh: "Chinese Simplified (简体中文)"
     };
 
     const perfStr = performance.map(p => `Q${p.id}:${p.ok?'Correct':'Incorrect'}`).join(', ');

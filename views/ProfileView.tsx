@@ -21,6 +21,8 @@ const getFlagEmoji = (nat: string) => {
     case 'Japan': return '🇯🇵';
     case 'Spain': return '🇪🇸';
     case 'UK': return '🇬🇧';
+    case 'China': return '🇨🇳';
+    case 'France': return '🇫🇷';
     default: return '🌐';
   }
 };
@@ -37,7 +39,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, langua
       ko: 'South Korea',
       ja: 'Japan',
       es: 'Spain',
-      en: 'USA'
+      en: 'USA',
+      zh: 'China',
+      fr: 'France'
     };
 
     const priorityNat = priorityMap[language];

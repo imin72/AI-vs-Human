@@ -11,7 +11,7 @@ export enum AppStage {
   ERROR = 'ERROR'
 }
 
-export type Language = 'en' | 'ko' | 'ja' | 'es';
+export type Language = 'en' | 'ko' | 'ja' | 'es' | 'fr' | 'zh';
 
 export enum Difficulty {
   EASY = "EASY",
