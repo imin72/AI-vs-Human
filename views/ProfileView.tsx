@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { UserCircle2, ChevronRight, ChevronLeft, Flag } from 'lucide-react';
+import { UserCircle2, ChevronRight, ChevronLeft, Flag, Globe } from 'lucide-react';
 import { Button } from '../components/Button';
 import { UserProfile, Language } from '../types';
 
@@ -14,46 +14,56 @@ interface ProfileViewProps {
   backLabel: string;
 }
 
-const getFlagEmoji = (nat: string) => {
-  switch (nat) {
-    case 'South Korea': return '🇰🇷';
-    case 'USA': return '🇺🇸';
-    case 'Japan': return '🇯🇵';
-    case 'Spain': return '🇪🇸';
-    case 'UK': return '🇬🇧';
-    case 'China': return '🇨🇳';
-    case 'France': return '🇫🇷';
-    default: return '🌐';
-  }
+// ISO 3166-1 alpha-2 code based flag generation
+const getFlagEmoji = (countryCode: string) => {
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map(char =>  127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
 };
+
+// Priority countries based on selected language
+const PRIORITY_COUNTRIES: Record<Language, string[]> = {
+  en: ['US', 'GB', 'CA'], // USA, UK, Canada
+  ko: ['KR', 'US', 'JP'], // Korea, USA, Japan
+  ja: ['JP', 'US', 'TW'], // Japan, USA, Taiwan
+  zh: ['CN', 'US', 'SG'], // China, USA, Singapore
+  es: ['ES', 'MX', 'AR'], // Spain, Mexico, Argentina
+  fr: ['FR', 'CA', 'BE'], // France, Canada, Belgium
+};
+
+// Common list of countries (ISO Codes) for the dropdown
+const COMMON_COUNTRIES = [
+  "AF", "AL", "DZ", "AR", "AU", "AT", "BD", "BE", "BR", "KH", "CA", "CL", "CN", "CO", "HR", "CZ", "DK", "EG",
+  "FI", "FR", "DE", "GR", "HK", "HU", "IS", "IN", "ID", "IR", "IE", "IL", "IT", "JP", "KR", "MY", "MX", "MA", "NL",
+  "NZ", "NO", "PK", "PE", "PH", "PL", "PT", "RO", "RU", "SA", "SG", "ZA", "ES", "SE", "CH", "TW", "TH",
+  "TR", "UA", "AE", "GB", "US", "UY", "VN"
+].sort();
 
 export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, language, onUpdate, onSubmit, onBack, backLabel }) => {
   const isComplete = userProfile.gender && userProfile.ageGroup && userProfile.nationality;
 
-  // 정렬된 국적 리스트 생성 (선택한 언어에 맞는 국가를 최상단으로)
-  const sortedNationalities = useMemo(() => {
-    const nats = Object.keys(t.nationalities);
-    
-    // 언어별 우선순위 맵
-    const priorityMap: Record<Language, string> = {
-      ko: 'South Korea',
-      ja: 'Japan',
-      es: 'Spain',
-      en: 'USA',
-      zh: 'China',
-      fr: 'France'
-    };
+  // Use Intl.DisplayNames for automatic translation of country names
+  const regionNames = useMemo(() => {
+    try {
+      return new Intl.DisplayNames([language], { type: 'region' });
+    } catch (e) {
+      // Fallback for very old browsers (unlikely)
+      return { of: (code: string) => code }; 
+    }
+  }, [language]);
 
-    const priorityNat = priorityMap[language];
-    
-    return nats.sort((a, b) => {
-      if (a === priorityNat) return -1;
-      if (b === priorityNat) return 1;
-      if (a === 'Other') return 1; // 'Other'는 항상 마지막
-      if (b === 'Other') return -1;
-      return 0;
-    });
-  }, [t.nationalities, language]);
+  const priorityList = PRIORITY_COUNTRIES[language];
+  
+  // Filter out priority countries from the dropdown list to avoid duplicates
+  const dropdownList = useMemo(() => {
+    return COMMON_COUNTRIES.filter(code => !priorityList.includes(code));
+  }, [priorityList]);
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    onUpdate({ nationality: e.target.value });
+  };
 
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-6 animate-fade-in relative max-h-[85vh] overflow-y-auto custom-scrollbar">
@@ -78,21 +88,53 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, langua
           <label className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-2 flex items-center gap-2">
             <Flag size={12} className="text-cyan-500" /> {t.label_nationality}
           </label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {sortedNationalities.map(nat => (
-              <button
-                key={nat}
-                onClick={() => onUpdate({ nationality: nat })}
-                className={`py-3 px-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
-                  userProfile.nationality === nat
-                    ? 'bg-cyan-600 border-cyan-400 text-white shadow-lg shadow-cyan-500/20'
-                    : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800'
+          
+          <div className="space-y-3">
+            {/* Top 3 Priority Buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              {priorityList.map(code => (
+                <button
+                  key={code}
+                  onClick={() => onUpdate({ nationality: code })}
+                  className={`py-3 px-1 rounded-xl text-xs font-bold border transition-all flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 ${
+                    userProfile.nationality === code
+                      ? 'bg-cyan-600 border-cyan-400 text-white shadow-lg shadow-cyan-500/20'
+                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <span className="text-lg leading-none">{getFlagEmoji(code)}</span>
+                  <span className="truncate max-w-full">{regionNames.of(code)}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Dropdown for Others */}
+            <div className="relative group">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                <Globe size={16} />
+              </div>
+              <select
+                value={priorityList.includes(userProfile.nationality) ? "" : userProfile.nationality}
+                onChange={handleSelectChange}
+                className={`w-full appearance-none bg-slate-900 text-sm font-bold border rounded-xl py-3 pl-10 pr-4 cursor-pointer transition-all ${
+                  userProfile.nationality && !priorityList.includes(userProfile.nationality)
+                    ? 'border-cyan-500 text-cyan-400' 
+                    : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-300'
                 }`}
               >
-                <span>{getFlagEmoji(nat)}</span>
-                <span className="truncate">{t.nationalities[nat]}</span>
-              </button>
-            ))}
+                <option value="" disabled>
+                   {t.nationalities?.other || "Select other country..."}
+                </option>
+                {dropdownList.map(code => (
+                  <option key={code} value={code} className="bg-slate-900 text-slate-300">
+                    {getFlagEmoji(code)} {regionNames.of(code)}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                <ChevronRight size={14} className="rotate-90" />
+              </div>
+            </div>
           </div>
         </div>
 

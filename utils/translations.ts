@@ -22,7 +22,7 @@ interface TranslationData {
     skip: string;
     genders: { [key: string]: string };
     ages: { [key: string]: string };
-    nationalities: { [key: string]: string };
+    nationalities: { other: string };
   };
   topics: {
     title_select: string;
@@ -75,17 +75,6 @@ interface TranslationData {
     btn_reset: string;
   };
 }
-
-const nationalList = {
-  "South Korea": "South Korea",
-  "USA": "USA",
-  "Japan": "Japan",
-  "Spain": "Spain",
-  "UK": "UK",
-  "China": "China",
-  "France": "France",
-  "Other": "Other"
-};
 
 const OPT = "&w=400&q=80&auto=format&fit=crop";
 
@@ -142,7 +131,7 @@ const ENGLISH_BASE: TranslationData = {
     skip: "Skip & Continue",
     genders: { Male: "Male", Female: "Female", Other: "Other" },
     ages: { "Under 18": "< 18", "18-24": "18-24", "25-34": "25-34", "35-44": "35-44", "45-54": "45-54", "55+": "55+" },
-    nationalities: nationalList
+    nationalities: { other: "Select other country..." }
   },
   topics: {
     title_select: "Select Domain",
@@ -243,7 +232,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       label_gender: "성별", label_age: "연령대", label_nationality: "국적", btn_submit: "프로필 확정", skip: "건너뛰기",
       genders: { Male: "남성", Female: "여성", Other: "기타" },
       ages: { "Under 18": "18세 미만", "18-24": "18-24세", "25-34": "25-34세", "35-44": "35-44세", "45-54": "45-54세", "55+": "55세 이상" },
-      nationalities: { "South Korea": "대한민국", "USA": "미국", "Japan": "일본", "Spain": "스페인", "UK": "영국", "China": "중국", "France": "프랑스", "Other": "기타" }
+      nationalities: { other: "다른 국가 선택..." }
     },
     topics: {
       ...ENGLISH_BASE.topics,
@@ -288,7 +277,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       label_gender: "性別", label_age: "年齢層", label_nationality: "国籍", btn_submit: "確定", skip: "スキップ",
       genders: { Male: "男性", Female: "女性", Other: "その他" },
       ages: { "Under 18": "18歳未満", "18-24": "18-24歳", "25-34": "25-34歳", "35-44": "35-44歳", "45-54": "45-54歳", "55+": "55歳以上" },
-      nationalities: { "South Korea": "韓国", "USA": "アメリカ", "Japan": "日本", "Spain": "スペイン", "UK": "イギリス", "China": "中国", "France": "フランス", "Other": "その他" }
+      nationalities: { other: "他の国を選択..." }
     },
     topics: {
       ...ENGLISH_BASE.topics,
@@ -333,7 +322,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       label_gender: "GÉNERO", label_age: "EDAD", label_nationality: "NACIONALIDAD", btn_submit: "Confirmar", skip: "Omitir",
       genders: { Male: "Masculino", Female: "Femenino", Other: "Otro" },
       ages: { "Under 18": "< 18", "18-24": "18-24", "25-34": "25-34", "35-44": "35-44", "45-54": "45-54", "55+": "55+" },
-      nationalities: { "South Korea": "Corea del Sur", "USA": "EE.UU.", "Japan": "Japón", "Spain": "España", "UK": "Reino Unido", "China": "China", "France": "Francia", "Other": "Otro" }
+      nationalities: { other: "Seleccionar otro país..." }
     },
     topics: {
       ...ENGLISH_BASE.topics,
@@ -378,7 +367,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       label_gender: "GENRE", label_age: "GROUPE D'ÂGE", label_nationality: "NATIONALITÉ", btn_submit: "Confirmer le Profil", skip: "Passer & Continuer",
       genders: { Male: "Homme", Female: "Femme", Other: "Autre" },
       ages: { "Under 18": "< 18", "18-24": "18-24", "25-34": "25-34", "35-44": "35-44", "45-54": "45-54", "55+": "55+" },
-      nationalities: { "South Korea": "Corée du Sud", "USA": "États-Unis", "Japan": "Japon", "Spain": "Espagne", "UK": "Royaume-Uni", "China": "Chine", "France": "France", "Other": "Autre" }
+      nationalities: { other: "Sélectionner un autre pays..." }
     },
     topics: {
       ...ENGLISH_BASE.topics,
@@ -423,7 +412,7 @@ export const TRANSLATIONS: Record<Language, TranslationData> = {
       label_gender: "性别", label_age: "年龄组", label_nationality: "国籍", btn_submit: "确认档案", skip: "跳过并继续",
       genders: { Male: "男性", Female: "女性", Other: "其他" },
       ages: { "Under 18": "18岁以下", "18-24": "18-24岁", "25-34": "25-34岁", "35-44": "35-44岁", "45-54": "45-54岁", "55+": "55岁以上" },
-      nationalities: { "South Korea": "韩国", "USA": "美国", "Japan": "日本", "Spain": "西班牙", "UK": "英国", "China": "中国", "France": "法国", "Other": "其他" }
+      nationalities: { other: "选择其他国家..." }
     },
     topics: {
       ...ENGLISH_BASE.topics,
