@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { EvaluationResult, Language } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, Zap, Palette, CheckCircle, XCircle, Users, Home, Instagram, X, ArrowRight, Download, Quote } from 'lucide-react';
+import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Users, Home, Instagram, X, ArrowRight, Download, Quote } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { toPng } from 'html-to-image';
 import { TRANSLATIONS } from '../utils/translations';
