@@ -140,7 +140,7 @@ export const useGameViewModel = () => {
         batchInputs.push({
           topic: batch.topicLabel,
           score: score,
-          performance: batch.answers.map(a => ({ id: a.questionId, ok: a.isCorrect }))
+          performance: batch.answers // Pass full answers including text
         });
       });
 
@@ -164,6 +164,9 @@ export const useGameViewModel = () => {
             details: b.answers.map(a => ({
                questionId: a.questionId,
                isCorrect: a.isCorrect,
+               questionText: a.questionText,
+               selectedOption: a.selectedOption,
+               correctAnswer: a.correctAnswer,
                aiComment: "Debug Comment",
                correctFact: "Debug Fact"
             }))

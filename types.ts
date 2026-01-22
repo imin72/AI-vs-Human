@@ -52,6 +52,10 @@ export interface EvaluationItem {
   isCorrect: boolean;
   aiComment: string;
   correctFact: string;
+  // Added fields for UI display
+  questionText?: string;
+  selectedOption?: string;
+  correctAnswer?: string;
 }
 
 export interface EvaluationResult {

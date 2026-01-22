@@ -357,7 +357,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
                                 </div>
                                 <div>
                                    <div className="text-xs font-bold text-slate-400 uppercase mb-1">{t.popup_question} {idx + 1}</div>
-                                   <div className="text-sm font-medium text-slate-200 line-clamp-2">{item.aiComment}</div>
+                                   <div className="text-sm font-medium text-slate-200 line-clamp-2">{item.questionText || item.aiComment}</div>
                                 </div>
                             </div>
                          </button>
@@ -466,10 +466,9 @@ export const StageResults: React.FC<StageResultsProps> = ({
                     <h3 className="font-bold text-white flex items-center gap-2">
                        {getTopicIcon(selectedResultForPopup.id)} 
                        <span className="flex flex-col">
-                          <span className="text-[10px] text-slate-500 uppercase font-bold leading-none">
-                            {getLocalizedCategory(selectedResultForPopup.id)}
+                          <span className="text-xs md:text-sm text-slate-300 font-bold leading-none">
+                            {selectedResultForPopup.title}
                           </span>
-                          <span>{selectedResultForPopup.title}</span>
                        </span>
                     </h3>
                     
@@ -497,23 +496,29 @@ export const StageResults: React.FC<StageResultsProps> = ({
                           )}
                        </div>
                        
-                       <p className="text-sm font-medium text-white mb-3 leading-relaxed">
-                          {item.aiComment} 
-                       </p>
+                       <h4 className="text-sm font-bold text-white mb-2 leading-snug">
+                          {item.questionText || "Question text unavailable"}
+                       </h4>
 
-                       <div className="space-y-2 mt-3 pt-3 border-t border-slate-800/50">
-                          {!item.isCorrect && (
-                             <div className="text-xs">
-                                <span className="text-slate-500 font-bold block mb-1">{t.popup_correct_answer}:</span>
-                                <span className="text-cyan-400 bg-cyan-950/30 px-2 py-1 rounded border border-cyan-900/50 block w-full">
-                                  {item.correctFact}
-                                </span>
-                             </div>
-                          )}
-                          <div className="text-xs">
-                             <span className="text-slate-500 font-bold block mb-1">{t.popup_ai_comment}:</span>
-                             <p className="text-slate-400 italic">"{item.aiComment}"</p>
-                          </div>
+                       <div className="grid grid-cols-1 gap-2 mb-3">
+                           {/* User Answer */}
+                           <div className={`text-xs p-2 rounded border ${item.isCorrect ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300' : 'bg-rose-950/30 border-rose-500/30 text-rose-300'}`}>
+                              <span className="font-bold block opacity-70 mb-0.5">{t.popup_your_answer}:</span>
+                              {item.selectedOption || "N/A"}
+                           </div>
+
+                           {/* Correct Answer (only if wrong) */}
+                           {!item.isCorrect && (
+                              <div className="text-xs p-2 rounded border bg-cyan-950/30 border-cyan-500/30 text-cyan-300">
+                                 <span className="font-bold block opacity-70 mb-0.5">{t.popup_correct_answer}:</span>
+                                 {item.correctAnswer || item.correctFact || "N/A"}
+                              </div>
+                           )}
+                       </div>
+
+                       <div className="text-xs pt-3 border-t border-slate-800/50">
+                          <span className="text-slate-500 font-bold block mb-1">{t.popup_ai_comment}:</span>
+                          <p className="text-slate-400 italic">"{item.aiComment}"</p>
                        </div>
                     </div>
                  ))}

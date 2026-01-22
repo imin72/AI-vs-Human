@@ -1,12 +1,12 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language, QuizSet } from "../types";
+import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language, QuizSet, UserAnswer } from "../types";
 import { getStaticQuestions } from "../data/staticDatabase";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const MODEL_NAME = 'gemini-3-flash-preview';
 
-const CACHE_KEY_QUIZ = "cognito_quiz_cache_v3"; // Version bumped for static logic change
+const CACHE_KEY_QUIZ = "cognito_quiz_cache_v3"; 
 
 // 비상용 폴백 퀴즈
 const FALLBACK_QUIZ: QuizQuestion[] = [
@@ -57,9 +57,6 @@ const cleanJson = (text: string | undefined): string => {
 
 /**
  * Helper to generate the unique cache key
- * Note: LocalStorage cache still uses the localized topic name as the key 
- * to differentiate between "Quantum Physics" (en) and "양자 역학" (ko) requests 
- * if they were cached from API responses.
  */
 const generateCacheKey = (topic: string, difficulty: Difficulty, lang: Language) => {
   return `${topic}_${difficulty}_${lang}`.toLowerCase();
@@ -85,31 +82,25 @@ export const generateQuestionsBatch = async (
     const cacheKey = generateCacheKey(topic, difficulty, lang);
 
     if (quizCache[cacheKey]) {
-      // HIT: Local Cache
       console.log(`[Cache Hit] ${topic}`);
       results.push({ topic, questions: quizCache[cacheKey] });
       continue;
     } 
 
-    // HIT: Check Static DB (Async)
     const staticQuestions = await getStaticQuestions(topic, difficulty, lang);
     if (staticQuestions) {
       console.log(`[Static DB Hit] ${topic}`);
-      // Simulate slight network delay for better UX
       await new Promise(r => setTimeout(r, 300));
       results.push({ topic, questions: staticQuestions });
-      
-      // Save static data to local cache for next time (unified access)
       quizCache[cacheKey] = staticQuestions;
       saveCache(CACHE_KEY_QUIZ, quizCache);
     } else {
-      // MISS: Add to queue for API
       console.log(`[Cache Miss] ${topic} - Requesting API`);
       missingTopics.push(topic);
     }
   }
 
-  // 3. Fetch missing topics in one batch via Gemini API
+  // 3. Fetch missing topics via Gemini API
   if (missingTopics.length > 0) {
     try {
       const languageNames: Record<Language, string> = {
@@ -133,7 +124,6 @@ export const generateQuestionsBatch = async (
         5. Return a JSON object where keys are the exact topic names provided, and values are arrays of questions.
       `;
 
-      // Construct dynamic schema based on missing topics
       const topicProperties: Record<string, any> = {};
       missingTopics.forEach(topic => {
         topicProperties[topic] = {
@@ -170,10 +160,8 @@ export const generateQuestionsBatch = async (
       missingTopics.forEach(topic => {
         if (generatedData[topic]) {
           const qs = generatedData[topic];
-          // Save to cache
           const cacheKey = generateCacheKey(topic, difficulty, lang);
           quizCache[cacheKey] = qs;
-          
           results.push({ topic, questions: qs });
         }
       });
@@ -181,18 +169,15 @@ export const generateQuestionsBatch = async (
       saveCache(CACHE_KEY_QUIZ, quizCache);
     } catch (error) {
       console.error("Batch Quiz Generation Failed:", error);
-      // Fallback for missing topics
       missingTopics.forEach(topic => {
          results.push({ topic, questions: FALLBACK_QUIZ });
       });
     }
   }
 
-  // Sort results to match original order requested by user
   return topics.map(t => results.find(r => r.topic === t)!).filter(Boolean);
 };
 
-// Keep single generation for backward compatibility or single re-tries
 export const generateQuestions = async (
   topic: string, 
   difficulty: Difficulty, 
@@ -203,28 +188,35 @@ export const generateQuestions = async (
   return res[0]?.questions || FALLBACK_QUIZ;
 };
 
-// Original single evaluation function (kept for reference or single mode fallback)
+// Updated Interface: Uses full UserAnswer array
+export interface BatchEvaluationInput {
+  topic: string;
+  score: number;
+  performance: UserAnswer[]; 
+}
+
+// Updated Single Evaluation Wrapper
 export const evaluateAnswers = async (
   topic: string, 
   score: number,
   userProfile: UserProfile,
   lang: Language,
-  performance: {id: number, ok: boolean}[]
+  performance: {id: number, ok: boolean}[] // Kept simple for backward compat, but function below needs full data to be useful
 ): Promise<EvaluationResult> => {
-  // Use batch function for consistency, wrapping single item
-  const results = await evaluateBatchAnswers([{
+  // NOTE: This legacy wrapper does not pass text data. 
+  // For full features, evaluateBatchAnswers should be called directly with UserAnswer objects.
+  return (await evaluateBatchAnswers([{
     topic,
     score,
-    performance
-  }], userProfile, lang);
-  return results[0];
+    performance: performance.map(p => ({
+        questionId: p.id,
+        isCorrect: p.ok,
+        questionText: "N/A",
+        selectedOption: "N/A",
+        correctAnswer: "N/A"
+    }))
+  }], userProfile, lang))[0];
 };
-
-export interface BatchEvaluationInput {
-  topic: string;
-  score: number;
-  performance: {id: number, ok: boolean}[];
-}
 
 // Batch Evaluation Function
 export const evaluateBatchAnswers = async (
@@ -243,7 +235,7 @@ export const evaluateBatchAnswers = async (
     };
 
     const summaries = batches.map(b => 
-      `Topic: ${b.topic}, Score: ${b.score}/100, Details: [${b.performance.map(p => `Q${p.id}:${p.ok?'O':'X'}`).join(',')}]`
+      `Topic: ${b.topic}, Score: ${b.score}/100, Details: [${b.performance.map(p => `Q${p.questionId}:${p.isCorrect?'Correct':'Incorrect'}`).join(',')}]`
     ).join('\n');
 
     const prompt = `
@@ -304,29 +296,36 @@ export const evaluateBatchAnswers = async (
 
     const parsed = JSON.parse(cleanJson(response.text));
     
-    // Fallback if results are missing or mismatched
     if (!parsed.results || !Array.isArray(parsed.results) || parsed.results.length !== batches.length) {
        throw new Error("Batch analysis result mismatch");
     }
 
-    // Merge score back into results (API doesn't calculate score, it analyzes it)
-    return parsed.results.map((res: any, index: number) => ({
-      ...res,
-      totalScore: batches[index].score,
-      // Map details back to IDs to ensure correct order matching user's experience
-      details: batches[index].performance.map((p) => {
-        // Find the AI detail that matches this question ID
-        const aiDetail = res.details?.find((d: any) => d.questionId === p.id);
-        
-        return {
-          questionId: p.id,
-          isCorrect: p.ok,
-          // Use found detail or fallback to "Analysis unavailable"
-          aiComment: aiDetail?.aiComment || "Analysis unavailable",
-          correctFact: aiDetail?.correctFact || "N/A"
-        };
-      })
-    }));
+    // Merge API results with Original User Data
+    return parsed.results.map((res: any, index: number) => {
+      const originalBatch = batches[index];
+      
+      return {
+        ...res,
+        totalScore: originalBatch.score,
+        // CRITICAL: Merge original answer data with AI analysis
+        details: originalBatch.performance.map((p) => {
+          // Find the AI detail that matches this question ID
+          const aiDetail = res.details?.find((d: any) => d.questionId === p.questionId);
+          
+          return {
+            questionId: p.questionId,
+            isCorrect: p.isCorrect,
+            // Pass through original text data for UI display
+            questionText: p.questionText,
+            selectedOption: p.selectedOption,
+            correctAnswer: p.correctAnswer,
+            // Use found detail or fallback
+            aiComment: aiDetail?.aiComment || (lang === 'ko' ? "분석 데이터 없음" : "Analysis unavailable"),
+            correctFact: aiDetail?.correctFact || "N/A"
+          };
+        })
+      };
+    });
 
   } catch (error) {
     console.error("Batch Evaluation Failed", error);
@@ -339,8 +338,11 @@ export const evaluateBatchAnswers = async (
       aiComparison: "AI recalibrating...",
       title: b.topic,
       details: b.performance.map(p => ({
-        questionId: p.id,
-        isCorrect: p.ok,
+        questionId: p.questionId,
+        isCorrect: p.isCorrect,
+        questionText: p.questionText,
+        selectedOption: p.selectedOption,
+        correctAnswer: p.correctAnswer,
         aiComment: "N/A",
         correctFact: "N/A"
       }))
