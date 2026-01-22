@@ -55,6 +55,7 @@ export interface EvaluationItem {
 }
 
 export interface EvaluationResult {
+  id?: string; // Topic ID for iconography
   totalScore: number;
   humanPercentile: number;
   aiComparison: string;

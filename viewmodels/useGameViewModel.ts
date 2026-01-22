@@ -39,6 +39,16 @@ const DEBUG_QUIZ: QuizQuestion[] = [
   }
 ];
 
+// Fisher-Yates Shuffle Helper
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const newArr = [...array];
+  for (let i = newArr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+  }
+  return newArr;
+};
+
 export const useGameViewModel = () => {
   const [stage, setStage] = useState<AppStage>(AppStage.LANGUAGE);
   const [language, setLanguage] = useState<Language>('en');
@@ -49,6 +59,7 @@ export const useGameViewModel = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubTopics, setSelectedSubTopics] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.MEDIUM);
+  const [displayedTopics, setDisplayedTopics] = useState<{id: string, label: string}[]>([]);
   
   // Quiz Execution State
   const [quizQueue, setQuizQueue] = useState<QuizSet[]>([]);
@@ -63,6 +74,7 @@ export const useGameViewModel = () => {
 
   // Result State
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
+  const [sessionResults, setSessionResults] = useState<EvaluationResult[]>([]); // New: Store all results
   const [errorMsg, setErrorMsg] = useState('');
   const [isPending, setIsPending] = useState(false);
 
@@ -80,12 +92,27 @@ export const useGameViewModel = () => {
     }
   }, []);
 
-  const displayedTopics = useMemo(() => {
-    return Object.entries(t.topics.categories)
+  // Initialize and Shuffle Topics when Language Changes
+  useEffect(() => {
+    const topics = Object.entries(t.topics.categories)
       .map(([id, label]) => ({ id, label }));
+    setDisplayedTopics(shuffleArray(topics));
   }, [t]);
 
-  const finishQuiz = async (finalAnswers: UserAnswer[], currentTopic: string, profile: UserProfile, lang: Language) => {
+  // Determine topic ID from label (helper)
+  const getTopicIdFromLabel = (label: string): string => {
+    // Reverse lookup from translation or displayedTopics
+    // This is a best-effort match since we only have the translated label in some contexts
+    // Ideally we should pass IDs through the quiz set.
+    const topicObj = displayedTopics.find(t => t.label === label);
+    if (topicObj) return topicObj.id;
+    
+    // Fallback: check raw string match against keys
+    const rawKey = Object.keys(t.topics.categories).find(k => t.topics.categories[k] === label);
+    return rawKey || "GENERAL"; 
+  };
+
+  const finishQuiz = async (finalAnswers: UserAnswer[], currentTopicLabel: string, profile: UserProfile, lang: Language) => {
     if (isPending) return;
     setIsPending(true);
     setStage(AppStage.ANALYZING);
@@ -97,27 +124,31 @@ export const useGameViewModel = () => {
       
       // Update High Score Logic (Local Only)
       const currentScores = profile.scores || {};
-      const previousScore = currentScores[currentTopic] || 0;
+      const previousScore = currentScores[currentTopicLabel] || 0;
       let updatedProfile = profile;
       if (score >= previousScore) {
         updatedProfile = {
           ...profile,
-          scores: { ...currentScores, [currentTopic]: score }
+          scores: { ...currentScores, [currentTopicLabel]: score }
         };
         setUserProfile(updatedProfile);
         localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));
       }
 
+      // Identify Topic ID for iconography
+      const currentTopicId = getTopicIdFromLabel(currentTopicLabel);
+
       // --- DEBUG MODE CHECK ---
-      if (currentTopic.startsWith("Debug")) {
+      if (currentTopicLabel.startsWith("Debug")) {
         await new Promise(resolve => setTimeout(resolve, 800)); 
         const mockResult: EvaluationResult = {
+          id: currentTopicId,
           totalScore: score,
           humanPercentile: 99,
           aiComparison: "[DEBUG] AI Analysis bypassed. Pure logic verified.",
           demographicPercentile: 50,
           demographicComment: "Debug environment detected. Metrics simulated.",
-          title: currentTopic,
+          title: currentTopicLabel,
           details: finalAnswers.map(a => ({
             questionId: a.questionId,
             isCorrect: a.isCorrect,
@@ -126,6 +157,7 @@ export const useGameViewModel = () => {
           }))
         };
         setEvaluation(mockResult);
+        setSessionResults(prev => [...prev, mockResult]); // Add to session history
         setStage(AppStage.RESULTS);
         return;
       }
@@ -136,8 +168,11 @@ export const useGameViewModel = () => {
         ok: a.isCorrect
       }));
 
-      const res = await evaluateAnswers(currentTopic, score, updatedProfile, lang, performanceSummary);
-      setEvaluation({ ...res, totalScore: score });
+      const res = await evaluateAnswers(currentTopicLabel, score, updatedProfile, lang, performanceSummary);
+      const finalResult = { ...res, totalScore: score, id: currentTopicId };
+      
+      setEvaluation(finalResult);
+      setSessionResults(prev => [...prev, finalResult]); // Add to session history
       setStage(AppStage.RESULTS);
     } catch (e: any) {
       console.error("Finish Quiz Error", e);
@@ -160,7 +195,6 @@ export const useGameViewModel = () => {
       isNavigatingBackRef.current = false;
       return;
     }
-    // Only push state when stage changes, do not push on category selection to avoid history clutter
     if (stage !== AppStage.LANGUAGE) {
       window.history.pushState({ stage }, '');
     }
@@ -169,7 +203,6 @@ export const useGameViewModel = () => {
   const performBackNavigation = useCallback((): boolean => {
     if (isPending) return false;
 
-    // Handle 2-step selection logic: Subtopic -> Category (No history pop)
     switch (stage) {
       case AppStage.TOPIC_SELECTION:
         if (selectionPhase === 'SUBTOPIC') {
@@ -191,13 +224,17 @@ export const useGameViewModel = () => {
           setSelectionPhase('CATEGORY');
           setQuizQueue([]);
           setBatchProgress({ total: 0, current: 0, topics: [] });
+          setSessionResults([]); // Clear session
           return true;
         }
         return false;
       case AppStage.RESULTS:
       case AppStage.ERROR:
+        // If mid-session, warn user? Or just exit. 
+        // For simplicity, go back to selection.
         setStage(AppStage.TOPIC_SELECTION);
         setSelectionPhase('CATEGORY');
+        setSessionResults([]); // Clear session
         return true;
       default:
         return true;
@@ -206,14 +243,12 @@ export const useGameViewModel = () => {
 
   useEffect(() => {
     const handlePopState = (_: PopStateEvent) => {
-      // If we are at root (Language), allow default browser behavior (exit/back)
       if (stage === AppStage.LANGUAGE) return; 
 
       isNavigatingBackRef.current = true;
       const success = performBackNavigation();
       
       if (!success) {
-        // Restore forward history if navigation cancelled (e.g. Quiz exit cancelled)
         window.history.pushState({ stage }, '');
       }
     };
@@ -278,18 +313,12 @@ export const useGameViewModel = () => {
     
     goBack: () => {
       if (isPending) return;
-      
-      // Handle internal UI state that doesn't correspond to a history entry
       if (stage === AppStage.TOPIC_SELECTION && selectionPhase === 'SUBTOPIC') {
         setSelectionPhase('CATEGORY');
         setSelectedSubTopics([]);
         return;
       }
-
-      // If at root, do nothing (UI shouldn't have back button, but just in case)
       if (stage === AppStage.LANGUAGE) return;
-
-      // For all other stage transitions, trigger browser back to sync history
       window.history.back();
     },
     
@@ -314,12 +343,15 @@ export const useGameViewModel = () => {
       setQuizQueue([]);
       setCurrentQuizSet(null);
       setBatchProgress({ total: 0, current: 0, topics: [] });
+      setSessionResults([]); // Clear session
     },
 
     resetApp: () => {
       setUserAnswers([]); 
       setCurrentQuestionIndex(0); 
       setEvaluation(null);
+      // Don't clear session results if just retrying the same specific quiz? 
+      // Actually resetApp usually implies restarting the current quiz logic.
       setStage(AppStage.QUIZ);
     },
 
@@ -339,6 +371,7 @@ export const useGameViewModel = () => {
           setQuestions(first.questions);
           setCurrentQuestionIndex(0);
           setUserAnswers([]);
+          setSessionResults([]); // New batch starts
           
           setBatchProgress({
             total: selectedSubTopics.length,
@@ -368,6 +401,7 @@ export const useGameViewModel = () => {
       setCurrentQuestionIndex(0);
       setUserAnswers([]);
       setEvaluation(null);
+      // Do NOT clear sessionResults here, we want to accumulate
       
       setBatchProgress(prev => ({
         ...prev,
@@ -402,6 +436,7 @@ export const useGameViewModel = () => {
          setQuestions(first.questions);
          setCurrentQuestionIndex(0);
          setUserAnswers([]);
+         setSessionResults([]); // Reset session
          
          setBatchProgress({ total: debugTopics.length, current: 1, topics: debugTopics });
          
@@ -415,23 +450,18 @@ export const useGameViewModel = () => {
     },
 
     previewResults: () => {
-      console.log("previewResults triggered"); // Debugging Log
       const mockResult: EvaluationResult = {
+        id: "SCIENCE",
         totalScore: 88,
         humanPercentile: 92,
-        aiComparison: "Your cognitive patterns exhibit a surprising resistance to standard predictive models. Highly irregular, yet effective.",
+        aiComparison: "Cognitive patterns exhibit surprising resistance.",
         demographicPercentile: 95,
-        demographicComment: "You are an outlier in your demographic cohort.",
-        title: "Quantum Physics (Preview)",
-        details: [
-          { questionId: 1, isCorrect: true, aiComment: "Basic logic verified. Acceptable.", correctFact: "..." },
-          { questionId: 2, isCorrect: false, aiComment: "Common human misconception detected. Disappointing.", correctFact: "Quantum entanglement implies non-local correlation, not instantaneous communication of information." },
-          { questionId: 3, isCorrect: true, aiComment: "Optimal pathway chosen. Computationally efficient.", correctFact: "..." },
-          { questionId: 4, isCorrect: true, aiComment: "Processing speed within upper quartiles.", correctFact: "..." },
-          { questionId: 5, isCorrect: true, aiComment: "Knowledge retention confirmed.", correctFact: "..." }
-        ]
+        demographicComment: "Outlier detected.",
+        title: "Quantum Physics",
+        details: []
       };
       setEvaluation(mockResult);
+      setSessionResults([mockResult, {...mockResult, id:"HISTORY", title:"History", totalScore: 70}, {...mockResult, id:"ARTS", title:"Arts", totalScore: 95}]);
       setStage(AppStage.RESULTS);
     },
     
@@ -457,10 +487,12 @@ export const useGameViewModel = () => {
         finishQuiz(updated, currentTopic, userProfile, language);
       }
     },
-    shuffleTopics: () => {},
+    shuffleTopics: () => {
+      setDisplayedTopics(prev => shuffleArray(prev));
+    },
     shuffleSubTopics: () => {},
     setCustomTopic: (_topic: string) => {}
-  }), [isPending, stage, selectionPhase, selectedCategories, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, performBackNavigation]);
+  }), [isPending, stage, selectionPhase, selectedCategories, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, performBackNavigation, displayedTopics]);
 
   return {
     state: {
@@ -475,7 +507,7 @@ export const useGameViewModel = () => {
         nextTopicName: quizQueue.length > 0 ? quizQueue[0].topic : undefined,
         batchProgress 
       },
-      resultState: { evaluation, errorMsg }
+      resultState: { evaluation, sessionResults, errorMsg } // Expose sessionResults
     },
     actions, t
   };

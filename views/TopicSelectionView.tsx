@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   Play, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, 
   Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Home, Bug, CheckCircle2, 
-  UserPen, Medal, ArrowRight, Eye
+  UserPen, Medal, ArrowRight, Eye, RefreshCw
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
 import { LanguageSwitcher } from '../components/LanguageSwitcher.tsx';
@@ -92,9 +92,16 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           </div>
           
           <div className="flex gap-2 shrink-0 items-start">
-             <button onClick={actions.editProfile} className={`${btnStyle} text-cyan-400 hover:text-white border-cyan-500/20`}>
-               <UserPen size={18} />
-             </button>
+             {isCategoryPhase && (
+               <>
+                 <button onClick={actions.shuffleTopics} className={`${btnStyle} text-slate-300 hover:text-cyan-400`} aria-label="Shuffle">
+                   <RefreshCw size={18} />
+                 </button>
+                 <button onClick={actions.editProfile} className={`${btnStyle} text-cyan-400 hover:text-white border-cyan-500/20`}>
+                   <UserPen size={18} />
+                 </button>
+               </>
+             )}
              <LanguageSwitcher currentLanguage={language} onLanguageChange={actions.setLanguage} />
              <button onClick={actions.goHome} className={btnStyle} aria-label="Home">
                <Home size={18} />

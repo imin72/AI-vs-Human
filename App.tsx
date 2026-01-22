@@ -99,7 +99,8 @@ export default function App() {
       
       {stage === AppStage.RESULTS && resultState.evaluation && (
         <StageResults 
-          data={resultState.evaluation} 
+          data={resultState.evaluation}
+          sessionResults={resultState.sessionResults}
           onRestart={actions.resetApp} 
           onHome={actions.goHome}
           onNextTopic={actions.nextTopicInQueue}
