@@ -23,13 +23,12 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
   const [chartReady, setChartReady] = useState(false);
   const t = TRANSLATIONS[language].results;
 
-  // Delay chart rendering to ensure DOM is ready (Fixes Recharts ESM issues)
   useEffect(() => {
-    const timer = setTimeout(() => setChartReady(true), 100);
+    const timer = setTimeout(() => setChartReady(true), 500);
     return () => clearTimeout(timer);
   }, []);
 
-  if (!data) return null; // Safety check
+  if (!data) return null;
 
   const getGrade = (score: number) => {
     if (score >= 90) return { label: 'SSS', color: 'text-yellow-400 shadow-yellow-500/50' };
@@ -77,9 +76,9 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
   const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
 
   return (
-    <div className="w-full max-w-2xl relative pt-16 pb-12 animate-fade-in">
+    <div className="w-full h-full relative flex flex-col animate-fade-in">
       {/* Navbar */}
-      <div className="absolute top-4 right-0 md:-right-12 z-20 flex gap-2">
+      <div className="flex justify-end items-center mb-3 shrink-0 z-20 gap-2">
         <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
         <button onClick={onHome} className={btnStyle} aria-label="Home">
           <Home size={20} />
@@ -87,14 +86,14 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
       </div>
 
       {/* Main Container */}
-      <div className="glass-panel rounded-3xl overflow-hidden border border-slate-700/50 shadow-2xl relative">
-        {/* Background Grid Effect */}
-        <div className="absolute inset-0 z-0 opacity-10" 
+      <div className="glass-panel flex flex-col flex-grow h-0 rounded-3xl overflow-hidden shadow-2xl relative">
+        {/* Background Grid */}
+        <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" 
              style={{ backgroundImage: 'linear-gradient(rgba(6,182,212,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,0.1) 1px, transparent 1px)', backgroundSize: '20px 20px' }} 
         />
         
-        {/* Header Section */}
-        <div className="relative z-10 p-6 md:p-8 pb-0">
+        {/* Header Section (Shrink) */}
+        <div className="relative z-10 p-6 md:p-8 pb-0 shrink-0">
           <div className="flex justify-between items-start mb-4">
              <div>
                <div className="flex items-center gap-2 mb-1">
@@ -114,8 +113,8 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
              </div>
           </div>
 
-          {/* AI Message Bubble */}
-          <div className="bg-slate-900/60 border-l-4 border-cyan-500 p-4 rounded-r-xl mb-6 backdrop-blur-sm">
+          {/* AI Message */}
+          <div className="bg-slate-900/60 border-l-4 border-cyan-500 p-4 rounded-r-xl mb-4 backdrop-blur-sm">
              <div className="flex items-center gap-2 mb-1">
                <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
                <span className="text-[10px] font-bold text-cyan-400 uppercase">AI Observer</span>
@@ -124,8 +123,8 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="relative z-10 flex border-b border-slate-800 px-6">
+        {/* Tabs (Shrink) */}
+        <div className="relative z-10 flex border-b border-slate-800 px-6 shrink-0">
            <button 
              onClick={() => setActiveTab('analysis')}
              className={`pb-3 px-4 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'analysis' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
@@ -140,11 +139,11 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
            </button>
         </div>
 
-        {/* Content Area */}
-        <div className="relative z-10 p-6 md:p-8 bg-slate-950/30 min-h-[300px]">
+        {/* Content Area (Grow & Scroll) */}
+        <div className="relative z-10 p-6 md:p-8 bg-slate-950/30 flex-grow overflow-y-auto custom-scrollbar">
            {activeTab === 'analysis' ? (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                {/* Radar Chart - Render only when ready */}
+                {/* Radar Chart */}
                 <div className="h-56 relative flex items-center justify-center bg-slate-900/50 rounded-xl">
                    {chartReady ? (
                      <ResponsiveContainer width="100%" height="100%">
@@ -198,7 +197,7 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
                 </div>
              </div>
            ) : (
-             <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+             <div className="space-y-3">
                 {data.details.map((item, idx) => (
                   <div key={idx} className={`p-4 rounded-xl border transition-all ${item.isCorrect ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-rose-950/20 border-rose-500/30'}`}>
                      <div className="flex gap-3">
@@ -224,8 +223,8 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
            )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-6 border-t border-slate-800 bg-slate-900/80 backdrop-blur-md sticky bottom-0 z-20">
+        {/* Footer Actions (Sticky) */}
+        <div className="p-4 border-t border-slate-800 bg-slate-900/90 backdrop-blur-md shrink-0 z-20">
            {remainingTopics > 0 ? (
              <Button onClick={onNextTopic} fullWidth className="py-4 text-base shadow-xl shadow-cyan-500/20 animate-pulse">
                 {t.btn_next_topic} {nextTopicName} <span className="bg-white/20 px-2 py-0.5 rounded text-xs ml-2">{remainingTopics} Left</span> <ArrowRight size={18} />

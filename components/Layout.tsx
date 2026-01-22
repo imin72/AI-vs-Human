@@ -10,7 +10,7 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <div className="relative min-h-screen w-full flex flex-col bg-slate-950 text-slate-100 selection:bg-cyan-500/30">
+    <div className="relative h-[100dvh] w-full flex flex-col bg-slate-950 text-slate-100 selection:bg-cyan-500/30 overflow-hidden">
       {/* Background Layer - Fixed position to prevent layout shifts */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div 
@@ -22,11 +22,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-950/80 to-slate-950" />
       </div>
 
-      {/* Content Layer */}
-      <div className="relative z-10 flex-grow flex flex-col items-center p-4 md:p-8 overflow-y-auto">
-        <div className="w-full max-w-2xl flex flex-col items-center">
-          <header className="mt-8 mb-12 w-full flex flex-col items-center animate-fade-in select-none">
-            <div className="relative flex items-center justify-center gap-4 md:gap-8">
+      {/* Content Container */}
+      <div className="relative z-10 flex flex-col items-center w-full h-full max-w-2xl mx-auto">
+        {/* Header - Fixed Height */}
+        <header className="shrink-0 w-full flex flex-col items-center pt-2 pb-2 md:pt-6 md:pb-4 select-none z-20">
+            <div className="relative flex items-center justify-center gap-3 md:gap-8 scale-75 md:scale-90 origin-top">
               
               {/* HUMAN */}
               <div className="group relative">
@@ -54,12 +54,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
 
             </div>
-          </header>
+        </header>
           
-          <main className="w-full flex justify-center">
-            {children}
-          </main>
-        </div>
+        <main className="flex-grow w-full relative px-4 pb-4 flex flex-col overflow-hidden">
+          {children}
+        </main>
       </div>
     </div>
   );

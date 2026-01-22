@@ -1,32 +1,9 @@
 
 import React from 'react';
 import { 
-  Play, 
-  ChevronLeft, 
-  History, 
-  FlaskConical, 
-  Palette, 
-  Zap, 
-  Map, 
-  Film, 
-  Music, 
-  Gamepad2, 
-  Trophy, 
-  Cpu, 
-  Scroll, 
-  Book, 
-  Leaf, 
-  Utensils, 
-  Orbit, 
-  Lightbulb,
-  Home,
-  Bug,
-  CheckCircle2,
-  UserPen,
-  Medal,
-  ListFilter,
-  ArrowRight,
-  Eye
+  Play, ChevronLeft, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, 
+  Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Home, Bug, CheckCircle2, 
+  UserPen, Medal, ListFilter, ArrowRight, Eye
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
 import { LanguageSwitcher } from '../components/LanguageSwitcher.tsx';
@@ -99,45 +76,30 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
   })) : [];
 
   return (
-    <div className="w-full max-w-2xl relative pt-16 animate-fade-in flex flex-col items-center">
-      {/* Left Group: Back Button */}
-      <div className="absolute top-4 left-0 md:-left-12 z-20">
-        <button 
-          onClick={actions.goBack}
-          className={btnStyle}
-          aria-label="Back"
-        >
-          <ChevronLeft size={20} />
-        </button>
-      </div>
-      
-      {/* Right Group: Profile -> Language -> Home */}
-      <div className="absolute top-4 right-0 md:-right-12 z-20 flex gap-2">
-        {isCategoryPhase && (
-          <button 
-            onClick={actions.editProfile}
-            className={`${btnStyle} text-cyan-400 hover:text-white border-cyan-500/20`}
-            aria-label="Edit Profile"
-          >
-            <UserPen size={20} />
-          </button>
-        )}
-        <LanguageSwitcher 
-          currentLanguage={language} 
-          onLanguageChange={actions.setLanguage} 
-        />
-        <button 
-          onClick={actions.goHome}
-          className={btnStyle}
-          aria-label="Home"
-        >
-          <Home size={20} />
-        </button>
+    <div className="w-full h-full relative flex flex-col animate-fade-in">
+      {/* Top Navigation Bar */}
+      <div className="flex justify-between items-center mb-3 shrink-0 z-20">
+         <button onClick={actions.goBack} className={btnStyle} aria-label="Back">
+           <ChevronLeft size={20} />
+         </button>
+         <div className="flex gap-2">
+           {isCategoryPhase && (
+            <button onClick={actions.editProfile} className={`${btnStyle} text-cyan-400 hover:text-white border-cyan-500/20`}>
+              <UserPen size={20} />
+            </button>
+           )}
+           <LanguageSwitcher currentLanguage={language} onLanguageChange={actions.setLanguage} />
+           <button onClick={actions.goHome} className={btnStyle} aria-label="Home">
+             <Home size={20} />
+           </button>
+         </div>
       </div>
 
-      <div className="glass-panel p-6 rounded-3xl space-y-6 w-full flex flex-col" style={{ minWidth: '320px', minHeight: '600px' }}>
-        <div className="text-center pt-2">
-          <h2 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+      {/* Main Glass Panel */}
+      <div className="glass-panel flex flex-col flex-grow h-0 rounded-3xl overflow-hidden shadow-2xl">
+        {/* Header - Fixed */}
+        <div className="p-4 shrink-0 text-center border-b border-white/5 bg-slate-900/40">
+          <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
             {isCategoryPhase ? t.title_select : t.title_config}
           </h2>
           <p className="text-xs text-slate-400 mt-1 flex items-center justify-center gap-1">
@@ -146,52 +108,53 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
               : <span><ListFilter size={12}/> {t.desc_select}</span>
             }
           </p>
+          {errorMsg && <div className="text-red-400 text-xs bg-red-900/20 p-2 mt-2 rounded-xl border border-red-500/20 animate-pulse">{errorMsg}</div>}
         </div>
         
-        {errorMsg && <div className="text-red-400 text-center text-xs bg-red-900/20 p-3 rounded-xl border border-red-500/20 animate-pulse">{errorMsg}</div>}
-
         {isCategoryPhase ? (
-          // STEP 1: CATEGORY SELECTION
-          <div className="flex-1 flex flex-col">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 overflow-y-auto custom-scrollbar max-h-[55vh] p-1">
-              {displayedTopics.map((topic) => {
-                const isSelected = selectedCategories.includes(topic.id);
-                return (
-                  <button
-                    key={topic.id}
-                    onClick={() => actions.selectCategory(topic.id)}
-                    className={`group relative aspect-square rounded-2xl overflow-hidden border transition-all shadow-lg ${
-                      isSelected 
-                        ? 'border-cyan-400 ring-2 ring-cyan-500/50 scale-[0.98]' 
-                        : 'border-slate-700/50 hover:border-cyan-500/50 hover:scale-[1.02]'
-                    }`}
-                  >
-                    <div 
-                      className={`absolute inset-0 bg-cover bg-center transition-all duration-500 ${isSelected ? 'scale-110' : 'grayscale group-hover:grayscale-0'}`}
-                      style={{ backgroundImage: `url('${t.categoryImages[topic.id] || ''}')` }}
-                    />
-                    <div className={`absolute inset-0 transition-colors duration-300 ${isSelected ? 'bg-cyan-900/60' : 'bg-slate-950/70 group-hover:bg-slate-950/40'}`} />
-                    
-                    {isSelected && (
-                      <div className="absolute top-2 right-2 bg-cyan-500 text-white rounded-full p-1 shadow-lg animate-fade-in">
-                        <CheckCircle2 size={16} />
-                      </div>
-                    )}
+          /* STEP 1: CATEGORY SELECTION */
+          <>
+            <div className="flex-grow overflow-y-auto custom-scrollbar p-4">
+               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {displayedTopics.map((topic) => {
+                  const isSelected = selectedCategories.includes(topic.id);
+                  return (
+                    <button
+                      key={topic.id}
+                      onClick={() => actions.selectCategory(topic.id)}
+                      className={`group relative aspect-square rounded-2xl overflow-hidden border transition-all shadow-lg ${
+                        isSelected 
+                          ? 'border-cyan-400 ring-2 ring-cyan-500/50 scale-[0.98]' 
+                          : 'border-slate-700/50 hover:border-cyan-500/50 hover:scale-[1.02]'
+                      }`}
+                    >
+                      <div 
+                        className={`absolute inset-0 bg-cover bg-center transition-all duration-500 ${isSelected ? 'scale-110' : 'grayscale group-hover:grayscale-0'}`}
+                        style={{ backgroundImage: `url('${t.categoryImages[topic.id] || ''}')` }}
+                      />
+                      <div className={`absolute inset-0 transition-colors duration-300 ${isSelected ? 'bg-cyan-900/60' : 'bg-slate-950/70 group-hover:bg-slate-950/40'}`} />
+                      
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 bg-cyan-500 text-white rounded-full p-1 shadow-lg animate-fade-in">
+                          <CheckCircle2 size={16} />
+                        </div>
+                      )}
 
-                    <div className="absolute inset-0 p-3 flex flex-col items-center justify-center gap-2">
-                      <div className={`transition-colors ${isSelected ? 'text-cyan-300' : 'text-slate-400 group-hover:text-cyan-400'}`}>
-                        {getCategoryIcon(topic.id)}
+                      <div className="absolute inset-0 p-3 flex flex-col items-center justify-center gap-2">
+                        <div className={`transition-colors ${isSelected ? 'text-cyan-300' : 'text-slate-400 group-hover:text-cyan-400'}`}>
+                          {getCategoryIcon(topic.id)}
+                        </div>
+                        <span className={`font-bold text-xs md:text-sm uppercase text-center leading-tight drop-shadow-md transition-colors ${isSelected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                          {topic.label}
+                        </span>
                       </div>
-                      <span className={`font-bold text-xs md:text-sm uppercase text-center leading-tight drop-shadow-md transition-colors ${isSelected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
-                        {topic.label}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })}
+               </div>
             </div>
-
-            <div className="mt-auto pt-4 border-t border-slate-800">
+            
+            <div className="p-4 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 shrink-0">
               <Button 
                 onClick={actions.proceedToSubTopics} 
                 disabled={selectedCategories.length === 0}
@@ -201,15 +164,14 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                 {t.btn_next_step} ({selectedCategories.length}) <ArrowRight size={18} />
               </Button>
             </div>
-          </div>
+          </>
         ) : (
-          // STEP 2: SUBTOPIC SELECTION
-          <div className="flex-1 flex flex-col space-y-4 animate-fade-in">
-             {/* Sub Topics List Grouped by Category */}
-             <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 max-h-[50vh] space-y-6">
+          /* STEP 2: SUBTOPIC SELECTION */
+          <>
+            <div className="flex-grow overflow-y-auto custom-scrollbar p-4 space-y-6">
                 {groupedSubTopics.map((group) => (
                   <div key={group.catId} className="space-y-2">
-                    <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur py-2 px-1 border-b border-slate-800 flex items-center gap-2">
+                    <div className="sticky top-0 z-10 bg-slate-950/80 backdrop-blur-md py-2 px-1 border-b border-slate-800 flex items-center gap-2 rounded-lg">
                        <span className="text-cyan-400">{getCategoryIcon(group.catId)}</span>
                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{group.label}</h3>
                     </div>
@@ -248,10 +210,9 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                     </div>
                   </div>
                 ))}
-             </div>
-            
-            {/* Config & Action */}
-            <div className="space-y-3 pt-2 border-t border-slate-800">
+            </div>
+
+            <div className="p-4 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 shrink-0 space-y-3">
               <div className="flex items-center justify-between px-1">
                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{t.label_difficulty}</label>
                  <span className="text-[10px] text-cyan-500 font-mono">{selectedSubTopics.length} {t.label_topics_selected}</span>
@@ -283,24 +244,18 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
 
               <div className="flex gap-2 mt-1">
                  {actions.startDebugQuiz && (
-                  <button
-                    onClick={actions.startDebugQuiz}
-                    className="flex-1 text-[10px] text-slate-700 bg-slate-900/50 py-2 rounded-lg font-mono hover:text-rose-500 transition-colors uppercase tracking-widest flex items-center justify-center gap-2"
-                  >
+                  <button onClick={actions.startDebugQuiz} className="flex-1 text-[10px] text-slate-700 bg-slate-900/50 py-2 rounded-lg font-mono hover:text-rose-500 transition-colors uppercase tracking-widest flex items-center justify-center gap-2">
                     <Bug size={10} /> Bypass
                   </button>
                 )}
                 {actions.previewResults && (
-                  <button
-                    onClick={actions.previewResults}
-                    className="flex-1 text-[10px] text-slate-700 bg-slate-900/50 py-2 rounded-lg font-mono hover:text-cyan-500 transition-colors uppercase tracking-widest flex items-center justify-center gap-2"
-                  >
+                  <button onClick={actions.previewResults} className="flex-1 text-[10px] text-slate-700 bg-slate-900/50 py-2 rounded-lg font-mono hover:text-cyan-500 transition-colors uppercase tracking-widest flex items-center justify-center gap-2">
                     <Eye size={10} /> Preview
                   </button>
                 )}
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>

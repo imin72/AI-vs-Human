@@ -28,15 +28,15 @@ const getFlagEmoji = (countryCode: string) => {
 
 // Priority countries based on selected language
 const PRIORITY_COUNTRIES: Record<Language, string[]> = {
-  en: ['US', 'GB', 'CA'], // USA, UK, Canada
-  ko: ['KR', 'US', 'JP'], // Korea, USA, Japan
-  ja: ['JP', 'US', 'TW'], // Japan, USA, Taiwan
-  zh: ['CN', 'US', 'SG'], // China, USA, Singapore
-  es: ['ES', 'MX', 'AR'], // Spain, Mexico, Argentina
-  fr: ['FR', 'CA', 'BE'], // France, Canada, Belgium
+  en: ['US', 'GB', 'CA'],
+  ko: ['KR', 'US', 'JP'],
+  ja: ['JP', 'US', 'TW'],
+  zh: ['CN', 'US', 'SG'],
+  es: ['ES', 'MX', 'AR'],
+  fr: ['FR', 'CA', 'BE'],
 };
 
-// Common list of countries (ISO Codes) for the dropdown
+// Common list of countries
 const COMMON_COUNTRIES = [
   "AF", "AL", "DZ", "AR", "AU", "AT", "BD", "BE", "BR", "KH", "CA", "CL", "CN", "CO", "HR", "CZ", "DK", "EG",
   "FI", "FR", "DE", "GR", "HK", "HU", "IS", "IN", "ID", "IR", "IE", "IL", "IT", "JP", "KR", "MY", "MX", "MA", "NL",
@@ -47,19 +47,15 @@ const COMMON_COUNTRIES = [
 export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, language, setLanguage, onUpdate, onSubmit, onBack, onHome, backLabel }) => {
   const isComplete = userProfile.gender && userProfile.ageGroup && userProfile.nationality;
 
-  // Use Intl.DisplayNames for automatic translation of country names
   const regionNames = useMemo(() => {
     try {
       return new Intl.DisplayNames([language], { type: 'region' });
     } catch (e) {
-      // Fallback for very old browsers (unlikely)
       return { of: (code: string) => code }; 
     }
   }, [language]);
 
   const priorityList = PRIORITY_COUNTRIES[language];
-  
-  // Filter out priority countries from the dropdown list to avoid duplicates
   const dropdownList = useMemo(() => {
     return COMMON_COUNTRIES.filter(code => !priorityList.includes(code));
   }, [priorityList]);
@@ -71,49 +67,39 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, langua
   const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
 
   return (
-    <div className="w-full max-w-2xl relative pt-16 animate-fade-in">
-      <div className="absolute top-4 left-0 md:-left-12 z-20">
-        <button 
-          onClick={onBack}
-          className={btnStyle}
-          aria-label={backLabel}
-        >
-          <ChevronLeft size={20} />
-        </button>
+    <div className="w-full h-full relative flex flex-col animate-fade-in">
+      {/* Top Navigation Bar */}
+      <div className="flex justify-between items-center mb-3 shrink-0 z-20">
+         <button onClick={onBack} className={btnStyle} aria-label={backLabel}>
+           <ChevronLeft size={20} />
+         </button>
+         <div className="flex gap-2">
+           <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
+           <button onClick={onHome} className={btnStyle} aria-label="Home">
+             <Home size={20} />
+           </button>
+         </div>
       </div>
 
-      <div className="absolute top-4 right-0 md:-right-12 z-20 flex gap-2">
-        <LanguageSwitcher 
-          currentLanguage={language} 
-          onLanguageChange={setLanguage} 
-        />
-        <button 
-          onClick={onHome}
-          className={btnStyle}
-          aria-label="Home"
-        >
-          <Home size={20} />
-        </button>
-      </div>
-
-      <div className="glass-panel p-6 rounded-3xl space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
-        <div className="text-center mt-2">
+      {/* Main Glass Panel */}
+      <div className="glass-panel flex flex-col flex-grow h-0 rounded-3xl overflow-hidden shadow-2xl">
+        {/* Header */}
+        <div className="p-6 pb-2 shrink-0 text-center border-b border-white/5 bg-slate-900/40">
           <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 text-cyan-400">
              <UserCircle2 size={24} />
           </div>
-          <h2 className="text-2xl font-bold">{t.title}</h2>
-          <p className="text-slate-400 text-sm mt-1">{t.desc}</p>
+          <h2 className="text-xl md:text-2xl font-bold">{t.title}</h2>
+          <p className="text-slate-400 text-xs md:text-sm mt-1">{t.desc}</p>
         </div>
 
-        <div className="space-y-6">
-          {/* Nationality Selection */}
+        {/* Scrollable Form Area */}
+        <div className="flex-grow overflow-y-auto custom-scrollbar p-6 space-y-6">
+          {/* Nationality */}
           <div>
             <label className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-2 flex items-center gap-2">
               <Flag size={12} className="text-cyan-500" /> {t.label_nationality}
             </label>
-            
             <div className="space-y-3">
-              {/* Top 3 Priority Buttons */}
               <div className="grid grid-cols-3 gap-2">
                 {priorityList.map(code => (
                   <button
@@ -130,8 +116,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, langua
                   </button>
                 ))}
               </div>
-
-              {/* Dropdown for Others */}
               <div className="relative group">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
                   <Globe size={16} />
@@ -161,7 +145,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, langua
             </div>
           </div>
 
-          {/* Gender Selection */}
+          {/* Gender */}
           <div>
             <label className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-2 block">{t.label_gender}</label>
             <div className="grid grid-cols-3 gap-2">
@@ -181,7 +165,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, langua
             </div>
           </div>
 
-          {/* Age Selection */}
+          {/* Age */}
           <div>
             <label className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-2 block">{t.label_age}</label>
             <div className="grid grid-cols-3 gap-2">
@@ -202,7 +186,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, langua
           </div>
         </div>
 
-        <div className="pt-2 sticky bottom-0 bg-slate-900/90 backdrop-blur-md -mx-6 px-6 py-4 rounded-b-3xl">
+        {/* Sticky Footer */}
+        <div className="p-4 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 shrink-0">
           <Button onClick={onSubmit} fullWidth>
             {isComplete ? t.btn_submit : t.skip} <ChevronRight size={18} />
           </Button>
