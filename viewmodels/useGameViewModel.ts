@@ -97,7 +97,7 @@ export const useGameViewModel = () => {
     try {
       const correctCount = finalAnswers.filter(a => a.isCorrect).length;
       const totalCount = finalAnswers.length;
-      const score = Math.round((correctCount / totalCount) * 100);
+      const score = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
       
       // Update High Score Logic (Local Only)
       const currentScores = profile.scores || {};
@@ -113,9 +113,8 @@ export const useGameViewModel = () => {
       }
 
       // --- DEBUG MODE CHECK ---
-      // If the topic is "Debug...", skip the API call
       if (currentTopic.startsWith("Debug")) {
-        await new Promise(resolve => setTimeout(resolve, 500)); // Fake analyzing delay
+        await new Promise(resolve => setTimeout(resolve, 800)); 
         const mockResult: EvaluationResult = {
           totalScore: score,
           humanPercentile: 99,
@@ -132,7 +131,6 @@ export const useGameViewModel = () => {
         };
         setEvaluation(mockResult);
         setStage(AppStage.RESULTS);
-        setIsPending(false);
         return;
       }
 
@@ -146,6 +144,7 @@ export const useGameViewModel = () => {
       setEvaluation({ ...res, totalScore: score });
       setStage(AppStage.RESULTS);
     } catch (e: any) {
+      console.error("Finish Quiz Error", e);
       setErrorMsg(e.message || "Unknown analysis error");
       setStage(AppStage.ERROR);
     } finally {
@@ -304,21 +303,24 @@ export const useGameViewModel = () => {
         const quizSets = await generateQuestionsBatch(selectedSubTopics, difficulty, language, userProfile);
         
         // Setup Queue & Batch Info
-        const [first, ...rest] = quizSets;
-        setQuizQueue(rest);
-        setCurrentQuizSet(first);
-        setQuestions(first.questions);
-        setCurrentQuestionIndex(0);
-        setUserAnswers([]);
-        
-        // Initialize Batch Progress
-        setBatchProgress({
-          total: selectedSubTopics.length,
-          current: 1,
-          topics: selectedSubTopics
-        });
-        
-        setStage(AppStage.QUIZ);
+        if (quizSets.length > 0) {
+          const [first, ...rest] = quizSets;
+          setQuizQueue(rest);
+          setCurrentQuizSet(first);
+          setQuestions(first.questions);
+          setCurrentQuestionIndex(0);
+          setUserAnswers([]);
+          
+          setBatchProgress({
+            total: selectedSubTopics.length,
+            current: 1,
+            topics: selectedSubTopics
+          });
+          
+          setStage(AppStage.QUIZ);
+        } else {
+           throw new Error("No questions generated");
+        }
       } catch (e: any) {
         setErrorMsg(e.message || "Failed to initialize protocol");
         setStage(AppStage.ERROR);
@@ -351,31 +353,38 @@ export const useGameViewModel = () => {
        if (isPending) return;
        setIsPending(true);
        setStage(AppStage.LOADING_QUIZ);
-       await new Promise(resolve => setTimeout(resolve, 800));
        
-       // Simulate 3 Topics for Debugging Batch Flow
-       const debugTopics = ["Debug Alpha", "Debug Beta", "Debug Gamma"];
-       const debugSets: QuizSet[] = debugTopics.map((topic, index) => ({
-         topic: topic,
-         questions: DEBUG_QUIZ.map(q => ({
-            ...q,
-            id: q.id + (index * 100), // Ensure unique IDs for React keys
-            question: `[${topic}] ${q.question}`
-         }))
-       }));
-       
-       const [first, ...rest] = debugSets;
-       
-       setQuizQueue(rest);
-       setCurrentQuizSet(first);
-       setQuestions(first.questions);
-       setCurrentQuestionIndex(0);
-       setUserAnswers([]);
-       
-       setBatchProgress({ total: debugTopics.length, current: 1, topics: debugTopics });
-       
-       setStage(AppStage.QUIZ);
-       setIsPending(false);
+       try {
+         await new Promise(resolve => setTimeout(resolve, 800));
+         
+         // Simulate 3 Topics for Debugging Batch Flow
+         const debugTopics = ["Debug Alpha", "Debug Beta", "Debug Gamma"];
+         const debugSets: QuizSet[] = debugTopics.map((topic, index) => ({
+           topic: topic,
+           questions: DEBUG_QUIZ.map(q => ({
+              ...q,
+              id: q.id + (index * 100), 
+              question: `[${topic}] ${q.question}`
+           }))
+         }));
+         
+         const [first, ...rest] = debugSets;
+         
+         setQuizQueue(rest);
+         setCurrentQuizSet(first);
+         setQuestions(first.questions);
+         setCurrentQuestionIndex(0);
+         setUserAnswers([]);
+         
+         setBatchProgress({ total: debugTopics.length, current: 1, topics: debugTopics });
+         
+         setStage(AppStage.QUIZ);
+       } catch (e: any) {
+         setErrorMsg("Debug Init Failed: " + e.message);
+         setStage(AppStage.ERROR);
+       } finally {
+         setIsPending(false);
+       }
     },
     
     selectOption: (option: string) => setSelectedOption(option),
@@ -396,14 +405,15 @@ export const useGameViewModel = () => {
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
       } else {
-        const currentTopic = currentQuizSet?.topic || "Unknown";
+        // Safe access to current topic
+        const currentTopic = currentQuizSet?.topic || (batchProgress.topics[batchProgress.current - 1] || "Unknown");
         finishQuiz(updated, currentTopic, userProfile, language);
       }
     },
     shuffleTopics: () => {},
     shuffleSubTopics: () => {},
     setCustomTopic: (_topic: string) => {}
-  }), [isPending, stage, selectedCategory, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, performBackNavigation]);
+  }), [isPending, stage, selectedCategory, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, performBackNavigation]);
 
   return {
     state: {
@@ -415,7 +425,7 @@ export const useGameViewModel = () => {
         userAnswers, 
         selectedOption, 
         remainingTopics: quizQueue.length,
-        nextTopicName: quizQueue.length > 0 ? quizQueue[0].topic : undefined, // Added Next Topic Name
+        nextTopicName: quizQueue.length > 0 ? quizQueue[0].topic : undefined,
         batchProgress 
       },
       resultState: { evaluation, errorMsg }

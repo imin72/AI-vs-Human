@@ -24,7 +24,8 @@ import {
   Bug,
   CheckCircle2,
   UserPen,
-  Medal
+  Medal,
+  ListFilter
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
 import { Difficulty, TOPIC_IDS, UserProfile } from '../types.ts';
@@ -82,8 +83,8 @@ const getCategoryIcon = (id: string) => {
 export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state, actions }) => {
   const { selectedCategory, selectedSubTopics, difficulty, displayedTopics, displayedSubTopics, errorMsg, userProfile } = state;
   
+  // Category selection still uses shuffle for discovery
   const [subsetCategories, setSubsetCategories] = useState<{id: string, label: string}[]>([]);
-  const [subsetSubTopics, setSubsetSubTopics] = useState<string[]>([]);
 
   useEffect(() => {
     if (displayedTopics.length > 0 && subsetCategories.length === 0) {
@@ -94,31 +95,6 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
   const handleRefreshCategories = () => {
     const shuffled = [...displayedTopics].sort(() => 0.5 - Math.random());
     setSubsetCategories(shuffled.slice(0, 4));
-  };
-
-  useEffect(() => {
-    if (selectedCategory && displayedSubTopics.length > 0) {
-      handleRefreshSubtopics();
-    }
-  }, [selectedCategory, displayedSubTopics.length]);
-
-  const handleRefreshSubtopics = () => {
-    const shuffled = [...displayedSubTopics].sort(() => 0.5 - Math.random());
-    setSubsetSubTopics(shuffled.slice(0, 4));
-  };
-
-  const getImageUrl = (keyword: string) => {
-    if (t.subtopicImages && t.subtopicImages[keyword]) return t.subtopicImages[keyword];
-    
-    const currentLangSubtopics = t.subtopics[selectedCategory] || [];
-    const idx = currentLangSubtopics.indexOf(keyword);
-    if (idx !== -1) {
-      const englishKeyword = TRANSLATIONS.en.topics.subtopics[selectedCategory]?.[idx];
-      if (englishKeyword && t.subtopicImages && t.subtopicImages[englishKeyword]) {
-        return t.subtopicImages[englishKeyword];
-      }
-    }
-    return t.categoryImages ? t.categoryImages[selectedCategory] : '';
   };
 
   const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
@@ -156,7 +132,9 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
             {!selectedCategory ? t.title_select : t.title_config}
           </h2>
           {selectedCategory && (
-             <p className="text-xs text-slate-400 mt-1">Select multiple topics for continuous challenge</p>
+             <p className="text-xs text-slate-400 mt-1 flex items-center justify-center gap-1">
+               <ListFilter size={12}/> Select multiple topics for continuous challenge
+             </p>
           )}
         </div>
         
@@ -195,16 +173,10 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           </div>
         ) : (
           <div className="space-y-6 animate-fade-in">
-            <div className="space-y-4">
-              <button
-                onClick={handleRefreshSubtopics}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 font-bold text-xs hover:bg-cyan-600/20 transition-all"
-              >
-                <Dices size={16} /> {t.btn_refresh}
-              </button>
-
-              <div className="grid grid-cols-2 gap-3">
-                {subsetSubTopics.map(sub => {
+            {/* Sub Topics Grid - Compact Text List */}
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1 pb-2">
+                {displayedSubTopics.map(sub => {
                   const isSelected = selectedSubTopics.includes(sub);
                   const score = userProfile?.scores?.[sub];
                   
@@ -212,37 +184,36 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                     <button 
                       key={sub} 
                       onClick={() => actions.selectSubTopic(sub)} 
-                      className={`group relative aspect-video rounded-2xl overflow-hidden border transition-all bg-slate-900 ${
+                      className={`relative p-3.5 rounded-xl border transition-all flex items-center justify-between group text-left ${
                         isSelected 
-                          ? 'border-cyan-400 ring-2 ring-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.4)]' 
-                          : 'border-slate-800 hover:border-slate-500'
+                          ? 'bg-cyan-900/40 border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.15)]' 
+                          : 'bg-slate-900/40 border-slate-800 hover:border-slate-500 hover:bg-slate-800'
                       }`}
                     >
-                      <div 
-                        className={`absolute inset-0 bg-cover bg-center transition-transform duration-500 ${isSelected ? 'scale-110 opacity-40' : 'opacity-60 group-hover:scale-110'}`}
-                        style={{ backgroundImage: `url('${getImageUrl(sub)}')`, backgroundSize: 'cover' }}
-                      />
-                      <div className={`absolute inset-0 transition-colors ${isSelected ? 'bg-slate-950/20' : 'bg-slate-950/40 group-hover:bg-slate-950/20'}`} />
-                      
-                      {isSelected && (
-                         <div className="absolute top-2 right-2 bg-cyan-500 text-white rounded-full p-0.5 z-10 shadow-sm animate-bounce">
-                           <CheckCircle2 size={14} />
-                         </div>
-                      )}
-
-                      {/* Score Badge */}
-                      {!isSelected && score !== undefined && (
-                        <div className="absolute top-2 right-2 bg-amber-500/90 backdrop-blur text-white text-[10px] font-black px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm border border-amber-400/50">
-                           <Medal size={10} /> {score}
-                        </div>
-                      )}
-
-                      <div className="absolute inset-0 p-3 flex items-center justify-center">
-                        <span className={`text-sm md:text-base font-black text-center uppercase tracking-wide leading-tight drop-shadow-lg ${
-                          isSelected ? 'text-cyan-200' : 'text-white'
+                      <div className="flex flex-col gap-0.5 min-w-0 pr-2">
+                        <span className={`text-xs md:text-sm font-bold uppercase tracking-wide truncate transition-colors ${
+                          isSelected ? 'text-cyan-100' : 'text-slate-300 group-hover:text-white'
                         }`}>
                           {sub}
                         </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                         {/* Score Badge (Mini) */}
+                         {!isSelected && score !== undefined && (
+                            <div className="text-[10px] font-mono font-bold text-amber-500 flex items-center gap-0.5 bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-900/50">
+                               <Medal size={10} /> {score}
+                            </div>
+                         )}
+                         
+                         {/* Selection Check */}
+                         <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
+                            isSelected 
+                              ? 'bg-cyan-500 border-cyan-400 text-white' 
+                              : 'bg-slate-950 border-slate-700 text-transparent'
+                         }`}>
+                            <CheckCircle2 size={12} />
+                         </div>
                       </div>
                     </button>
                   );
@@ -250,7 +221,8 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
               </div>
             </div>
             
-            <div className="space-y-3">
+            {/* Config & Action */}
+            <div className="space-y-3 pt-2">
               <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold block pl-1">{t.label_difficulty}</label>
               <div className="flex gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
                 {Object.values(Difficulty).map((diff) => (

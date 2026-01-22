@@ -129,12 +129,13 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
   // Button text logic
   const isLastQuestion = currentIndex === questions.length - 1;
-  const isBatchFinished = batchProgress && batchProgress.current >= batchProgress.total;
+  const isBatchFinished = !batchProgress || batchProgress.current >= batchProgress.total;
   let buttonText = t.btn_next;
   
   if (isLastQuestion) {
-    if (batchProgress && !isBatchFinished) {
-      buttonText = t.btn_analyze || "Analyze Segment";
+    if (!isBatchFinished && batchProgress) {
+      const nextTopic = batchProgress.topics[batchProgress.current] || "Next";
+      buttonText = `${t.btn_start_next_topic_prefix}${nextTopic}${t.btn_start_next_topic_suffix}`;
     } else {
       buttonText = t.btn_finish;
     }
@@ -158,40 +159,6 @@ export const QuizView: React.FC<QuizViewProps> = ({
       >
         <Home size={20} />
       </button>
-
-      {/* 상단 AI 상태창 */}
-      <div className="sticky top-2 z-40 glass-panel p-4 md:p-5 rounded-3xl border-cyan-500/30 flex items-center justify-between overflow-hidden shadow-2xl backdrop-blur-xl transition-all duration-300">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Cpu size={32} className={`${isAiDone ? 'text-rose-500' : 'text-cyan-400'} animate-pulse transition-colors duration-500`} />
-            <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full animate-ping ${isAiDone ? 'bg-rose-500' : 'bg-green-500'}`}></div>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className={`text-xs md:text-sm font-black uppercase tracking-tighter transition-colors ${isAiDone ? 'text-rose-500' : 'text-cyan-500'}`}>
-              AI STATUS: {isAiDone ? 'ANSWER FOUND' : 'PROCESSING...'}
-            </span>
-            <div ref={logContainerRef} className="h-5 overflow-hidden flex items-center">
-               <p className={`text-[10px] font-mono uppercase leading-tight ${isAiDone ? 'text-rose-300' : 'text-cyan-300/70'}`}>
-                 {aiLogs[aiLogs.length - 1] || "WAITING..."}
-               </p>
-            </div>
-          </div>
-        </div>
-        
-        {/* AI Progress Bar */}
-        <div className="flex flex-col items-end gap-1.5 w-32 md:w-40">
-           <div className="text-[10px] md:text-xs font-mono text-slate-400 flex items-center gap-1.5">
-             {isAiDone ? <CheckCircle2 size={12} className="text-rose-500"/> : <Timer size={12} className="animate-spin" />}
-             {Math.floor(aiProgress)}%
-           </div>
-           <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-             <div 
-                className={`h-full transition-all duration-100 ease-linear ${isAiDone ? 'bg-rose-500' : 'bg-cyan-500'}`}
-                style={{ width: `${aiProgress}%` }}
-             ></div>
-           </div>
-        </div>
-      </div>
 
       {/* Batch Progress Indicator */}
       {batchProgress && batchProgress.total > 1 && (
@@ -305,30 +272,58 @@ export const QuizView: React.FC<QuizViewProps> = ({
         </div>
       </div>
 
-      {/* 하단 제어 영역 (Progress & Navigation) */}
-      <div className="space-y-4 pt-2">
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">
-             <span>Human Progress</span>
-             <span>{Math.round(((currentIndex + 1) / questions.length) * 100)}%</span>
+      {/* 순서 변경: 1. 다음 버튼 */}
+      <div className="pt-2">
+        <Button 
+          onClick={onConfirm} 
+          disabled={!selectedOption}
+          fullWidth
+          className="py-4 text-sm font-black uppercase tracking-widest flex-1 shadow-lg"
+        >
+          {buttonText} <ChevronRight size={18} />
+        </Button>
+      </div>
+
+      {/* 순서 변경: 2. Human Progress */}
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">
+           <span>Human Progress</span>
+           <span>{Math.round(((currentIndex + 1) / questions.length) * 100)}%</span>
+        </div>
+        <div className="h-2 w-full bg-slate-800/50 rounded-full overflow-hidden border border-slate-700/30">
+          <div 
+            className="h-full bg-gradient-to-r from-rose-500 via-purple-500 to-cyan-500 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(6,182,212,0.5)]"
+            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+          ></div>
+        </div>
+      </div>
+
+      {/* 순서 변경: 3. AI Status */}
+      <div className="glass-panel p-4 rounded-3xl border-rose-500/20 flex items-center justify-between overflow-hidden shadow-lg backdrop-blur-xl transition-all duration-300">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Cpu size={24} className={`${isAiDone ? 'text-rose-500' : 'text-slate-400'} transition-colors duration-500`} />
+            <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full animate-ping ${isAiDone ? 'bg-rose-500' : 'bg-green-500'}`}></div>
           </div>
-          <div className="h-2 w-full bg-slate-800/50 rounded-full overflow-hidden border border-slate-700/30">
-            <div 
-              className="h-full bg-gradient-to-r from-rose-500 via-purple-500 to-cyan-500 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(6,182,212,0.5)]"
-              style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-            ></div>
+          <div className="flex flex-col gap-0.5">
+            <span className={`text-[10px] md:text-xs font-black uppercase tracking-tighter transition-colors ${isAiDone ? 'text-rose-500' : 'text-slate-400'}`}>
+              AI STATUS: {isAiDone ? 'ANSWER FOUND' : 'CALCULATING...'}
+            </span>
           </div>
         </div>
-
-        <div className="flex gap-3">
-          <Button 
-            onClick={onConfirm} 
-            disabled={!selectedOption}
-            fullWidth
-            className="py-4 text-sm font-black uppercase tracking-widest flex-1"
-          >
-            {buttonText} <ChevronRight size={18} />
-          </Button>
+        
+        {/* AI Progress Bar */}
+        <div className="flex flex-col items-end gap-1 w-28 md:w-36">
+           <div className="text-[9px] font-mono text-slate-500 flex items-center gap-1">
+             {isAiDone ? <CheckCircle2 size={10} className="text-rose-500"/> : <Timer size={10} className="animate-spin" />}
+             {Math.floor(aiProgress)}%
+           </div>
+           <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+             <div 
+                className={`h-full transition-all duration-100 ease-linear ${isAiDone ? 'bg-rose-500' : 'bg-slate-500'}`}
+                style={{ width: `${aiProgress}%` }}
+             ></div>
+           </div>
         </div>
       </div>
 
