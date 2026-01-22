@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { UserCircle2, ChevronRight, ChevronLeft, Flag, Globe, Home } from 'lucide-react';
+import { UserCircle2, ChevronRight, Flag, Globe, Home } from 'lucide-react';
 import { Button } from '../components/Button';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { UserProfile, Language } from '../types';
@@ -68,28 +68,27 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, langua
 
   return (
     <div className="w-full h-full relative flex flex-col animate-fade-in">
-      {/* Top Navigation Bar */}
-      <div className="flex justify-between items-center mb-3 shrink-0 z-20">
-         <button onClick={onBack} className={btnStyle} aria-label={backLabel}>
-           <ChevronLeft size={20} />
-         </button>
-         <div className="flex gap-2">
-           <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
-           <button onClick={onHome} className={btnStyle} aria-label="Home">
-             <Home size={20} />
-           </button>
-         </div>
-      </div>
-
+      
       {/* Main Glass Panel */}
       <div className="glass-panel flex flex-col flex-grow h-0 rounded-3xl overflow-hidden shadow-2xl">
-        {/* Header */}
-        <div className="p-6 pb-2 shrink-0 text-center border-b border-white/5 bg-slate-900/40">
-          <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 text-cyan-400">
-             <UserCircle2 size={24} />
+        {/* Compact Header */}
+        <div className="p-4 pb-2 shrink-0 border-b border-white/5 bg-slate-900/40 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center text-cyan-400 shrink-0">
+               <UserCircle2 size={20} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold leading-tight">{t.title}</h2>
+              <p className="text-slate-400 text-xs">{t.desc}</p>
+            </div>
           </div>
-          <h2 className="text-xl md:text-2xl font-bold">{t.title}</h2>
-          <p className="text-slate-400 text-xs md:text-sm mt-1">{t.desc}</p>
+
+          <div className="flex gap-2 shrink-0">
+             <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
+             <button onClick={onHome} className={btnStyle} aria-label="Home">
+               <Home size={18} />
+             </button>
+          </div>
         </div>
 
         {/* Scrollable Form Area */}

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Brain, Cpu, ArrowRight, ChevronLeft, Home, UserCheck } from 'lucide-react';
+import { Brain, Cpu, ArrowRight, Home, UserCheck } from 'lucide-react';
 import { Button } from '../components/Button';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { Language } from '../types';
@@ -18,7 +18,7 @@ interface IntroViewProps {
 
 const PROFILE_KEY = 'cognito_user_profile_v1';
 
-export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome, onResetProfile, backLabel, language, setLanguage }) => {
+export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onHome, onResetProfile, language, setLanguage }) => {
   const [hasProfile, setHasProfile] = useState(false);
 
   useEffect(() => {
@@ -35,16 +35,7 @@ export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome
 
   return (
     <div className="w-full max-w-2xl relative pt-16 animate-fade-in flex flex-col items-center">
-      <div className="absolute top-4 left-0 md:-left-12 z-20">
-        <button 
-          onClick={onBack}
-          className={btnStyle}
-          aria-label={backLabel}
-        >
-          <ChevronLeft size={20} />
-        </button>
-      </div>
-
+      
       <div className="absolute top-4 right-0 md:-right-12 z-20 flex gap-2">
         <LanguageSwitcher 
           currentLanguage={language} 

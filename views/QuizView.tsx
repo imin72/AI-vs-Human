@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronLeft, Cpu, Terminal, Zap, Lightbulb, Home, Timer, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, Cpu, Terminal, Zap, Lightbulb, Home, Timer, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { QuizQuestion, Language } from '../types';
@@ -142,43 +142,34 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
   return (
     <div className="flex flex-col w-full h-full animate-fade-in relative">
-      {/* Top Navigation Bar */}
+      
+      {/* Top Header Row with Batch Progress & Controls */}
       <div className="flex justify-between items-center mb-2 shrink-0 z-20">
-         <button onClick={onBack} className={btnStyle} aria-label="Back">
-           <ChevronLeft size={20} />
-         </button>
+         {/* Batch Progress Indicator (Left Aligned) */}
+         <div className="flex items-center gap-1.5 pl-1">
+            {batchProgress && batchProgress.total > 1 && Array.from({ length: batchProgress.total }).map((_, idx) => {
+              const step = idx + 1;
+              const isDone = step < batchProgress.current;
+              const isCurrent = step === batchProgress.current;
+              return (
+                <div key={idx} className={`w-2 h-2 rounded-full border transition-all duration-500 ${
+                    isDone ? 'bg-green-500 border-green-400' :
+                    isCurrent ? 'bg-cyan-400 border-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.8)] scale-125' :
+                    'bg-slate-800 border-slate-600'
+                  }`} 
+                />
+              );
+            })}
+         </div>
+
+         {/* Right Controls */}
          <div className="flex gap-2">
            <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
            <button onClick={onHome} className={btnStyle} aria-label="Home">
-             <Home size={20} />
+             <Home size={18} />
            </button>
          </div>
       </div>
-
-      {/* Batch Progress Indicator */}
-      {batchProgress && batchProgress.total > 1 && (
-        <div className="flex items-center justify-center gap-2 mb-2 shrink-0">
-          {Array.from({ length: batchProgress.total }).map((_, idx) => {
-            const step = idx + 1;
-            const isDone = step < batchProgress.current;
-            const isCurrent = step === batchProgress.current;
-            return (
-              <div key={idx} className={`transition-all duration-500 flex items-center`}>
-                <div 
-                  className={`w-3 h-3 rounded-full border transition-all duration-500 ${
-                   isDone ? 'bg-green-500 border-green-400' :
-                   isCurrent ? 'bg-cyan-400 border-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.8)] scale-125' :
-                   'bg-slate-800 border-slate-600'
-                  }`} 
-                />
-                {idx < batchProgress.total - 1 && (
-                  <div className={`w-4 h-0.5 mx-0.5 rounded-full transition-colors duration-500 ${isDone ? 'bg-green-900' : 'bg-slate-800'}`} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* Main Content Area - Scrollable */}
       <div className="flex-grow flex flex-col min-h-0 gap-3">

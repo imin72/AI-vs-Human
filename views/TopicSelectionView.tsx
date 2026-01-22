@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { 
-  Play, ChevronLeft, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, 
+  Play, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, 
   Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Home, Bug, CheckCircle2, 
-  UserPen, Medal, ListFilter, ArrowRight, Eye
+  UserPen, Medal, ArrowRight, Eye
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
 import { LanguageSwitcher } from '../components/LanguageSwitcher.tsx';
@@ -77,40 +77,33 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
 
   return (
     <div className="w-full h-full relative flex flex-col animate-fade-in">
-      {/* Top Navigation Bar */}
-      <div className="flex justify-between items-center mb-3 shrink-0 z-20">
-         <button onClick={actions.goBack} className={btnStyle} aria-label="Back">
-           <ChevronLeft size={20} />
-         </button>
-         <div className="flex gap-2">
-           {isCategoryPhase && (
-            <button onClick={actions.editProfile} className={`${btnStyle} text-cyan-400 hover:text-white border-cyan-500/20`}>
-              <UserPen size={20} />
-            </button>
-           )}
-           <LanguageSwitcher currentLanguage={language} onLanguageChange={actions.setLanguage} />
-           <button onClick={actions.goHome} className={btnStyle} aria-label="Home">
-             <Home size={20} />
-           </button>
-         </div>
-      </div>
-
+      
       {/* Main Glass Panel */}
       <div className="glass-panel flex flex-col flex-grow h-0 rounded-3xl overflow-hidden shadow-2xl">
-        {/* Header - Fixed */}
-        <div className="p-4 shrink-0 text-center border-b border-white/5 bg-slate-900/40">
-          <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
-            {isCategoryPhase ? t.title_select : t.title_config}
-          </h2>
-          <p className="text-xs text-slate-400 mt-1 flex items-center justify-center gap-1">
-            {isCategoryPhase 
-              ? <span>{t.desc_select}</span> 
-              : <span><ListFilter size={12}/> {t.desc_select}</span>
-            }
-          </p>
-          {errorMsg && <div className="text-red-400 text-xs bg-red-900/20 p-2 mt-2 rounded-xl border border-red-500/20 animate-pulse">{errorMsg}</div>}
+        {/* Compact Header - Unified Title & Controls */}
+        <div className="p-4 pb-2 shrink-0 border-b border-white/5 bg-slate-900/40 flex justify-between items-start gap-4">
+          <div className="flex flex-col min-w-0 flex-1 pt-1">
+            <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2 truncate leading-tight">
+              {isCategoryPhase ? t.title_select : t.title_config}
+            </h2>
+            <p className="text-xs text-slate-400 mt-1 whitespace-normal break-words leading-relaxed pr-2">
+              {t.desc_select}
+            </p>
+          </div>
+          
+          <div className="flex gap-2 shrink-0 items-start">
+             <button onClick={actions.editProfile} className={`${btnStyle} text-cyan-400 hover:text-white border-cyan-500/20`}>
+               <UserPen size={18} />
+             </button>
+             <LanguageSwitcher currentLanguage={language} onLanguageChange={actions.setLanguage} />
+             <button onClick={actions.goHome} className={btnStyle} aria-label="Home">
+               <Home size={18} />
+             </button>
+          </div>
         </div>
         
+        {errorMsg && <div className="mx-4 mt-2 text-red-400 text-xs bg-red-900/20 p-2 rounded-xl border border-red-500/20 animate-pulse text-center">{errorMsg}</div>}
+
         {isCategoryPhase ? (
           /* STEP 1: CATEGORY SELECTION */
           <>
