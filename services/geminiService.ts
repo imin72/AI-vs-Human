@@ -173,6 +173,8 @@ export const generateQuestionsBatch = async (
                  method: 'POST',
                  headers: {'Content-Type': 'application/json'},
                  body: JSON.stringify({ categoryId: catId, key, data: qs })
+               }).then(() => {
+                 console.log(`%c💾 [Dev] Auto-saved "${key}" to static DB.`, 'color: #4ade80; font-weight: bold;');
                }).catch(e => console.warn("Auto-save failed (server may not be running):", e));
              }
           }

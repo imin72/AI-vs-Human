@@ -34,12 +34,19 @@ export default defineConfig(({ mode }) => {
                     let content = fs.readFileSync(filePath, 'utf-8');
                     // Prevent duplicates
                     if (!content.includes(`"${key}"`)) {
-                       // Insert before the last closing brace of the object
                        const lastBraceIndex = content.lastIndexOf('};');
                        if (lastBraceIndex !== -1) {
-                          // Format cleanly with indentation
-                          const newEntry = `,\n  // Auto-generated\n  "${key}": ${JSON.stringify(data, null, 2)}`;
-                          const newContent = content.slice(0, lastBraceIndex) + newEntry + content.slice(lastBraceIndex);
+                          const beforeBrace = content.slice(0, lastBraceIndex);
+                          const afterBrace = content.slice(lastBraceIndex);
+                          
+                          // Check if we need a comma
+                          const trimmedBefore = beforeBrace.trimEnd();
+                          const needsComma = !trimmedBefore.endsWith(',') && !trimmedBefore.endsWith('{');
+                          
+                          const commaPrefix = needsComma ? ',' : '';
+                          const newEntry = `${commaPrefix}\n  // Auto-generated\n  "${key}": ${JSON.stringify(data, null, 2)}`;
+                          
+                          const newContent = beforeBrace + newEntry + afterBrace;
                           fs.writeFileSync(filePath, newContent);
                           console.log(`✅ [Auto-Save] Saved ${key} to ${filename}`);
                        }
