@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language, QuizSet } from "../types";
+import { STATIC_QUESTION_DB } from "../data/staticDatabase";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const MODEL_NAME = 'gemini-3-flash-preview';
@@ -54,6 +55,13 @@ const cleanJson = (text: string | undefined): string => {
   return match ? match[0] : text.trim();
 };
 
+/**
+ * Helper to generate the key for looking up questions
+ */
+const generateKey = (topic: string, difficulty: Difficulty, lang: Language) => {
+  return `${topic}_${difficulty}_${lang}`; // Case sensitive to match Object keys exactly
+};
+
 // Batch Generation Function
 export const generateQuestionsBatch = async (
   topics: string[], 
@@ -65,17 +73,37 @@ export const generateQuestionsBatch = async (
   const results: QuizSet[] = [];
   const missingTopics: string[] = [];
 
-  // 1. Check Cache
+  // HYBRID STRATEGY: 
+  // 1. Check LocalStorage Cache
+  // 2. Check Static Database (Pre-generated)
+  // 3. Fallback to API
+
   for (const topic of topics) {
-    const cacheKey = `quiz_${topic}_${difficulty}_${lang}`.toLowerCase();
+    const cacheKey = generateKey(topic, difficulty, lang).toLowerCase(); // LocalStorage uses lowercase keys
+    const staticKey = generateKey(topic, difficulty, lang); // Static DB uses exact keys
+
     if (quizCache[cacheKey]) {
+      // HIT: Local Cache
+      console.log(`[Cache Hit] ${topic}`);
       results.push({ topic, questions: quizCache[cacheKey] });
+    } else if (STATIC_QUESTION_DB[staticKey]) {
+      // HIT: Static DB
+      console.log(`[Static DB Hit] ${topic}`);
+      // Simulate slight network delay for better UX (so it doesn't feel fake)
+      await new Promise(r => setTimeout(r, 400));
+      results.push({ topic, questions: STATIC_QUESTION_DB[staticKey] });
+      
+      // Optional: Save static data to local cache to unify access next time
+      quizCache[cacheKey] = STATIC_QUESTION_DB[staticKey];
+      saveCache(CACHE_KEY_QUIZ, quizCache);
     } else {
+      // MISS: Add to queue for API
+      console.log(`[Cache Miss] ${topic} - Requesting API`);
       missingTopics.push(topic);
     }
   }
 
-  // 2. Fetch missing topics in one batch
+  // 3. Fetch missing topics in one batch via Gemini API
   if (missingTopics.length > 0) {
     try {
       const languageNames: Record<Language, string> = {
@@ -137,7 +165,7 @@ export const generateQuestionsBatch = async (
         if (generatedData[topic]) {
           const qs = generatedData[topic];
           // Save to cache
-          const cacheKey = `quiz_${topic}_${difficulty}_${lang}`.toLowerCase();
+          const cacheKey = generateKey(topic, difficulty, lang).toLowerCase();
           quizCache[cacheKey] = qs;
           
           results.push({ topic, questions: qs });
@@ -154,7 +182,7 @@ export const generateQuestionsBatch = async (
     }
   }
 
-  // Sort results to match original order
+  // Sort results to match original order requested by user
   return topics.map(t => results.find(r => r.topic === t)!).filter(Boolean);
 };
 
