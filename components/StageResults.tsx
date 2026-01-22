@@ -62,9 +62,6 @@ export const StageResults: React.FC<StageResultsProps> = ({
   // Determine if this is the Final Summary view (batch finished) or single topic
   const isFinalSummary = remainingTopics === 0 && sessionResults.length > 1;
 
-  // If we are in "Final Summary", we show aggregated data in Page 0 and list of topics in Page 1.
-  // If we are in "Single Result", we show single data in Page 0 and list of questions in Page 1.
-  
   useEffect(() => {
     const timer = setTimeout(() => setChartReady(true), 500);
     return () => clearTimeout(timer);
@@ -116,8 +113,8 @@ export const StageResults: React.FC<StageResultsProps> = ({
 
   // Handle clicking a list item
   const handleItemClick = (itemData: any) => {
+    // When clicking a list item in Summary mode, we open the popup with that item's details
     if (isFinalSummary) {
-      // itemData is an EvaluationResult from sessionResults
       setSelectedResultForPopup(itemData);
     } else {
       setSelectedResultForPopup(data);
@@ -227,4 +224,165 @@ export const StageResults: React.FC<StageResultsProps> = ({
                                    
                                    {/* Stats Badges inline */}
                                    <div className="flex flex-wrap gap-1.5">
-                                      <span className="text-[10px] font-medium text-cyan-
+                                      <span className="text-[10px] font-medium text-cyan-400 bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-500/20 whitespace-nowrap">
+                                        {t.level_ai}: {res.totalScore}
+                                      </span>
+                                      <span className="text-[10px] font-medium text-purple-400 bg-purple-950/40 px-1.5 py-0.5 rounded border border-purple-500/20 whitespace-nowrap">
+                                        {t.label_top} {100 - res.humanPercentile}%
+                                      </span>
+                                   </div>
+                                </div>
+                             </div>
+                             <div className="text-right pl-2 shrink-0">
+                                <div className={`text-xl font-black italic ${g.color}`}>{g.label}</div>
+                                <div className="text-[10px] font-mono text-slate-500">{res.totalScore} {t.unit_pts}</div>
+                             </div>
+                          </button>
+                        );
+                      })
+                    ) : (
+                       // SINGLE MODE: List of Questions (Clicking opens popup for consistency)
+                       data.details.map((item, idx) => (
+                         <button 
+                           key={idx} 
+                           onClick={() => setSelectedResultForPopup(data)} // Open popup for this result
+                           className={`w-full p-4 rounded-xl border transition-all text-left ${item.isCorrect ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-rose-950/20 border-rose-500/30'} hover:opacity-80`}
+                         >
+                            <div className="flex gap-3">
+                               <div className={`mt-1 shrink-0 ${item.isCorrect ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                  {item.isCorrect ? <CheckCircle size={18} /> : <XCircle size={18} />}
+                                </div>
+                                <div>
+                                   <div className="text-xs font-bold text-slate-400 uppercase mb-1">Q{idx + 1}</div>
+                                   <div className="text-sm font-medium text-slate-200 line-clamp-2">{item.aiComment}</div>
+                                </div>
+                            </div>
+                         </button>
+                       ))
+                    )}
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        {/* Footer Navigation (Slide Toggles) */}
+        <div className="p-4 border-t border-slate-800 bg-slate-900/90 backdrop-blur-md shrink-0 flex flex-col gap-3 z-20">
+           {/* Dots / Segmented Control */}
+           <div className="flex justify-center mb-1">
+              <div className="bg-slate-800 p-1 rounded-full flex gap-1">
+                 <button 
+                   onClick={() => setCurrentPage(0)}
+                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${currentPage === 0 ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                 >
+                   {t.page_summary}
+                 </button>
+                 <button 
+                   onClick={() => setCurrentPage(1)}
+                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${currentPage === 1 ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                 >
+                   {t.page_details}
+                 </button>
+              </div>
+           </div>
+
+           {/* Action Buttons */}
+           {remainingTopics > 0 ? (
+             <Button onClick={onNextTopic} fullWidth className="py-3 text-sm shadow-xl shadow-cyan-500/20 animate-pulse">
+                {t.btn_next_topic} {nextTopicName} <span className="bg-white/20 px-2 py-0.5 rounded text-xs ml-2">{remainingTopics} Left</span> <ArrowRight size={16} />
+             </Button>
+           ) : (
+             <div className="grid grid-cols-2 gap-3">
+                <Button onClick={onRestart} variant="outline" className="text-sm py-3">
+                   <RefreshCw size={16} /> {t.btn_retry}
+                </Button>
+                <Button onClick={handleShare} variant="primary" className="text-sm py-3 shadow-cyan-500/20">
+                   <Share2 size={16} /> {t.btn_share}
+                </Button>
+             </div>
+           )}
+        </div>
+      </div>
+
+      {/* DETAIL POPUP MODAL */}
+      {selectedResultForPopup && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 animate-fade-in bg-slate-950/80 backdrop-blur-sm">
+           <div className="bg-slate-900 border border-slate-700 w-full max-w-lg max-h-[90%] rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
+              
+              {/* Popup Header */}
+              <div className="p-4 border-b border-slate-700 bg-slate-900 flex justify-between items-center shrink-0">
+                 <div>
+                    <h3 className="font-bold text-white flex items-center gap-2">
+                       {getTopicIcon(selectedResultForPopup.id)} 
+                       <span className="flex flex-col">
+                          <span className="text-[10px] text-slate-500 uppercase font-bold leading-none">
+                            {getLocalizedCategory(selectedResultForPopup.id)}
+                          </span>
+                          <span>{selectedResultForPopup.title}</span>
+                       </span>
+                    </h3>
+                    
+                    {/* Level Badges */}
+                    <div className="flex gap-2 mt-2">
+                      <div className="text-[10px] font-bold px-2 py-1 rounded bg-cyan-900/50 text-cyan-400 border border-cyan-500/30">
+                         {t.level_ai}: {selectedResultForPopup.totalScore}/100
+                      </div>
+                      <div className="text-[10px] font-bold px-2 py-1 rounded bg-purple-900/50 text-purple-400 border border-purple-500/30">
+                         {t.level_global}: {t.label_top} {100 - selectedResultForPopup.humanPercentile}%
+                      </div>
+                    </div>
+                 </div>
+                 <button 
+                   onClick={() => setSelectedResultForPopup(null)}
+                   className="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+                 >
+                    <X size={20} />
+                 </button>
+              </div>
+
+              {/* Popup Content: Question List */}
+              <div className="overflow-y-auto custom-scrollbar p-4 space-y-4">
+                 {selectedResultForPopup.details.map((item, idx) => (
+                    <div key={idx} className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
+                       <div className="flex justify-between items-start mb-2">
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.popup_question} {idx + 1}</span>
+                          {item.isCorrect ? (
+                             <span className="text-xs font-bold text-emerald-500 flex items-center gap-1"><CheckCircle size={12}/> Correct</span>
+                          ) : (
+                             <span className="text-xs font-bold text-rose-500 flex items-center gap-1"><XCircle size={12}/> Missed</span>
+                          )}
+                       </div>
+                       
+                       <p className="text-sm font-medium text-white mb-3 leading-relaxed">
+                          {item.aiComment} 
+                       </p>
+
+                       <div className="space-y-2 mt-3 pt-3 border-t border-slate-800/50">
+                          {!item.isCorrect && (
+                             <div className="text-xs">
+                                <span className="text-slate-500 font-bold block mb-1">{t.popup_correct_answer}:</span>
+                                <span className="text-cyan-400 bg-cyan-950/30 px-2 py-1 rounded border border-cyan-900/50 block w-full">
+                                  {item.correctFact}
+                                </span>
+                             </div>
+                          )}
+                          <div className="text-xs">
+                             <span className="text-slate-500 font-bold block mb-1">{t.popup_ai_comment}:</span>
+                             <p className="text-slate-400 italic">"{item.aiComment}"</p>
+                          </div>
+                       </div>
+                    </div>
+                 ))}
+              </div>
+
+              <div className="p-4 border-t border-slate-700 bg-slate-900 shrink-0">
+                 <Button onClick={() => setSelectedResultForPopup(null)} fullWidth variant="secondary" className="py-2 text-sm">
+                    {commonT.close}
+                 </Button>
+              </div>
+           </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
