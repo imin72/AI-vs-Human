@@ -1,5 +1,5 @@
 
-import { QuizQuestion, Difficulty, Language } from '../types';
+import { QuizQuestion } from '../types';
 
 /**
  * STATIC QUESTION DATABASE (Pre-generated Pool)
