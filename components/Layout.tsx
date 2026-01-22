@@ -6,9 +6,10 @@ interface LayoutProps {
   children: React.ReactNode;
   currentLanguage?: Language;
   onLanguageChange?: (lang: Language) => void;
+  onHome?: () => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, onHome }) => {
   return (
     /* 
       h-[100dvh]: Dynamic Viewport Height
@@ -28,7 +29,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Content Container */}
       <div className="relative z-10 flex flex-col items-center w-full h-full max-w-2xl mx-auto">
         {/* Header - Padding Reduced by ~50% */}
-        <header className="shrink-0 w-full flex flex-col items-center pt-8 pb-2 md:pt-12 md:pb-4 select-none z-20">
+        <header 
+          onClick={onHome}
+          className={`shrink-0 w-full flex flex-col items-center pt-8 pb-2 md:pt-12 md:pb-4 select-none z-20 ${onHome ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
+        >
             <div className="relative flex items-center justify-center gap-3 md:gap-8 scale-75 md:scale-90 origin-top">
               
               {/* HUMAN */}

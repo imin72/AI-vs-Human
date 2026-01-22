@@ -18,7 +18,7 @@ export default function App() {
   const { stage, language, userProfile, topicState, quizState, resultState } = state;
 
   return (
-    <Layout currentLanguage={language} onLanguageChange={actions.setLanguage}>
+    <Layout currentLanguage={language} onLanguageChange={actions.setLanguage} onHome={actions.goHome}>
       {stage === AppStage.LANGUAGE && (
         <LanguageView onSelect={actions.setLanguage} />
       )}

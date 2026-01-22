@@ -6,7 +6,6 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const MODEL_NAME = 'gemini-3-flash-preview';
 
 const CACHE_KEY_QUIZ = "cognito_quiz_cache_v2"; // Version bumped for structure change
-const CACHE_KEY_EVAL = "cognito_eval_cache_v1";
 
 // 비상용 폴백 퀴즈
 const FALLBACK_QUIZ: QuizQuestion[] = [

@@ -66,7 +66,8 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
   const { selectionPhase = 'CATEGORY', selectedCategories, selectedSubTopics, difficulty, displayedTopics, errorMsg, userProfile } = state;
   const isCategoryPhase = selectionPhase === 'CATEGORY';
 
-  const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
+  // Standardized button style for top right controls: Fixed width/height (w-10 h-10) for perfect alignment
+  const btnStyle = "w-10 h-10 flex items-center justify-center text-white bg-slate-800/80 backdrop-blur-md rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg p-0";
 
   // When in Subtopic phase, we need to show subtopics for ALL selected categories
   const groupedSubTopics = !isCategoryPhase ? selectedCategories.map(catId => ({
@@ -94,7 +95,11 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           <div className="flex gap-2 shrink-0 items-start">
              {/* Left Column: Language & Refresh */}
              <div className="flex flex-col gap-2">
-                 <LanguageSwitcher currentLanguage={language} onLanguageChange={actions.setLanguage} />
+                 <LanguageSwitcher 
+                   currentLanguage={language} 
+                   onLanguageChange={actions.setLanguage} 
+                   className={btnStyle} // Pass same fixed dimensions
+                 />
                  {isCategoryPhase && (
                    <button onClick={actions.shuffleTopics} className={`${btnStyle} text-slate-300 hover:text-cyan-400`} aria-label="Shuffle">
                      <RefreshCw size={18} />
