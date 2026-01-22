@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { EvaluationResult, Language, TOPIC_IDS } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Home, ArrowRight, Activity, Terminal, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Link as LinkIcon, Download, Twitter, Smartphone } from 'lucide-react';
+import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Home, ArrowRight, Activity, Terminal, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Link as LinkIcon, Download, Twitter, Smartphone, Instagram } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 import { toPng } from 'html-to-image';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -131,6 +131,13 @@ export const StageResults: React.FC<StageResultsProps> = ({
     setShowShareMenu(false);
   };
 
+  const handleInstagramShare = async () => {
+    // For web, we can't deep link to Instagram Stories with an image directly.
+    // The best UX is to save the image and prompt the user.
+    await handleSaveImage();
+    // setTimeout(() => alert("Image saved! Upload it to your Instagram Story."), 1000);
+  };
+
   const handleSaveImage = async () => {
     // Capture the visible slide based on currentPage
     const targetRef = currentPage === 0 ? summaryRef : detailsRef;
@@ -239,13 +246,11 @@ export const StageResults: React.FC<StageResultsProps> = ({
                  </div>
               </div>
 
-              {/* PAGE 2: DETAILS LIST */}
-              <div ref={detailsRef} className="w-full h-full flex-shrink-0 p-6 md:p-8 overflow-y-auto custom-scrollbar bg-[#020617]">
-                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1 mb-4 sticky top-0 bg-[#020617]/95 backdrop-blur py-2 z-10">
-                   {t.header_breakdown}
-                 </h3>
+              {/* PAGE 2: DETAILS LIST (GRID LAYOUT) */}
+              <div ref={detailsRef} className="w-full h-full flex-shrink-0 p-6 md:p-8 bg-[#020617] flex flex-col">
                  
-                 <div className={`pb-2 ${isFinalSummary ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : 'space-y-3'}`}>
+                 {/* Full Height Grid Container */}
+                 <div className={`h-full ${isFinalSummary ? 'grid grid-cols-2 grid-rows-2 gap-3' : 'space-y-3 overflow-y-auto custom-scrollbar'}`}>
                     {isFinalSummary ? (
                       sessionResults.map((res, idx) => {
                         const g = getGrade(res.totalScore);
@@ -254,28 +259,36 @@ export const StageResults: React.FC<StageResultsProps> = ({
                           <button 
                             key={idx} 
                             onClick={() => handleItemClick(res)}
-                            className="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-800 flex items-center justify-between hover:border-cyan-500/50 hover:bg-slate-800 transition-all group text-left h-full"
+                            className="w-full bg-slate-900/80 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 hover:bg-slate-800 transition-all group text-left shadow-lg hover:shadow-cyan-900/10 relative overflow-hidden"
                           >
-                             <div className="flex items-center gap-2 min-w-0">
-                                <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-cyan-400 border border-slate-700 group-hover:border-cyan-500/30 transition-colors shrink-0">
-                                  {getTopicIcon(res.id)}
+                             <div className="absolute top-0 right-0 p-8 opacity-5 bg-gradient-radial from-cyan-500 to-transparent rounded-full pointer-events-none transform translate-x-1/2 -translate-y-1/2"></div>
+                             
+                             {/* Top Row: Icon/Category + Grade */}
+                             <div className="flex justify-between items-start w-full relative z-10">
+                                <div className="flex flex-col gap-1">
+                                   <div className="text-cyan-400 bg-slate-950/50 p-1.5 rounded-lg border border-slate-700/50 w-fit">
+                                      {getTopicIcon(res.id)}
+                                   </div>
+                                   <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate max-w-[80px] leading-tight">{categoryLabel}</span>
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                   <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5 truncate">
-                                      {categoryLabel}
-                                   </div>
-                                   <div className="font-bold text-white text-xs group-hover:text-cyan-300 transition-colors truncate leading-tight mb-1">
-                                      {res.title}
-                                   </div>
-                                   <div className="flex gap-1">
-                                      <span className="text-[9px] font-medium text-cyan-400 bg-cyan-950/40 px-1 py-0.5 rounded border border-cyan-500/20 whitespace-nowrap">
-                                        Score: {res.totalScore}
-                                      </span>
-                                   </div>
-                                </div>
+                                <div className={`text-3xl font-black italic leading-none ${g.color} drop-shadow-lg`}>{g.label}</div>
                              </div>
-                             <div className="text-right pl-2 shrink-0 flex flex-col justify-center">
-                                <div className={`text-lg font-black italic ${g.color}`}>{g.label}</div>
+
+                             {/* Middle: Title */}
+                             <div className="text-xs font-bold text-white leading-tight group-hover:text-cyan-300 transition-colors line-clamp-2 my-1">
+                                {res.title}
+                             </div>
+
+                             {/* Bottom: Compact Stats */}
+                             <div className="grid grid-cols-1 gap-1 w-full mt-auto">
+                                <div className="bg-slate-950/60 rounded p-1 border border-slate-800 flex justify-between items-center px-2">
+                                   <span className="text-[8px] text-slate-500 font-bold uppercase">AI</span>
+                                   <span className="text-[10px] font-mono font-bold text-cyan-400">{res.totalScore}</span>
+                                </div>
+                                <div className="bg-slate-950/60 rounded p-1 border border-slate-800 flex justify-between items-center px-2">
+                                   <span className="text-[8px] text-slate-500 font-bold uppercase">Global</span>
+                                   <span className="text-[10px] font-mono font-bold text-purple-400">Top {100 - res.humanPercentile}%</span>
+                                </div>
                              </div>
                           </button>
                         );
@@ -285,7 +298,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
                          <button 
                            key={idx} 
                            onClick={() => setSelectedResultForPopup(data)}
-                           className={`w-full p-4 rounded-xl border transition-all text-left ${item.isCorrect ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-rose-950/20 border-rose-500/30'} hover:opacity-80`}
+                           className={`w-full p-4 rounded-xl border transition-all text-left ${item.isCorrect ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-rose-950/20 border-rose-500/30'} hover:opacity-80 shrink-0`}
                          >
                             <div className="flex gap-3">
                                <div className={`mt-1 shrink-0 ${item.isCorrect ? 'text-emerald-500' : 'text-rose-500'}`}>
@@ -357,25 +370,29 @@ export const StageResults: React.FC<StageResultsProps> = ({
                     <span className="text-xs font-bold text-slate-300">X / Twitter</span>
                  </button>
 
-                 <button onClick={handleCopyLink} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
-                    <LinkIcon size={24} className="text-emerald-400" />
-                    <span className="text-xs font-bold text-slate-300">Copy Link</span>
+                 <button onClick={handleInstagramShare} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
+                    <Instagram size={24} className="text-rose-500" />
+                    <span className="text-xs font-bold text-slate-300">Instagram</span>
                  </button>
 
                  <button onClick={handleSaveImage} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
-                    <Download size={24} className="text-rose-400" />
+                    <Download size={24} className="text-emerald-400" />
                     <span className="text-xs font-bold text-slate-300">
                         Save Image
-                        <span className="block text-[9px] font-normal opacity-60 mt-1">
-                          {currentPage === 0 ? "(Summary)" : "(Details)"}
-                        </span>
                     </span>
                  </button>
               </div>
 
-              <Button onClick={() => setShowShareMenu(false)} fullWidth variant="secondary" className="py-2 text-sm mt-2">
-                 {commonT.close}
-              </Button>
+              <div className="flex flex-col gap-2 mt-2">
+                 <div className="bg-slate-800/50 p-2 rounded text-center">
+                    <button onClick={handleCopyLink} className="text-xs text-slate-400 hover:text-white flex items-center justify-center gap-1 w-full">
+                       <LinkIcon size={12} /> Copy Link
+                    </button>
+                 </div>
+                 <Button onClick={() => setShowShareMenu(false)} fullWidth variant="secondary" className="py-2 text-sm">
+                    {commonT.close}
+                 </Button>
+              </div>
            </div>
         </div>
       )}
