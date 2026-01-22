@@ -1,10 +1,9 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { EvaluationResult, Language } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Users, Home, Instagram, X, ArrowRight, Download, Quote } from 'lucide-react';
+import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Users, Home, ArrowRight, Activity, Terminal, Zap, Award, BarChart3 } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
-import { toPng } from 'html-to-image';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { TRANSLATIONS } from '../utils/translations';
 
@@ -20,36 +19,41 @@ interface StageResultsProps {
 }
 
 const THEMES = [
-  { id: 'default', name: 'Cyber', bg: 'glass-panel', text: 'text-white', accent: 'text-cyan-400', chart: '#06b6d4', iconColor: 'bg-cyan-500' },
-  { id: 'royal', name: 'Royal', bg: 'bg-gradient-to-br from-indigo-900 to-purple-900 border border-yellow-500/50', text: 'text-yellow-50', accent: 'text-yellow-400', chart: '#fbbf24', iconColor: 'bg-yellow-500' },
-  { id: 'paper', name: 'Light', bg: 'bg-slate-100 border border-slate-300 shadow-xl', text: 'text-slate-900', accent: 'text-blue-600', chart: '#2563eb', iconColor: 'bg-blue-600' }
+  { id: 'cyber', name: 'System', bg: 'bg-slate-900', accent: 'text-cyan-400', border: 'border-cyan-500/30' },
+  { id: 'bio', name: 'Organic', bg: 'bg-slate-900', accent: 'text-rose-400', border: 'border-rose-500/30' },
+  { id: 'gold', name: 'Prestige', bg: 'bg-slate-900', accent: 'text-amber-400', border: 'border-amber-500/30' }
 ];
 
 export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onHome, onNextTopic, remainingTopics = 0, nextTopicName, language, setLanguage }) => {
-  const [currentThemeIdx, setCurrentThemeIdx] = useState(0);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedSlide, setGeneratedSlide] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  
-  const shareCardRef = useRef<HTMLDivElement>(null);
-  
-  const theme = THEMES[currentThemeIdx];
+  const [activeTab, setActiveTab] = useState<'analysis' | 'details'>('analysis');
+  const [mounted, setMounted] = useState(false);
   const t = TRANSLATIONS[language].results;
-  const isLightMode = theme.id === 'paper';
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const getGrade = (score: number) => {
-    if (score >= 90) return 'S';
-    if (score >= 80) return 'A';
-    if (score >= 60) return 'B';
-    if (score >= 40) return 'C';
-    return 'F';
+    if (score >= 90) return { label: 'SSS', color: 'text-yellow-400 shadow-yellow-500/50' };
+    if (score >= 80) return { label: 'A+', color: 'text-cyan-400 shadow-cyan-500/50' };
+    if (score >= 70) return { label: 'A', color: 'text-cyan-500 shadow-cyan-500/30' };
+    if (score >= 60) return { label: 'B', color: 'text-emerald-400 shadow-emerald-500/30' };
+    if (score >= 40) return { label: 'C', color: 'text-amber-400 shadow-amber-500/30' };
+    return { label: 'F', color: 'text-rose-500 shadow-rose-500/30' };
   };
 
-  const grade = getGrade(data.totalScore);
-  const gradeColor = grade === 'S' || grade === 'A' ? 'text-yellow-400' : grade === 'F' ? 'text-red-500' : 'text-cyan-400';
+  const gradeInfo = getGrade(data.totalScore);
+  
+  const chartData = [
+    { subject: t.chart.accuracy, A: data.totalScore, fullMark: 100 },
+    { subject: t.chart.speed, A: Math.min(100, data.totalScore + 10), fullMark: 100 },
+    { subject: t.chart.cohort, A: data.demographicPercentile, fullMark: 100 }, 
+    { subject: t.chart.logic, A: data.totalScore > 50 ? 85 : 45, fullMark: 100 },
+    { subject: t.chart.intuition, A: data.humanPercentile, fullMark: 100 },
+  ];
 
   const handleShare = async () => {
-    const shareText = `Cognito Protocol Analysis 🧠\nTopic: ${data.title}\nScore: ${data.totalScore}/100 [Rank ${grade}]\n\nProve your humanity here:`;
+    const shareText = `Cognito Protocol Analysis 🧠\nTopic: ${data.title}\nScore: ${data.totalScore}/100 [Rank ${gradeInfo.label}]\nPercentile: Top ${100 - data.humanPercentile}%\n\nProve your humanity here:`;
     const url = window.location.href;
 
     if (navigator.share) {
@@ -60,275 +64,182 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
           url: url
         });
       } catch (err) {
-        console.error('Share failed:', err);
+        console.error('Share failed', err);
       }
     } else {
       try {
         await navigator.clipboard.writeText(`${shareText}\n${url}`);
         alert('Copied to clipboard!');
       } catch (err) {
-        alert('Failed to copy.');
+        alert('Failed to copy');
       }
     }
   };
 
-  const handleGenerateImage = async () => {
-    if (!shareCardRef.current) return;
-    setIsGenerating(true);
-    try {
-      await new Promise(r => setTimeout(r, 200)); // Font loading safeguard
-      
-      const config = { 
-        cacheBust: true, 
-        pixelRatio: 2, // High resolution
-        backgroundColor: '#020617'
-      };
-
-      const imageUrl = await toPng(shareCardRef.current, config);
-      setGeneratedSlide(imageUrl);
-      setShowModal(true);
-    } catch (err) {
-      console.error('Failed to generate image', err);
-      alert('Failed to generate image. Please try again.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const downloadImage = () => {
-    if (!generatedSlide) return;
-    const link = document.createElement('a');
-    link.download = `cognito-${data.title.replace(/\s+/g, '-').toLowerCase()}.png`;
-    link.href = generatedSlide;
-    link.click();
-  };
-
-  const chartData = [
-    { subject: t.chart.accuracy, A: data.totalScore, fullMark: 100 },
-    { subject: t.chart.speed, A: 85, fullMark: 100 },
-    { subject: t.chart.cohort, A: data.demographicPercentile, fullMark: 100 }, 
-    { subject: t.chart.logic, A: data.totalScore > 50 ? 80 : 40, fullMark: 100 },
-    { subject: t.chart.intuition, A: 90, fullMark: 100 },
-  ];
-
   const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
 
   return (
-    <div className="space-y-4 animate-fade-in w-full max-w-2xl pb-10 relative pt-16">
-      
+    <div className={`w-full max-w-2xl relative pt-16 pb-12 animate-fade-in ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Navbar */}
       <div className="absolute top-4 right-0 md:-right-12 z-20 flex gap-2">
-        <LanguageSwitcher 
-          currentLanguage={language} 
-          onLanguageChange={setLanguage} 
-        />
-        <button 
-          onClick={onHome}
-          className={btnStyle}
-          aria-label="Home"
-        >
+        <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
+        <button onClick={onHome} className={btnStyle} aria-label="Home">
           <Home size={20} />
         </button>
       </div>
 
-      {/* Main Results Card */}
-      <div className={`p-6 md:p-8 rounded-3xl transition-all duration-500 ${theme.bg} relative overflow-hidden`}>
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-           <div>
-             <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${isLightMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                {t.badge_complete}
-             </div>
-             <h2 className={`text-2xl font-black ${theme.text} leading-none`}>{data.title}</h2>
-           </div>
-           
-           <div className={`w-12 h-12 flex items-center justify-center rounded-xl font-black text-2xl border-2 ${
-             grade === 'S' ? 'bg-yellow-500/20 border-yellow-400 text-yellow-400' : 
-             grade === 'F' ? 'bg-red-500/20 border-red-500 text-red-500' : 
-             'bg-cyan-500/20 border-cyan-400 text-cyan-400'
-           }`}>
-             {grade}
-           </div>
-        </div>
-
-        {/* Score & Chart Section */}
-        <div className="flex flex-col md:flex-row items-center gap-6 mb-8">
-           <div className="flex-1 text-center md:text-left">
-              <div className="text-6xl font-black tracking-tighter mb-2">
-                 <span className={gradeColor}>{data.totalScore}</span>
-                 <span className={`text-3xl ${isLightMode ? 'text-slate-400' : 'text-slate-600'}`}>/100</span>
-              </div>
-              <p className={`text-sm italic opacity-80 ${theme.text} flex gap-2 items-start justify-center md:justify-start`}>
-                 <Quote size={14} className="shrink-0 mt-0.5 opacity-50" />
-                 {data.aiComparison}
-              </p>
-           </div>
-           
-           <div className="w-full md:w-48 h-48 relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
-                  <PolarGrid stroke={isLightMode ? "#cbd5e1" : "#475569"} />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: isLightMode ? '#64748b' : '#94a3b8', fontSize: 10, fontWeight: 'bold' }} />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                  <Radar name="Human" dataKey="A" stroke={theme.chart} fill={theme.chart} fillOpacity={0.4} />
-                </RadarChart>
-              </ResponsiveContainer>
-           </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className={`p-3 rounded-xl border ${isLightMode ? 'bg-white border-slate-200' : 'bg-black/20 border-white/10'}`}>
-            <div className={`flex items-center gap-2 mb-1 ${theme.accent}`}>
-               <Users size={16} /> <span className="text-[10px] font-bold uppercase">{t.label_percentile}</span>
-            </div>
-            <div className={`text-xl font-bold ${theme.text}`}>Top {100 - data.humanPercentile}%</div>
-          </div>
-          <div className={`p-3 rounded-xl border ${isLightMode ? 'bg-white border-slate-200' : 'bg-black/20 border-white/10'}`}>
-            <div className={`flex items-center gap-2 mb-1 ${theme.accent}`}>
-               <Brain size={16} /> <span className="text-[10px] font-bold uppercase">{t.label_correct}</span>
-            </div>
-            <div className={`text-xl font-bold ${theme.text}`}>{data.details.filter(d => d.isCorrect).length} / 5</div>
-          </div>
-        </div>
-
-        {/* Detailed Feedback (Collapsible-ish style) */}
-        <div className={`space-y-3 p-4 rounded-2xl ${isLightMode ? 'bg-slate-50' : 'bg-slate-900/50'}`}>
-           <h4 className={`text-xs font-bold uppercase tracking-widest mb-2 ${theme.text} opacity-60`}>Analysis Vector</h4>
-           {data.details.map((item, idx) => (
-             <div key={idx} className="flex gap-3 items-start">
-                <div className="mt-0.5 shrink-0">
-                   {item.isCorrect 
-                     ? <CheckCircle size={14} className="text-green-500" /> 
-                     : <XCircle size={14} className="text-red-500" />
-                   }
-                </div>
-                <div className="flex-1">
-                   <p className={`text-xs ${theme.text} opacity-90 leading-relaxed`}>
-                     {item.aiComment}
-                   </p>
-                </div>
-             </div>
-           ))}
-        </div>
-      </div>
-
-      {/* Theme & Actions */}
-      <div className="grid grid-cols-4 gap-2">
-          {THEMES.map((t, idx) => (
-            <button
-              key={t.id}
-              onClick={() => setCurrentThemeIdx(idx)}
-              className={`h-2 rounded-full transition-all ${currentThemeIdx === idx ? t.iconColor : 'bg-slate-800'}`}
-            />
-          ))}
-      </div>
-
-      <div className="flex flex-col gap-3">
-        {remainingTopics > 0 ? (
-          <Button onClick={onNextTopic} variant="primary" fullWidth className="py-4 text-base animate-pulse shadow-xl shadow-cyan-500/20">
-            {t.btn_next_topic} {nextTopicName} <span className="bg-white/20 px-2 py-0.5 rounded text-xs ml-2">{remainingTopics} Left</span> <ArrowRight size={18} />
-          </Button>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-             <Button onClick={onRestart} variant="outline" className="text-sm">
-               <RefreshCw size={16} /> {t.btn_retry}
-             </Button>
-             <Button onClick={handleGenerateImage} disabled={isGenerating} variant="secondary" className="text-sm">
-               <Instagram size={16} /> {isGenerating ? "..." : "Story Card"}
-             </Button>
-             <Button onClick={handleShare} variant="primary" fullWidth className="col-span-2 shadow-lg">
-               <Share2 size={18} /> {t.btn_share}
-             </Button>
-          </div>
-        )}
-      </div>
-
-      {/* HIDDEN: Share Card Generation Template (Instagram Story Size 9:16) */}
-      <div className="fixed top-0 left-0 -z-50 opacity-0 pointer-events-none overflow-hidden">
-        <div 
-          ref={shareCardRef} 
-          style={{ width: '1080px', height: '1920px' }} 
-          className="bg-slate-950 text-white relative flex flex-col items-center justify-between p-16"
-        >
-            {/* Background Effects */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(6,182,212,0.15),_transparent_70%)]"></div>
-            <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
-
-            {/* Header */}
-            <div className="w-full flex justify-between items-center z-10 border-b-4 border-white pb-8">
-               <div className="flex flex-col">
-                 <span className="text-4xl font-bold text-slate-400 tracking-widest">COGNITO</span>
-                 <span className="text-2xl text-cyan-400 font-mono">PROTOCOL_V2</span>
+      {/* Main Container */}
+      <div className="glass-panel rounded-3xl overflow-hidden border border-slate-700/50 shadow-2xl relative">
+        {/* Background Grid Effect */}
+        <div className="absolute inset-0 z-0 opacity-10" 
+             style={{ backgroundImage: 'linear-gradient(rgba(6,182,212,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,0.1) 1px, transparent 1px)', backgroundSize: '20px 20px' }} 
+        />
+        
+        {/* Header Section */}
+        <div className="relative z-10 p-6 md:p-8 pb-0">
+          <div className="flex justify-between items-start mb-4">
+             <div>
+               <div className="flex items-center gap-2 mb-1">
+                 <Terminal size={14} className="text-cyan-500" />
+                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-500/80">{t.badge_complete}</span>
                </div>
-               <div className="bg-white text-slate-950 px-6 py-2 text-3xl font-black rounded-lg">HUMAN VERIFIED</div>
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1 w-full flex flex-col items-center justify-center gap-16 z-10">
-               {/* Topic Tag */}
-               <div className="bg-slate-900 border-2 border-slate-700 px-12 py-6 rounded-full">
-                  <h2 className="text-6xl font-black text-white uppercase tracking-tight">{data.title}</h2>
-               </div>
-
-               {/* Score Circle */}
-               <div className="relative w-[600px] h-[600px] flex items-center justify-center">
-                  <div className="absolute inset-0 border-8 border-slate-800 rounded-full"></div>
-                  <div className="absolute inset-0 border-8 border-cyan-500 rounded-full border-t-transparent -rotate-45"></div>
-                  <div className="flex flex-col items-center">
-                     <span className="text-[250px] font-black leading-none tracking-tighter text-white drop-shadow-[0_0_50px_rgba(6,182,212,0.5)]">
-                        {data.totalScore}
-                     </span>
-                     <span className="text-5xl font-bold text-slate-500 mt-4">/ 100</span>
-                  </div>
-               </div>
-
-               {/* Stats Row */}
-               <div className="grid grid-cols-2 gap-8 w-full px-8">
-                  <div className="bg-slate-900/80 p-8 rounded-3xl border border-slate-700">
-                     <div className="text-3xl text-cyan-400 font-bold mb-2">RANK</div>
-                     <div className="text-7xl font-black text-white">{grade}</div>
-                  </div>
-                  <div className="bg-slate-900/80 p-8 rounded-3xl border border-slate-700">
-                     <div className="text-3xl text-cyan-400 font-bold mb-2">PERCENTILE</div>
-                     <div className="text-7xl font-black text-white">Top {100 - data.humanPercentile}%</div>
-                  </div>
-               </div>
-
-               {/* AI Quote */}
-               <div className="w-full bg-rose-950/30 border-l-8 border-rose-500 p-8">
-                  <p className="text-4xl italic text-rose-200 font-serif leading-relaxed">"{data.aiComparison}"</p>
-                  <p className="text-2xl text-rose-500 font-bold mt-4 text-right">- AI OBSERVER</p>
-               </div>
-            </div>
-
-            {/* Footer */}
-            <div className="w-full text-center z-10 pt-8 border-t-4 border-slate-800">
-               <p className="text-3xl font-mono text-slate-500">cognito-protocol.web.app</p>
-            </div>
-        </div>
-      </div>
-      
-      {/* Modal for Generated Image */}
-      {showModal && generatedSlide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-md animate-fade-in">
-           <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-sm relative flex flex-col gap-4 shadow-2xl">
-             <button onClick={() => setShowModal(false)} className="absolute -top-4 -right-4 p-2 bg-rose-500 text-white rounded-full shadow-lg"><X size={24} /></button>
-             
-             <div className="text-center space-y-1">
-                <h3 className="text-white font-bold text-lg">Card Generated!</h3>
-                <p className="text-slate-400 text-xs">Long press to save or click download</p>
-             </div>
-
-             <div className="rounded-xl overflow-hidden border border-slate-700 shadow-xl bg-black">
-                <img src={generatedSlide} alt="Result Card" className="w-full h-auto object-cover" />
+               <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-none mb-1">{data.title}</h1>
+               <p className="text-xs text-slate-400 font-mono">ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
              </div>
              
-             <Button onClick={downloadImage} fullWidth variant="primary">
-                <Download size={18} /> Save Image
-             </Button>
-           </div>
+             {/* Grade Badge */}
+             <div className={`relative group cursor-default`}>
+                <div className={`absolute inset-0 bg-current blur-xl opacity-20 group-hover:opacity-40 transition-opacity ${gradeInfo.color}`}></div>
+                <div className={`text-4xl md:text-5xl font-black italic tracking-tighter drop-shadow-lg ${gradeInfo.color}`}>
+                  {gradeInfo.label}
+                </div>
+             </div>
+          </div>
+
+          {/* AI Message Bubble */}
+          <div className="bg-slate-900/60 border-l-4 border-cyan-500 p-4 rounded-r-xl mb-6 backdrop-blur-sm">
+             <div className="flex items-center gap-2 mb-1">
+               <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
+               <span className="text-[10px] font-bold text-cyan-400 uppercase">AI Observer</span>
+             </div>
+             <p className="text-sm text-slate-200 italic leading-relaxed">"{data.aiComparison}"</p>
+          </div>
         </div>
-      )}
+
+        {/* Tabs */}
+        <div className="relative z-10 flex border-b border-slate-800 px-6">
+           <button 
+             onClick={() => setActiveTab('analysis')}
+             className={`pb-3 px-4 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'analysis' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+           >
+             <div className="flex items-center gap-2"><Activity size={14} /> Analysis</div>
+           </button>
+           <button 
+             onClick={() => setActiveTab('details')}
+             className={`pb-3 px-4 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'details' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+           >
+             <div className="flex items-center gap-2"><BarChart3 size={14} /> Details</div>
+           </button>
+        </div>
+
+        {/* Content Area */}
+        <div className="relative z-10 p-6 md:p-8 bg-slate-950/30 min-h-[300px]">
+           {activeTab === 'analysis' ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                {/* Radar Chart */}
+                <div className="h-56 relative flex items-center justify-center">
+                   <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart cx="50%" cy="50%" outerRadius="75%" data={chartData}>
+                        <PolarGrid stroke="#334155" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                        <Radar name="User" dataKey="A" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.3} />
+                      </RadarChart>
+                   </ResponsiveContainer>
+                </div>
+
+                {/* Stats Cards */}
+                <div className="space-y-3">
+                   <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                         <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-400"><Award size={18} /></div>
+                         <div>
+                            <div className="text-[10px] text-slate-400 font-bold uppercase">{t.label_correct}</div>
+                            <div className="text-lg font-bold text-white">{data.details.filter(d => d.isCorrect).length} / {data.details.length}</div>
+                         </div>
+                      </div>
+                      <div className="text-2xl font-black text-slate-700">/ 5</div>
+                   </div>
+
+                   <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                         <div className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400"><Users size={18} /></div>
+                         <div>
+                            <div className="text-[10px] text-slate-400 font-bold uppercase">{t.label_percentile}</div>
+                            <div className="text-lg font-bold text-white">Top {100 - data.humanPercentile}%</div>
+                         </div>
+                      </div>
+                      <div className="text-right">
+                         <div className="text-[10px] text-emerald-500 font-mono">+{data.humanPercentile > 50 ? 'High' : 'Low'}</div>
+                      </div>
+                   </div>
+
+                   <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                         <div className="p-2 bg-purple-500/20 rounded-lg text-purple-400"><Brain size={18} /></div>
+                         <div>
+                            <div className="text-[10px] text-slate-400 font-bold uppercase">{t.label_cohort}</div>
+                            <div className="text-lg font-bold text-white">{data.demographicPercentile}th <span className="text-xs text-slate-500 font-normal">Percentile</span></div>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+             </div>
+           ) : (
+             <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                {data.details.map((item, idx) => (
+                  <div key={idx} className={`p-4 rounded-xl border transition-all ${item.isCorrect ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-rose-950/20 border-rose-500/30'}`}>
+                     <div className="flex gap-3">
+                        <div className={`mt-1 shrink-0 ${item.isCorrect ? 'text-emerald-500' : 'text-rose-500'}`}>
+                           {item.isCorrect ? <CheckCircle size={18} /> : <XCircle size={18} />}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                           <div className="flex justify-between items-start">
+                              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Q{idx + 1} Analysis</span>
+                              {!item.isCorrect && <span className="text-[10px] bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded">Missed</span>}
+                           </div>
+                           <p className="text-sm text-slate-200 leading-relaxed">{item.aiComment}</p>
+                           {!item.isCorrect && (
+                             <div className="text-xs text-slate-400 bg-slate-900/50 p-2 rounded border-l-2 border-slate-600">
+                               <span className="font-bold text-slate-300">Fact:</span> {item.correctFact}
+                             </div>
+                           )}
+                        </div>
+                     </div>
+                  </div>
+                ))}
+             </div>
+           )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-6 border-t border-slate-800 bg-slate-900/80 backdrop-blur-md sticky bottom-0 z-20">
+           {remainingTopics > 0 ? (
+             <Button onClick={onNextTopic} fullWidth className="py-4 text-base shadow-xl shadow-cyan-500/20 animate-pulse">
+                {t.btn_next_topic} {nextTopicName} <span className="bg-white/20 px-2 py-0.5 rounded text-xs ml-2">{remainingTopics} Left</span> <ArrowRight size={18} />
+             </Button>
+           ) : (
+             <div className="grid grid-cols-2 gap-3">
+                <Button onClick={onRestart} variant="outline" className="text-sm">
+                   <RefreshCw size={16} /> {t.btn_retry}
+                </Button>
+                <Button onClick={handleShare} variant="primary" className="text-sm shadow-cyan-500/20">
+                   <Share2 size={16} /> {t.btn_share}
+                </Button>
+             </div>
+           )}
+        </div>
+      </div>
     </div>
   );
 };

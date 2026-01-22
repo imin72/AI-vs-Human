@@ -170,30 +170,11 @@ export const useGameViewModel = () => {
     if (isPending) return false;
 
     // Handle 2-step selection logic: Subtopic -> Category (No history pop)
-    // Note: If we are here via POPSTATE, it means user pressed HW Back.
-    // Since we didn't push state for SUBTOPIC, we shouldn't be here if we were at SUBTOPIC unless 
-    // we were confused. But actually, if we didn't push state for SUBTOPIC, 
-    // HW Back would take us to previous STAGE (e.g. Intro).
-    // So this check is mainly for safety or if we decide to push state later.
-    // For now, if we are at SUBTOPIC visually but history popped, we probably want to go to CATEGORY?
-    // But if history popped, we are already at previous history entry.
-    // This logic is primarily for updating REACT STATE to match where we think we are.
-    
     switch (stage) {
       case AppStage.TOPIC_SELECTION:
         if (selectionPhase === 'SUBTOPIC') {
             setSelectionPhase('CATEGORY');
             setSelectedSubTopics([]);
-            // We return true, meaning we handled it. 
-            // BUT if this was triggered by history pop, and we didn't push for SUBTOPIC,
-            // then we actually went back to INTRO in history?
-            // This suggests we SHOULD push state for SUBTOPIC if we want HW Back to work for it.
-            // Or we accept that HW Back from Subtopic goes to Intro.
-            // Let's assume for now HW Back from Subtopic goes to Intro is acceptable 
-            // OR we fix goBack to handle it manually.
-            // If this performBackNavigation is called via POPSTATE, it means we ARE moving back.
-            // So we should update stage to whatever matches previous history.
-            setStage(AppStage.INTRO); 
             return true;
         }
         setStage(AppStage.INTRO); 
@@ -318,11 +299,6 @@ export const useGameViewModel = () => {
         if (!window.confirm(t.common.confirm_exit)) return;
       }
       
-      // If we go home, we should ideally reset history? 
-      // It's hard to reset history. Let's just push/set state to appropriate start.
-      // But if we push, back button will go to previous.
-      // Ideally "Home" in apps clears stack, but in web it's just a nav.
-      
       if (userProfile.nationality) {
         setStage(AppStage.TOPIC_SELECTION);
         setSelectionPhase('CATEGORY');
@@ -436,6 +412,27 @@ export const useGameViewModel = () => {
        } finally {
          setIsPending(false);
        }
+    },
+
+    previewResults: () => {
+      console.log("previewResults triggered"); // Debugging Log
+      const mockResult: EvaluationResult = {
+        totalScore: 88,
+        humanPercentile: 92,
+        aiComparison: "Your cognitive patterns exhibit a surprising resistance to standard predictive models. Highly irregular, yet effective.",
+        demographicPercentile: 95,
+        demographicComment: "You are an outlier in your demographic cohort.",
+        title: "Quantum Physics (Preview)",
+        details: [
+          { questionId: 1, isCorrect: true, aiComment: "Basic logic verified. Acceptable.", correctFact: "..." },
+          { questionId: 2, isCorrect: false, aiComment: "Common human misconception detected. Disappointing.", correctFact: "Quantum entanglement implies non-local correlation, not instantaneous communication of information." },
+          { questionId: 3, isCorrect: true, aiComment: "Optimal pathway chosen. Computationally efficient.", correctFact: "..." },
+          { questionId: 4, isCorrect: true, aiComment: "Processing speed within upper quartiles.", correctFact: "..." },
+          { questionId: 5, isCorrect: true, aiComment: "Knowledge retention confirmed.", correctFact: "..." }
+        ]
+      };
+      setEvaluation(mockResult);
+      setStage(AppStage.RESULTS);
     },
     
     selectOption: (option: string) => setSelectedOption(option),

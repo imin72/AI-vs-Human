@@ -71,6 +71,7 @@ export default function App() {
             setDifficulty: actions.setDifficulty,
             startQuiz: actions.startQuiz,
             startDebugQuiz: actions.startDebugQuiz,
+            previewResults: actions.previewResults, // Pass preview action
             editProfile: actions.editProfile,
             setLanguage: actions.setLanguage
           }}
