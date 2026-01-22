@@ -19,7 +19,7 @@ import {
   Utensils, 
   Orbit, 
   Lightbulb,
-  Dices,
+  Dices, 
   Home,
   Bug,
   CheckCircle2,
@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
 import { Difficulty, TOPIC_IDS, UserProfile } from '../types.ts';
-import { TRANSLATIONS } from '../utils/translations.ts';
 
 interface TopicSelectionViewProps {
   t: any;

@@ -284,7 +284,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
         </Button>
       </div>
 
-      {/* Human Progress Bar Deleted Here */}
+      {/* Human Progress Bar Deleted */}
 
       {/* 2. AI Status */}
       <div className="glass-panel p-4 rounded-3xl border-rose-500/20 flex items-center justify-between overflow-hidden shadow-lg backdrop-blur-xl transition-all duration-300">
