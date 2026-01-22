@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { EvaluationResult, Language } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, Zap, Palette, CheckCircle, XCircle, Users, Home, Instagram, X, ArrowRight } from 'lucide-react';
+import { Share2, RefreshCw, Brain, Zap, Palette, CheckCircle, XCircle, Users, Home, Instagram, X, ArrowRight, Download, Quote } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { toPng } from 'html-to-image';
 import { TRANSLATIONS } from '../utils/translations';
@@ -13,34 +13,41 @@ interface StageResultsProps {
   onHome: () => void;
   onNextTopic?: () => void;
   remainingTopics?: number;
-  nextTopicName?: string; // Added prop
+  nextTopicName?: string;
   language: Language;
 }
 
 const THEMES = [
-  { id: 'default', name: 'Glass', bg: 'glass-panel', text: 'text-white', accent: 'text-cyan-400', chart: '#06b6d4', iconColor: 'bg-cyan-500' },
-  { id: 'terminal', name: 'Matrix', bg: 'bg-black border-2 border-green-500 font-mono', text: 'text-green-500', accent: 'text-green-300', chart: '#22c55e', iconColor: 'bg-green-500' },
+  { id: 'default', name: 'Cyber', bg: 'glass-panel', text: 'text-white', accent: 'text-cyan-400', chart: '#06b6d4', iconColor: 'bg-cyan-500' },
   { id: 'royal', name: 'Royal', bg: 'bg-gradient-to-br from-indigo-900 to-purple-900 border border-yellow-500/50', text: 'text-yellow-50', accent: 'text-yellow-400', chart: '#fbbf24', iconColor: 'bg-yellow-500' },
-  { id: 'sunset', name: 'Sunset', bg: 'bg-gradient-to-tr from-orange-900 to-rose-900 border border-orange-500/30', text: 'text-orange-50', accent: 'text-orange-300', chart: '#f97316', iconColor: 'bg-orange-500' },
   { id: 'paper', name: 'Light', bg: 'bg-slate-100 border border-slate-300 shadow-xl', text: 'text-slate-900', accent: 'text-blue-600', chart: '#2563eb', iconColor: 'bg-blue-600' }
 ];
 
 export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onHome, onNextTopic, remainingTopics = 0, nextTopicName, language }) => {
   const [currentThemeIdx, setCurrentThemeIdx] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedSlides, setGeneratedSlides] = useState<string[]>([]);
+  const [generatedSlide, setGeneratedSlide] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   
-  const resultsRef = useRef<HTMLDivElement>(null);
-  const slide1Ref = useRef<HTMLDivElement>(null);
-  const slide2Ref = useRef<HTMLDivElement>(null);
+  const shareCardRef = useRef<HTMLDivElement>(null);
   
   const theme = THEMES[currentThemeIdx];
   const t = TRANSLATIONS[language].results;
   const isLightMode = theme.id === 'paper';
 
+  const getGrade = (score: number) => {
+    if (score >= 90) return 'S';
+    if (score >= 80) return 'A';
+    if (score >= 60) return 'B';
+    if (score >= 40) return 'C';
+    return 'F';
+  };
+
+  const grade = getGrade(data.totalScore);
+  const gradeColor = grade === 'S' || grade === 'A' ? 'text-yellow-400' : grade === 'F' ? 'text-red-500' : 'text-cyan-400';
+
   const handleShare = async () => {
-    const shareText = `Cognito Protocol Analysis 🧠\n\nTopic: ${data.title}\nScore: ${data.totalScore}/100\nPercentile: Top ${100 - data.humanPercentile}%\n\nAI Comment: "${data.aiComparison}"\n\nProve your humanity here:`;
+    const shareText = `Cognito Protocol Analysis 🧠\nTopic: ${data.title}\nScore: ${data.totalScore}/100 [Rank ${grade}]\n\nProve your humanity here:`;
     const url = window.location.href;
 
     if (navigator.share) {
@@ -56,51 +63,50 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
     } else {
       try {
         await navigator.clipboard.writeText(`${shareText}\n${url}`);
-        alert('Result copied to clipboard!');
+        alert('Copied to clipboard!');
       } catch (err) {
-        alert('Failed to copy result.');
+        alert('Failed to copy.');
       }
     }
   };
 
-  const handleGenerateSlides = async () => {
-    if (!slide1Ref.current || !slide2Ref.current) return;
+  const handleGenerateImage = async () => {
+    if (!shareCardRef.current) return;
     setIsGenerating(true);
     try {
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 200)); // Font loading safeguard
       
       const config = { 
         cacheBust: true, 
-        pixelRatio: 1, 
-        backgroundColor: theme.id === 'paper' ? '#f1f5f9' : '#020617'
+        pixelRatio: 2, // High resolution
+        backgroundColor: '#020617'
       };
 
-      const slide1Url = await toPng(slide1Ref.current, config);
-      const slide2Url = await toPng(slide2Ref.current, config);
-      
-      setGeneratedSlides([slide1Url, slide2Url]);
+      const imageUrl = await toPng(shareCardRef.current, config);
+      setGeneratedSlide(imageUrl);
       setShowModal(true);
     } catch (err) {
-      console.error('Failed to generate images', err);
-      alert('Failed to generate images. Please try again.');
+      console.error('Failed to generate image', err);
+      alert('Failed to generate image. Please try again.');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const downloadImage = (url: string, index: number) => {
+  const downloadImage = () => {
+    if (!generatedSlide) return;
     const link = document.createElement('a');
-    link.download = `cognito-result-${index + 1}.png`;
-    link.href = url;
+    link.download = `cognito-${data.title.replace(/\s+/g, '-').toLowerCase()}.png`;
+    link.href = generatedSlide;
     link.click();
   };
 
   const chartData = [
-    { subject: t.chart.accuracy, A: data.totalScore, B: 100, fullMark: 100 },
-    { subject: t.chart.speed, A: 85, B: 100, fullMark: 100 },
-    { subject: t.chart.cohort, A: data.demographicPercentile, B: 50, fullMark: 100 }, 
-    { subject: t.chart.logic, A: data.totalScore > 50 ? 70 : 40, B: 100, fullMark: 100 },
-    { subject: t.chart.intuition, A: 90, B: 20, fullMark: 100 },
+    { subject: t.chart.accuracy, A: data.totalScore, fullMark: 100 },
+    { subject: t.chart.speed, A: 85, fullMark: 100 },
+    { subject: t.chart.cohort, A: data.demographicPercentile, fullMark: 100 }, 
+    { subject: t.chart.logic, A: data.totalScore > 50 ? 80 : 40, fullMark: 100 },
+    { subject: t.chart.intuition, A: 90, fullMark: 100 },
   ];
 
   const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
@@ -115,160 +121,202 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
         <Home size={20} />
       </button>
 
-      {/* Theme Selector UI */}
-      <div className="bg-slate-900/50 p-4 rounded-2xl backdrop-blur-sm border border-slate-700 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-          <Palette size={14} className="text-cyan-400" /> {t.label_template}
+      {/* Main Results Card */}
+      <div className={`p-6 md:p-8 rounded-3xl transition-all duration-500 ${theme.bg} relative overflow-hidden`}>
+        {/* Header */}
+        <div className="flex justify-between items-start mb-6">
+           <div>
+             <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${isLightMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                {t.badge_complete}
+             </div>
+             <h2 className={`text-2xl font-black ${theme.text} leading-none`}>{data.title}</h2>
+           </div>
+           
+           <div className={`w-12 h-12 flex items-center justify-center rounded-xl font-black text-2xl border-2 ${
+             grade === 'S' ? 'bg-yellow-500/20 border-yellow-400 text-yellow-400' : 
+             grade === 'F' ? 'bg-red-500/20 border-red-500 text-red-500' : 
+             'bg-cyan-500/20 border-cyan-400 text-cyan-400'
+           }`}>
+             {grade}
+           </div>
         </div>
-        <div className="grid grid-cols-5 gap-2">
+
+        {/* Score & Chart Section */}
+        <div className="flex flex-col md:flex-row items-center gap-6 mb-8">
+           <div className="flex-1 text-center md:text-left">
+              <div className="text-6xl font-black tracking-tighter mb-2">
+                 <span className={gradeColor}>{data.totalScore}</span>
+                 <span className={`text-3xl ${isLightMode ? 'text-slate-400' : 'text-slate-600'}`}>/100</span>
+              </div>
+              <p className={`text-sm italic opacity-80 ${theme.text} flex gap-2 items-start justify-center md:justify-start`}>
+                 <Quote size={14} className="shrink-0 mt-0.5 opacity-50" />
+                 {data.aiComparison}
+              </p>
+           </div>
+           
+           <div className="w-full md:w-48 h-48 relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
+                  <PolarGrid stroke={isLightMode ? "#cbd5e1" : "#475569"} />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: isLightMode ? '#64748b' : '#94a3b8', fontSize: 10, fontWeight: 'bold' }} />
+                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                  <Radar name="Human" dataKey="A" stroke={theme.chart} fill={theme.chart} fillOpacity={0.4} />
+                </RadarChart>
+              </ResponsiveContainer>
+           </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className={`p-3 rounded-xl border ${isLightMode ? 'bg-white border-slate-200' : 'bg-black/20 border-white/10'}`}>
+            <div className={`flex items-center gap-2 mb-1 ${theme.accent}`}>
+               <Users size={16} /> <span className="text-[10px] font-bold uppercase">{t.label_percentile}</span>
+            </div>
+            <div className={`text-xl font-bold ${theme.text}`}>Top {100 - data.humanPercentile}%</div>
+          </div>
+          <div className={`p-3 rounded-xl border ${isLightMode ? 'bg-white border-slate-200' : 'bg-black/20 border-white/10'}`}>
+            <div className={`flex items-center gap-2 mb-1 ${theme.accent}`}>
+               <Brain size={16} /> <span className="text-[10px] font-bold uppercase">{t.label_correct}</span>
+            </div>
+            <div className={`text-xl font-bold ${theme.text}`}>{data.details.filter(d => d.isCorrect).length} / 5</div>
+          </div>
+        </div>
+
+        {/* Detailed Feedback (Collapsible-ish style) */}
+        <div className={`space-y-3 p-4 rounded-2xl ${isLightMode ? 'bg-slate-50' : 'bg-slate-900/50'}`}>
+           <h4 className={`text-xs font-bold uppercase tracking-widest mb-2 ${theme.text} opacity-60`}>Analysis Vector</h4>
+           {data.details.map((item, idx) => (
+             <div key={idx} className="flex gap-3 items-start">
+                <div className="mt-0.5 shrink-0">
+                   {item.isCorrect 
+                     ? <CheckCircle size={14} className="text-green-500" /> 
+                     : <XCircle size={14} className="text-red-500" />
+                   }
+                </div>
+                <div className="flex-1">
+                   <p className={`text-xs ${theme.text} opacity-90 leading-relaxed`}>
+                     {item.aiComment}
+                   </p>
+                </div>
+             </div>
+           ))}
+        </div>
+      </div>
+
+      {/* Theme & Actions */}
+      <div className="grid grid-cols-4 gap-2">
           {THEMES.map((t, idx) => (
             <button
               key={t.id}
               onClick={() => setCurrentThemeIdx(idx)}
-              className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all border-2 ${
-                currentThemeIdx === idx 
-                ? 'bg-slate-800 border-cyan-500 scale-105 shadow-lg shadow-cyan-500/20' 
-                : 'bg-slate-900/40 border-transparent opacity-60 hover:opacity-100 hover:bg-slate-800'
-              }`}
-            >
-              <div className={`w-6 h-6 rounded-full ${t.iconColor} border border-white/20 shadow-sm`} />
-              <span className={`text-[10px] font-bold truncate w-full text-center ${currentThemeIdx === idx ? 'text-white' : 'text-slate-500'}`}>
-                {t.name}
-              </span>
-            </button>
+              className={`h-2 rounded-full transition-all ${currentThemeIdx === idx ? t.iconColor : 'bg-slate-800'}`}
+            />
           ))}
-        </div>
       </div>
 
-      <div 
-        ref={resultsRef} 
-        style={{ fontFamily: theme.id === 'terminal' ? 'monospace' : 'Inter, sans-serif' }}
-        className={`p-6 md:p-8 rounded-3xl transition-all duration-500 ${theme.bg}`}
-      >
-        <div className="text-center mb-6">
-           <div className={`inline-block px-4 py-1 rounded-full border text-sm font-bold tracking-wider uppercase ${isLightMode ? 'bg-slate-200 border-slate-300 text-slate-600' : 'bg-white/10 border-white/20 text-white/80'}`}>
-             {t.badge_complete}
-           </div>
-        </div>
-
-        <div className={`text-center space-y-2 mb-8 ${theme.text}`}>
-          <h2 className="text-6xl font-black tracking-tighter">{data.totalScore}%</h2>
-          <h3 className={`text-2xl font-bold ${theme.accent}`}>
-            {data.title}
-          </h3>
-          <p className={`italic text-sm opacity-70`}>"{data.aiComparison}"</p>
-        </div>
-
-        {data.demographicPercentile > 0 && (
-          <div className={`p-4 mb-6 rounded-2xl border ${isLightMode ? 'bg-blue-50 border-blue-200' : 'bg-blue-500/10 border-blue-400/20'}`}>
-            <div className="flex items-center gap-3 mb-2">
-              <div className={`p-2 rounded-lg ${isLightMode ? 'bg-blue-100 text-blue-600' : 'bg-blue-500/20 text-blue-400'}`}>
-                <Users size={20} />
-              </div>
-              <h4 className={`font-bold ${theme.text}`}>{t.label_cohort}</h4>
-            </div>
-            <p className={`text-sm ${theme.text} opacity-90 mb-2`}>
-              {data.demographicComment}
-            </p>
-            <div className="w-full h-2 bg-slate-700/30 rounded-full overflow-hidden">
-               <div 
-                 className={`h-full ${theme.accent.replace('text', 'bg')}`} 
-                 style={{ width: `${data.demographicPercentile}%` }}
-               ></div>
-            </div>
-            <div className="flex justify-between text-xs mt-1 opacity-60">
-               <span>{t.label_bottom}</span>
-               <span>{t.label_top} {100 - data.demographicPercentile}%</span>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className={`p-4 rounded-2xl border ${isLightMode ? 'bg-white border-slate-200' : 'bg-black/20 border-white/10'}`}>
-            <div className={`flex justify-center mb-2 ${theme.accent}`}><Brain size={24} /></div>
-            <div className={`text-2xl font-bold text-center ${theme.text}`}>{data.humanPercentile}%</div>
-            <div className={`text-xs text-center uppercase tracking-wide opacity-60 ${theme.text}`}>{t.label_percentile}</div>
-          </div>
-          <div className={`p-4 rounded-2xl border ${isLightMode ? 'bg-white border-slate-200' : 'bg-black/20 border-white/10'}`}>
-            <div className={`flex justify-center mb-2 ${theme.accent}`}><Zap size={24} /></div>
-            <div className={`text-2xl font-bold text-center ${theme.text}`}>{data.details.filter(d => d.isCorrect).length}/5</div>
-            <div className={`text-xs text-center uppercase tracking-wide opacity-60 ${theme.text}`}>{t.label_correct}</div>
-          </div>
-        </div>
-
-        <div className="h-48 w-full relative mb-8">
-           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
-              <PolarGrid stroke={isLightMode ? "#cbd5e1" : "#475569"} />
-              <PolarAngleAxis dataKey="subject" tick={{ fill: isLightMode ? '#64748b' : '#94a3b8', fontSize: 10 }} />
-              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-              <Radar name="Human" dataKey="A" stroke={theme.chart} fill={theme.chart} fillOpacity={0.4} />
-              <Radar name="Group" dataKey="B" stroke="#64748b" fill="#64748b" fillOpacity={0.1} />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className={`space-y-4 p-5 rounded-2xl ${isLightMode ? 'bg-slate-50 shadow-inner' : 'bg-black/30'}`}>
-          {data.details.map((item) => (
-            <div key={item.questionId} className={`border-b last:border-0 pb-3 last:pb-0 ${isLightMode ? 'border-slate-200' : 'border-white/10'}`}>
-               <div className="flex justify-between items-start mb-1.5">
-                  <div className="flex items-center gap-2">
-                    {item.isCorrect ? <CheckCircle size={16} className="text-green-500" /> : <XCircle size={16} className="text-red-500" />}
-                    <span className={`text-xs font-bold ${theme.text} opacity-80 uppercase tracking-tight`}>Analysis Vector {item.questionId}</span>
-                  </div>
-               </div>
-               <p className={`text-xs italic opacity-90 ${theme.text} leading-relaxed mb-2`}>{item.aiComment}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Buttons */}
-      <div className="grid grid-cols-3 gap-2 pt-4">
+      <div className="flex flex-col gap-3">
         {remainingTopics > 0 ? (
-          <Button onClick={onNextTopic} variant="primary" fullWidth className="col-span-3 text-sm animate-pulse">
-            {t.btn_next_topic} {nextTopicName || ''} ({remainingTopics}) <ArrowRight size={18} />
+          <Button onClick={onNextTopic} variant="primary" fullWidth className="py-4 text-base animate-pulse shadow-xl shadow-cyan-500/20">
+            {t.btn_next_topic} {nextTopicName} <span className="bg-white/20 px-2 py-0.5 rounded text-xs ml-2">{remainingTopics} Left</span> <ArrowRight size={18} />
           </Button>
         ) : (
-          <>
-            <Button onClick={onRestart} variant="outline" className="px-2">
-              <RefreshCw size={18} />
-            </Button>
-            <Button onClick={handleGenerateSlides} disabled={isGenerating} variant="outline" className="flex-1 text-xs md:text-sm">
-              <Instagram size={18} /> {isGenerating ? "Gen..." : "Story"}
-            </Button>
-            <Button onClick={handleShare} variant="primary" className="flex-1 text-xs md:text-sm">
-              <Share2 size={18} /> {t.btn_share}
-            </Button>
-          </>
+          <div className="grid grid-cols-2 gap-3">
+             <Button onClick={onRestart} variant="outline" className="text-sm">
+               <RefreshCw size={16} /> {t.btn_retry}
+             </Button>
+             <Button onClick={handleGenerateImage} disabled={isGenerating} variant="secondary" className="text-sm">
+               <Instagram size={16} /> {isGenerating ? "..." : "Story Card"}
+             </Button>
+             <Button onClick={handleShare} variant="primary" fullWidth className="col-span-2 shadow-lg">
+               <Share2 size={18} /> {t.btn_share}
+             </Button>
+          </div>
         )}
       </div>
 
-      {/* Hidden Slide Generation code remains similar... */}
-      <div className="fixed top-0 left-0 -z-50 opacity-0 pointer-events-none">
-        <div ref={slide1Ref} style={{ width: '1080px', height: '1080px', fontFamily: theme.id === 'terminal' ? 'monospace' : 'Inter, sans-serif' }} className={`relative flex flex-col items-center justify-center p-16 ${theme.bg}`}>
-            {/* ... Content ... */}
-            <h1 className={`text-[120px] font-black leading-none ${theme.text}`}>{data.totalScore}</h1>
-        </div>
-        <div ref={slide2Ref} style={{ width: '1080px', height: '1080px', fontFamily: theme.id === 'terminal' ? 'monospace' : 'Inter, sans-serif' }} className={`relative flex flex-col items-center justify-center p-16 ${theme.bg}`}>
-           {/* ... Content ... */}
+      {/* HIDDEN: Share Card Generation Template (Instagram Story Size 9:16) */}
+      <div className="fixed top-0 left-0 -z-50 opacity-0 pointer-events-none overflow-hidden">
+        <div 
+          ref={shareCardRef} 
+          style={{ width: '1080px', height: '1920px' }} 
+          className="bg-slate-950 text-white relative flex flex-col items-center justify-between p-16"
+        >
+            {/* Background Effects */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(6,182,212,0.15),_transparent_70%)]"></div>
+            <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+
+            {/* Header */}
+            <div className="w-full flex justify-between items-center z-10 border-b-4 border-white pb-8">
+               <div className="flex flex-col">
+                 <span className="text-4xl font-bold text-slate-400 tracking-widest">COGNITO</span>
+                 <span className="text-2xl text-cyan-400 font-mono">PROTOCOL_V2</span>
+               </div>
+               <div className="bg-white text-slate-950 px-6 py-2 text-3xl font-black rounded-lg">HUMAN VERIFIED</div>
+            </div>
+
+            {/* Main Content */}
+            <div className="flex-1 w-full flex flex-col items-center justify-center gap-16 z-10">
+               {/* Topic Tag */}
+               <div className="bg-slate-900 border-2 border-slate-700 px-12 py-6 rounded-full">
+                  <h2 className="text-6xl font-black text-white uppercase tracking-tight">{data.title}</h2>
+               </div>
+
+               {/* Score Circle */}
+               <div className="relative w-[600px] h-[600px] flex items-center justify-center">
+                  <div className="absolute inset-0 border-8 border-slate-800 rounded-full"></div>
+                  <div className="absolute inset-0 border-8 border-cyan-500 rounded-full border-t-transparent -rotate-45"></div>
+                  <div className="flex flex-col items-center">
+                     <span className="text-[250px] font-black leading-none tracking-tighter text-white drop-shadow-[0_0_50px_rgba(6,182,212,0.5)]">
+                        {data.totalScore}
+                     </span>
+                     <span className="text-5xl font-bold text-slate-500 mt-4">/ 100</span>
+                  </div>
+               </div>
+
+               {/* Stats Row */}
+               <div className="grid grid-cols-2 gap-8 w-full px-8">
+                  <div className="bg-slate-900/80 p-8 rounded-3xl border border-slate-700">
+                     <div className="text-3xl text-cyan-400 font-bold mb-2">RANK</div>
+                     <div className="text-7xl font-black text-white">{grade}</div>
+                  </div>
+                  <div className="bg-slate-900/80 p-8 rounded-3xl border border-slate-700">
+                     <div className="text-3xl text-cyan-400 font-bold mb-2">PERCENTILE</div>
+                     <div className="text-7xl font-black text-white">Top {100 - data.humanPercentile}%</div>
+                  </div>
+               </div>
+
+               {/* AI Quote */}
+               <div className="w-full bg-rose-950/30 border-l-8 border-rose-500 p-8">
+                  <p className="text-4xl italic text-rose-200 font-serif leading-relaxed">"{data.aiComparison}"</p>
+                  <p className="text-2xl text-rose-500 font-bold mt-4 text-right">- AI OBSERVER</p>
+               </div>
+            </div>
+
+            {/* Footer */}
+            <div className="w-full text-center z-10 pt-8 border-t-4 border-slate-800">
+               <p className="text-3xl font-mono text-slate-500">cognito-protocol.web.app</p>
+            </div>
         </div>
       </div>
       
-      {/* Modal remains similar ... */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-           {/* ... Modal Content ... */}
-           <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-lg relative">
-             <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 p-2 bg-slate-800 rounded-full"><X size={20} /></button>
-             <div className="flex gap-4 overflow-x-auto pb-4 snap-x">
-               {generatedSlides.map((src, idx) => (
-                 <div key={idx} className="flex-none w-64 snap-center space-y-3">
-                   <img src={src} className="rounded-xl border border-slate-700" />
-                   <Button onClick={() => downloadImage(src, idx)} variant="secondary" fullWidth className="text-xs">Download</Button>
-                 </div>
-               ))}
+      {/* Modal for Generated Image */}
+      {showModal && generatedSlide && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-md animate-fade-in">
+           <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-sm relative flex flex-col gap-4 shadow-2xl">
+             <button onClick={() => setShowModal(false)} className="absolute -top-4 -right-4 p-2 bg-rose-500 text-white rounded-full shadow-lg"><X size={24} /></button>
+             
+             <div className="text-center space-y-1">
+                <h3 className="text-white font-bold text-lg">Card Generated!</h3>
+                <p className="text-slate-400 text-xs">Long press to save or click download</p>
              </div>
+
+             <div className="rounded-xl overflow-hidden border border-slate-700 shadow-xl bg-black">
+                <img src={generatedSlide} alt="Result Card" className="w-full h-auto object-cover" />
+             </div>
+             
+             <Button onClick={downloadImage} fullWidth variant="primary">
+                <Download size={18} /> Save Image
+             </Button>
            </div>
         </div>
       )}

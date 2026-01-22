@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   Play, 
   ChevronLeft, 
@@ -19,15 +19,13 @@ import {
   Utensils, 
   Orbit, 
   Lightbulb,
-  Dices, 
   Home,
   Bug,
   CheckCircle2,
   UserPen,
   Medal,
   ListFilter,
-  ArrowRight,
-  Layers
+  ArrowRight
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
 import { Difficulty, TOPIC_IDS, UserProfile } from '../types.ts';
@@ -49,7 +47,7 @@ interface TopicSelectionViewProps {
     goHome: () => void;
     shuffleTopics: () => void;
     selectCategory: (id: string) => void;
-    proceedToSubTopics?: () => void; // New action
+    proceedToSubTopics?: () => void;
     shuffleSubTopics: () => void;
     selectSubTopic: (sub: string) => void;
     setDifficulty: (diff: Difficulty) => void;
@@ -204,7 +202,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{group.label}</h3>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      {group.subtopics.map(sub => {
+                      {group.subtopics.map((sub: string) => {
                         const isSelected = selectedSubTopics.includes(sub);
                         const score = userProfile?.scores?.[sub];
                         return (
