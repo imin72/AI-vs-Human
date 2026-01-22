@@ -409,7 +409,15 @@ export const useGameViewModel = () => {
     state: {
       stage, language, userProfile,
       topicState: { selectedCategory, selectedSubTopics, difficulty, displayedTopics, displayedSubTopics, isTopicLoading: isPending },
-      quizState: { questions, currentQuestionIndex, userAnswers, selectedOption, remainingTopics: quizQueue.length, batchProgress },
+      quizState: { 
+        questions, 
+        currentQuestionIndex, 
+        userAnswers, 
+        selectedOption, 
+        remainingTopics: quizQueue.length,
+        nextTopicName: quizQueue.length > 0 ? quizQueue[0].topic : undefined, // Added Next Topic Name
+        batchProgress 
+      },
       resultState: { evaluation, errorMsg }
     },
     actions, t

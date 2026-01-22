@@ -25,7 +25,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
   selectedOption, 
   topicLabel, 
   onSelectOption, 
-  onConfirm,
+  onConfirm, 
   onBack,
   onHome,
   language,
@@ -126,6 +126,19 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
   const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
   const isAiDone = aiProgress >= 100;
+
+  // Button text logic
+  const isLastQuestion = currentIndex === questions.length - 1;
+  const isBatchFinished = batchProgress && batchProgress.current >= batchProgress.total;
+  let buttonText = t.btn_next;
+  
+  if (isLastQuestion) {
+    if (batchProgress && !isBatchFinished) {
+      buttonText = t.btn_analyze || "Analyze Segment";
+    } else {
+      buttonText = t.btn_finish;
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4 w-full max-w-2xl animate-fade-in pb-8 relative pt-16">
@@ -314,7 +327,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
             fullWidth
             className="py-4 text-sm font-black uppercase tracking-widest flex-1"
           >
-            {currentIndex === questions.length - 1 ? t.btn_finish : t.btn_next} <ChevronRight size={18} />
+            {buttonText} <ChevronRight size={18} />
           </Button>
         </div>
       </div>

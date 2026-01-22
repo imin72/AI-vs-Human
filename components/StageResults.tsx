@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { EvaluationResult, Language } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, Zap, Palette, CheckCircle, XCircle, Users, Download, Home, Instagram, X, ArrowRight } from 'lucide-react';
+import { Share2, RefreshCw, Brain, Zap, Palette, CheckCircle, XCircle, Users, Home, Instagram, X, ArrowRight } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { toPng } from 'html-to-image';
 import { TRANSLATIONS } from '../utils/translations';
@@ -13,6 +13,7 @@ interface StageResultsProps {
   onHome: () => void;
   onNextTopic?: () => void;
   remainingTopics?: number;
+  nextTopicName?: string; // Added prop
   language: Language;
 }
 
@@ -24,7 +25,7 @@ const THEMES = [
   { id: 'paper', name: 'Light', bg: 'bg-slate-100 border border-slate-300 shadow-xl', text: 'text-slate-900', accent: 'text-blue-600', chart: '#2563eb', iconColor: 'bg-blue-600' }
 ];
 
-export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onHome, onNextTopic, remainingTopics = 0, language }) => {
+export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onHome, onNextTopic, remainingTopics = 0, nextTopicName, language }) => {
   const [currentThemeIdx, setCurrentThemeIdx] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSlides, setGeneratedSlides] = useState<string[]>([]);
@@ -226,7 +227,7 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
       <div className="grid grid-cols-3 gap-2 pt-4">
         {remainingTopics > 0 ? (
           <Button onClick={onNextTopic} variant="primary" fullWidth className="col-span-3 text-sm animate-pulse">
-            Continue to Next Topic ({remainingTopics}) <ArrowRight size={18} />
+            {t.btn_next_topic} {nextTopicName || ''} ({remainingTopics}) <ArrowRight size={18} />
           </Button>
         ) : (
           <>

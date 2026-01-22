@@ -101,6 +101,7 @@ export default function App() {
           onHome={actions.goHome}
           onNextTopic={actions.nextTopicInQueue}
           remainingTopics={quizState.remainingTopics}
+          nextTopicName={quizState.nextTopicName} // Pass next topic name
           language={language} 
         />
       )}

@@ -44,6 +44,7 @@ export interface TranslationData {
     label_info: string;
     btn_next: string;
     btn_finish: string;
+    btn_analyze: string; // New
   };
   results: {
     badge_complete: string;
@@ -56,6 +57,7 @@ export interface TranslationData {
     btn_retry: string;
     btn_share: string;
     btn_save: string;
+    btn_next_topic: string; // New
     chart: {
       accuracy: string;
       speed: string;
@@ -183,9 +185,16 @@ const ENGLISH_BASE: TranslationData = {
       [TOPIC_IDS.PHILOSOPHY]: ["Ética", "Lógica", "Metafísica", "Existentialism", "Stoicism", "Nihilism", "Political Philosophy", "Eastern Philosophy", "Ancient Greek", "Enlightenment", "Utilitarianism", "Aesthetics", "Epistemology", "Philosophy of Mind", "Famous Quotes", "Paradoxes"]
     }
   },
-  quiz: { label_target: "TARGET", label_info: "INFO", btn_next: "Next Sequence", btn_finish: "End Protocol" },
+  quiz: { 
+    label_target: "TARGET", 
+    label_info: "INFO", 
+    btn_next: "Next Sequence", 
+    btn_finish: "End Protocol",
+    btn_analyze: "Analyze Segment" // New
+  },
   results: {
     badge_complete: "Analysis Complete", label_percentile: "Global Percentile", label_correct: "Correct Answers", label_cohort: "Cohort Analysis", label_template: "Result Template", label_bottom: "Bottom 1%", label_top: "Top", btn_retry: "Retry", btn_share: "Share Result", btn_save: "Save Image",
+    btn_next_topic: "Continue to", // New
     chart: { accuracy: "Accuracy", speed: "Speed", cohort: "Cohort", logic: "Logic", intuition: "Intuition" }
   },
   loading: { gen_vectors: "Generating test vectors...", analyzing: "AI is analyzing performance..." },
@@ -235,9 +244,13 @@ const KO_TRANSLATIONS: TranslationData = {
       [TOPIC_IDS.PHILOSOPHY]: ["윤리학", "논리학", "형이상학", "실존주의", "스토아학파", "허무주의", "정치 철학", "동양 철학", "고대 그리스", "계몽주의", "공리주의", "미학", "인식론", "심리 철학", "유명한 명언", "역설"]
     }
   },
-  quiz: { label_target: "목표", label_info: "정보", btn_next: "다음 시퀀스", btn_finish: "프로토콜 종료" },
+  quiz: { 
+    label_target: "목표", label_info: "정보", btn_next: "다음 시퀀스", btn_finish: "프로토콜 종료",
+    btn_analyze: "중간 분석 실행" // New
+  },
   results: {
     badge_complete: "분석 완료", label_percentile: "글로벌 백분위", label_correct: "정답 수", label_cohort: "집단 분석", label_template: "결과 템플릿", label_bottom: "하위 1%", label_top: "상위", btn_retry: "재시도", btn_share: "결과 공유", btn_save: "이미지 저장",
+    btn_next_topic: "다음 주제:", // New
     chart: { accuracy: "정확도", speed: "속도", cohort: "집단위치", logic: "논리력", intuition: "직관력" }
   },
   loading: { gen_vectors: "테스트 벡터 생성 중...", analyzing: "AI 성능 분석 중..." },
@@ -287,9 +300,13 @@ const JA_TRANSLATIONS: TranslationData = {
       [TOPIC_IDS.PHILOSOPHY]: ["倫理学", "論理学", "形而上学", "実存主義", "ストア派", "虚無主義", "政治哲学", "東洋哲学", "古代ギリシャ", "啓術主義", "功利主義", "美学", "認識論", "心の哲学", "有名な名言", "パラドックス"]
     }
   },
-  quiz: { label_target: "ターゲット", label_info: "情報", btn_next: "次へ", btn_finish: "プロ토콜 종료" },
+  quiz: { 
+    label_target: "ターゲット", label_info: "情報", btn_next: "次へ", btn_finish: "プロトコル終了",
+    btn_analyze: "中間分析を実行" // New
+  },
   results: {
     badge_complete: "分析完了", label_percentile: "グローバル偏差値", label_correct: "正解数", label_cohort: "集団分析", label_template: "結果テンプレート", label_bottom: "下位1%", label_top: "上位", btn_retry: "リトライ", btn_share: "結果を共有", btn_save: "画像を保存",
+    btn_next_topic: "次のトピック:", // New
     chart: { accuracy: "正確性", speed: "速度", cohort: "集団位置", logic: "論理", intuition: "直感" }
   },
   loading: { gen_vectors: "テストベクトル生成中...", analyzing: "AIがパフォーマンスを分析中..." },
@@ -339,9 +356,13 @@ const ES_TRANSLATIONS: TranslationData = {
       [TOPIC_IDS.PHILOSOPHY]: ["Ética", "Lógica", "Metafísica", "Existencialismo", "Estoicismo", "Nihilismo", "Filosofía Política", "Filosofía Oriental", "Grecia Antigua", "Ilustración", "Utilitarismo", "Estética", "Epistemología", "Filosofía de la Mente", "Frases Famosas", "Paradojas"]
     }
   },
-  quiz: { label_target: "Objetivo", label_info: "INFO", btn_next: "Siguiente Secuencia", btn_finish: "Terminar Protocolo" },
+  quiz: { 
+    label_target: "Objetivo", label_info: "INFO", btn_next: "Siguiente Secuencia", btn_finish: "Terminar Protocolo",
+    btn_analyze: "Analizar Segmento" // New
+  },
   results: {
     badge_complete: "Análisis Completo", label_percentile: "Percentil Global", label_correct: "Aciertos", label_cohort: "Análisis de Cohorte", label_template: "Plantilla de Resultado", label_bottom: "Mínimo 1%", label_top: "Top", btn_retry: "Reintentar", btn_share: "Compartir", btn_save: "Guardar Imagen",
+    btn_next_topic: "Continuar a", // New
     chart: { accuracy: "Precisión", speed: "Velocidad", cohort: "Cohorte", logic: "Lógica", intuition: "Intuición" }
   },
   loading: { gen_vectors: "Generando vectores de prueba...", analyzing: "Análisis de IA en curso..." },
@@ -383,7 +404,7 @@ const FR_TRANSLATIONS: TranslationData = {
       [TOPIC_IDS.GAMING]: ["Nintendo", "PlayStation", "Xbox", "Jeux PC", "RPG", "FPS", "Classiques Arcade", "Rétrogaming", "Esports", "Minecraft", "Pokemon", "Zelda", "Mario", "Jeux Indés", "Speedrun", "MMO"],
       [TOPIC_IDS.SPORTS]: ["Football", "Basket-ball", "Baseball", "Tennis", "Golf", "Formule 1", "Jeux Olympiques", "Boxe", "MMA", "Cricket", "Rugby", "Natación", "Sports d'Hiver", "Skateboard", "Lutte", "Coupe du Monde"],
       [TOPIC_IDS.TECH]: ["Intelligence Artificielle", "Smartphones", "Histoire d'Internet", "Réseaux Sociaux", "Codage", "Cybersécurité", "Tech Spatiale", "VR/AR", "Blockchain", "Robots", "Matériel Informatique", "Big Data", "Startups", "Hackers", "Tech Gaming", "5G"],
-      [TOPIC_IDS.MYTHOLOGY]: ["Mythologie Grecque", "Mythologie Nordique", "Mythologie Égyptienne", "Mythologie Romaine", "Folklore Japonais", "Mythologie Chinoise", "Mythologie Celtique", "Mythologie Aztèque", "Mythologie Hindoue", "Amérindiens", "Monstres Légendaires", "Héros Épiques", "Enfers", "Mythes de Création", "Dieux de la Guerre", "Tricksters"],
+      [TOPIC_IDS.MYTHOLOGY]: ["Mythologie Grecque", "Mythologie Nordique", "Mythologie Égyptienne", "Mythologie Romaine", "Folklore Japonais", "Mythologie Chinoise", "Mythologie Celtique", "Mythologie Aztèque", "Mythologie Hindoue", "Amérindiens", "Monstres Légendaires", "Héroes Épiques", "Enfers", "Mythes de Création", "Dieux de la Guerre", "Tricksters"],
       [TOPIC_IDS.LITERATURE]: ["Shakespeare", "Romans Classiques", "Fiction Dystopique", "Fantasy", "Livres SF", "Poésie", "Horreur", "Mystère", "BD & Manga", "Prix Nobel (Litt)", "Contes de Fées", "Épopées Grecques", "Littérature Russe", "Littérature Américaine", "Littérature Britannique", "Dramaturges"],
       [TOPIC_IDS.NATURE]: ["Mammifères", "Oiseaux", "Insectes", "Vie Marine", "Dinosaures", "Forêts Tropicales", "Déserts", "Météo", "Fleurs", "Arbres", "Parcs Nationaux", "Survie", "Évolution", "Espèces en Danger", "Champignons", "Gemmes & Minéraux"],
       [TOPIC_IDS.FOOD]: ["Cuisine Italienne", "Cuisine Française", "Cuisine Mexicaine", "Cuisine Japonaise", "Cuisine Chinoise", "Cuisine Indienne", "Desserts", "Vin", "Café", "Fromage", "Épices", "Street Food", "Fast Food", "Pâtisserie", "Végan", "Cocktails"],
@@ -391,9 +412,13 @@ const FR_TRANSLATIONS: TranslationData = {
       [TOPIC_IDS.PHILOSOPHY]: ["Éthique", "Logique", "Métaphysique", "Existentialisme", "Stoïcisme", "Nihilisme", "Philosophie Politique", "Philosophie Orientale", "Grèce Antique", "Lumières", "Utilitarisme", "Esthétique", "Épistémologie", "Philosophie de l'Esprit", "Citations Célèbres", "Paradoxes"]
     }
   },
-  quiz: { label_target: "Cible", label_info: "INFO", btn_next: "Séquence Suivante", btn_finish: "Terminer le Protocole" },
+  quiz: { 
+    label_target: "Cible", label_info: "INFO", btn_next: "Séquence Suivante", btn_finish: "Terminer le Protocole",
+    btn_analyze: "Analyser le Segment" // New
+  },
   results: {
     badge_complete: "Analyse Terminée", label_percentile: "Percentile Global", label_correct: "Réponses Correctes", label_cohort: "Analyse de Cohorte", label_template: "Modèle de Résultat", label_bottom: "Bas 1%", label_top: "Haut", btn_retry: "Réessayer", btn_share: "Partager", btn_save: "Sauvegarder",
+    btn_next_topic: "Continuer vers", // New
     chart: { accuracy: "Précision", speed: "Vitesse", cohort: "Cohorte", logic: "Logique", intuition: "Intuition" }
   },
   loading: { gen_vectors: "Génération des vecteurs de test...", analyzing: "Analyse des performances par l'IA..." },
@@ -443,9 +468,13 @@ const ZH_TRANSLATIONS: TranslationData = {
       [TOPIC_IDS.PHILOSOPHY]: ["伦理学", "逻辑学", "形而上学", "存在主义", "斯多葛学派", "虚无主义", "政治哲学", "东方哲学", "古希腊", "启蒙运动", "功利主义", "美学", "认识论", "心灵哲学", "名言", "悖论"]
     }
   },
-  quiz: { label_target: "目标", label_info: "信息", btn_next: "下一序列", btn_finish: "终止协议" },
+  quiz: { 
+    label_target: "目标", label_info: "信息", btn_next: "下一序列", btn_finish: "终止协议",
+    btn_analyze: "分析片段" // New
+  },
   results: {
     badge_complete: "分析完成", label_percentile: "全球百分位", label_correct: "正确答案", label_cohort: "群体分析", label_template: "结果模板", label_bottom: "后 1%", label_top: "前", btn_retry: "重试", btn_share: "分享结果", btn_save: "保存图片",
+    btn_next_topic: "继续", // New
     chart: { accuracy: "准确度", speed: "速度", cohort: "群体", logic: "逻辑", intuition: "直觉" }
   },
   loading: { gen_vectors: "生成测试向量...", analyzing: "AI 正在分析表现..." },
