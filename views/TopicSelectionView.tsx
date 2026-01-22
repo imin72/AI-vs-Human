@@ -25,7 +25,9 @@ import {
   CheckCircle2,
   UserPen,
   Medal,
-  ListFilter
+  ListFilter,
+  ArrowRight,
+  Layers
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
 import { Difficulty, TOPIC_IDS, UserProfile } from '../types.ts';
@@ -33,11 +35,11 @@ import { Difficulty, TOPIC_IDS, UserProfile } from '../types.ts';
 interface TopicSelectionViewProps {
   t: any;
   state: {
-    selectedCategory: string;
+    selectionPhase?: 'CATEGORY' | 'SUBTOPIC';
+    selectedCategories: string[];
     selectedSubTopics: string[];
     difficulty: Difficulty;
     displayedTopics: {id: string, label: string}[];
-    displayedSubTopics: string[];
     isTopicLoading: boolean;
     errorMsg: string;
     userProfile?: UserProfile; 
@@ -47,6 +49,7 @@ interface TopicSelectionViewProps {
     goHome: () => void;
     shuffleTopics: () => void;
     selectCategory: (id: string) => void;
+    proceedToSubTopics?: () => void; // New action
     shuffleSubTopics: () => void;
     selectSubTopic: (sub: string) => void;
     setDifficulty: (diff: Difficulty) => void;
@@ -80,23 +83,17 @@ const getCategoryIcon = (id: string) => {
 };
 
 export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state, actions }) => {
-  const { selectedCategory, selectedSubTopics, difficulty, displayedTopics, displayedSubTopics, errorMsg, userProfile } = state;
-  
-  // Category selection still uses shuffle for discovery
-  const [subsetCategories, setSubsetCategories] = useState<{id: string, label: string}[]>([]);
-
-  useEffect(() => {
-    if (displayedTopics.length > 0 && subsetCategories.length === 0) {
-      handleRefreshCategories();
-    }
-  }, [displayedTopics]);
-
-  const handleRefreshCategories = () => {
-    const shuffled = [...displayedTopics].sort(() => 0.5 - Math.random());
-    setSubsetCategories(shuffled.slice(0, 4));
-  };
+  const { selectionPhase = 'CATEGORY', selectedCategories, selectedSubTopics, difficulty, displayedTopics, errorMsg, userProfile } = state;
+  const isCategoryPhase = selectionPhase === 'CATEGORY';
 
   const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
+
+  // When in Subtopic phase, we need to show subtopics for ALL selected categories
+  const groupedSubTopics = !isCategoryPhase ? selectedCategories.map(catId => ({
+    catId,
+    label: t.categories[catId],
+    subtopics: t.subtopics[catId] || []
+  })) : [];
 
   return (
     <div className="w-full max-w-2xl relative pt-16 animate-fade-in flex flex-col items-center">
@@ -104,17 +101,20 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
         <button 
           onClick={actions.goBack}
           className="text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg"
+          aria-label="Back"
         >
           <ChevronLeft size={20} />
         </button>
-        {/* Profile Edit Button */}
-        <button 
-          onClick={actions.editProfile}
-          className="text-cyan-400 bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 hover:text-white transition-all border border-cyan-500/20 shadow-lg"
-          aria-label="Edit Profile"
-        >
-          <UserPen size={20} />
-        </button>
+        {/* Profile Edit Button - Only show on category selection screen */}
+        {isCategoryPhase && (
+          <button 
+            onClick={actions.editProfile}
+            className="text-cyan-400 bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 hover:text-white transition-all border border-cyan-500/20 shadow-lg"
+            aria-label="Edit Profile"
+          >
+            <UserPen size={20} />
+          </button>
+        )}
       </div>
 
       <button 
@@ -125,104 +125,127 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
         <Home size={20} />
       </button>
 
-      <div className="glass-panel p-6 rounded-3xl space-y-6 w-full" style={{ minWidth: '320px' }}>
+      <div className="glass-panel p-6 rounded-3xl space-y-6 w-full flex flex-col" style={{ minWidth: '320px', minHeight: '600px' }}>
         <div className="text-center pt-2">
-          <h2 className="text-2xl font-bold tracking-tight text-white">
-            {!selectedCategory ? t.title_select : t.title_config}
+          <h2 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+            {isCategoryPhase ? t.title_select : t.title_config}
           </h2>
-          {selectedCategory && (
-             <p className="text-xs text-slate-400 mt-1 flex items-center justify-center gap-1">
-               <ListFilter size={12}/> Select multiple topics for continuous challenge
-             </p>
-          )}
+          <p className="text-xs text-slate-400 mt-1 flex items-center justify-center gap-1">
+            {isCategoryPhase 
+              ? <span>Select one or more domains to continue</span> 
+              : <span><ListFilter size={12}/> Configure your challenge</span>
+            }
+          </p>
         </div>
         
         {errorMsg && <div className="text-red-400 text-center text-xs bg-red-900/20 p-3 rounded-xl border border-red-500/20 animate-pulse">{errorMsg}</div>}
 
-        {!selectedCategory ? (
-          <div className="space-y-4">
-            <button
-              onClick={handleRefreshCategories}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 font-bold text-xs hover:bg-cyan-600/20 transition-all"
-            >
-              <Dices size={16} /> {t.btn_refresh}
-            </button>
+        {isCategoryPhase ? (
+          // STEP 1: CATEGORY SELECTION
+          <div className="flex-1 flex flex-col">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 overflow-y-auto custom-scrollbar max-h-[55vh] p-1">
+              {displayedTopics.map((topic) => {
+                const isSelected = selectedCategories.includes(topic.id);
+                return (
+                  <button
+                    key={topic.id}
+                    onClick={() => actions.selectCategory(topic.id)}
+                    className={`group relative aspect-square rounded-2xl overflow-hidden border transition-all shadow-lg ${
+                      isSelected 
+                        ? 'border-cyan-400 ring-2 ring-cyan-500/50 scale-[0.98]' 
+                        : 'border-slate-700/50 hover:border-cyan-500/50 hover:scale-[1.02]'
+                    }`}
+                  >
+                    <div 
+                      className={`absolute inset-0 bg-cover bg-center transition-all duration-500 ${isSelected ? 'scale-110' : 'grayscale group-hover:grayscale-0'}`}
+                      style={{ backgroundImage: `url('${t.categoryImages[topic.id] || ''}')` }}
+                    />
+                    <div className={`absolute inset-0 transition-colors duration-300 ${isSelected ? 'bg-cyan-900/60' : 'bg-slate-950/70 group-hover:bg-slate-950/40'}`} />
+                    
+                    {isSelected && (
+                      <div className="absolute top-2 right-2 bg-cyan-500 text-white rounded-full p-1 shadow-lg animate-fade-in">
+                        <CheckCircle2 size={16} />
+                      </div>
+                    )}
 
-            <div className="grid grid-cols-2 gap-3">
-              {subsetCategories.map((topic) => (
-                <button
-                  key={topic.id}
-                  onClick={() => actions.selectCategory(topic.id)}
-                  className="group relative aspect-square md:aspect-video rounded-2xl overflow-hidden border border-slate-700/50 hover:border-cyan-500 transition-all shadow-lg bg-slate-900"
-                >
-                  <div 
-                    className="absolute inset-0 bg-cover bg-center"
-                    style={{ backgroundImage: `url('${t.categoryImages[topic.id] || ''}')`, backgroundSize: 'cover' }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
-                  <div className="absolute inset-0 p-3 flex flex-col items-center justify-end gap-1">
-                    <div className="text-cyan-400">{getCategoryIcon(topic.id)}</div>
-                    <span className="font-bold text-sm md:text-base text-white uppercase text-center leading-tight drop-shadow-md">
-                      {topic.label}
-                    </span>
-                  </div>
-                </button>
-              ))}
+                    <div className="absolute inset-0 p-3 flex flex-col items-center justify-center gap-2">
+                      <div className={`transition-colors ${isSelected ? 'text-cyan-300' : 'text-slate-400 group-hover:text-cyan-400'}`}>
+                        {getCategoryIcon(topic.id)}
+                      </div>
+                      <span className={`font-bold text-xs md:text-sm uppercase text-center leading-tight drop-shadow-md transition-colors ${isSelected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                        {topic.label}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-auto pt-4 border-t border-slate-800">
+              <Button 
+                onClick={actions.proceedToSubTopics} 
+                disabled={selectedCategories.length === 0}
+                fullWidth 
+                className={`py-4 shadow-xl transition-all ${selectedCategories.length > 0 ? 'animate-pulse' : ''}`}
+              >
+                Next Step ({selectedCategories.length}) <ArrowRight size={18} />
+              </Button>
             </div>
           </div>
         ) : (
-          <div className="space-y-6 animate-fade-in">
-            {/* Sub Topics Grid - Compact Text List */}
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1 pb-2">
-                {displayedSubTopics.map(sub => {
-                  const isSelected = selectedSubTopics.includes(sub);
-                  const score = userProfile?.scores?.[sub];
-                  
-                  return (
-                    <button 
-                      key={sub} 
-                      onClick={() => actions.selectSubTopic(sub)} 
-                      className={`relative p-3.5 rounded-xl border transition-all flex items-center justify-between group text-left ${
-                        isSelected 
-                          ? 'bg-cyan-900/40 border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.15)]' 
-                          : 'bg-slate-900/40 border-slate-800 hover:border-slate-500 hover:bg-slate-800'
-                      }`}
-                    >
-                      <div className="flex flex-col gap-0.5 min-w-0 pr-2">
-                        <span className={`text-xs md:text-sm font-bold uppercase tracking-wide truncate transition-colors ${
-                          isSelected ? 'text-cyan-100' : 'text-slate-300 group-hover:text-white'
-                        }`}>
-                          {sub}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                         {/* Score Badge (Mini) */}
-                         {!isSelected && score !== undefined && (
-                            <div className="text-[10px] font-mono font-bold text-amber-500 flex items-center gap-0.5 bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-900/50">
-                               <Medal size={10} /> {score}
+          // STEP 2: SUBTOPIC SELECTION
+          <div className="flex-1 flex flex-col space-y-4 animate-fade-in">
+             {/* Sub Topics List Grouped by Category */}
+             <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 max-h-[50vh] space-y-6">
+                {groupedSubTopics.map((group) => (
+                  <div key={group.catId} className="space-y-2">
+                    <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur py-2 px-1 border-b border-slate-800 flex items-center gap-2">
+                       <span className="text-cyan-400">{getCategoryIcon(group.catId)}</span>
+                       <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{group.label}</h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {group.subtopics.map(sub => {
+                        const isSelected = selectedSubTopics.includes(sub);
+                        const score = userProfile?.scores?.[sub];
+                        return (
+                          <button 
+                            key={sub} 
+                            onClick={() => actions.selectSubTopic(sub)} 
+                            className={`relative p-3 rounded-xl border transition-all flex flex-col gap-1 text-left ${
+                              isSelected 
+                                ? 'bg-cyan-900/40 border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.1)]' 
+                                : 'bg-slate-900/40 border-slate-800 hover:border-slate-600 hover:bg-slate-800'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start w-full">
+                               <span className={`text-xs font-bold leading-tight transition-colors ${
+                                  isSelected ? 'text-cyan-100' : 'text-slate-300'
+                                }`}>
+                                  {sub}
+                                </span>
+                                {isSelected && <CheckCircle2 size={12} className="text-cyan-400 shrink-0" />}
                             </div>
-                         )}
-                         
-                         {/* Selection Check */}
-                         <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
-                            isSelected 
-                              ? 'bg-cyan-500 border-cyan-400 text-white' 
-                              : 'bg-slate-950 border-slate-700 text-transparent'
-                         }`}>
-                            <CheckCircle2 size={12} />
-                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                            
+                            {/* Score Badge */}
+                            {!isSelected && score !== undefined && (
+                                <div className="text-[9px] font-mono font-bold text-amber-500 flex items-center gap-0.5 mt-1 self-start bg-amber-950/30 px-1 py-0.5 rounded border border-amber-900/50">
+                                   <Medal size={8} /> {score}
+                                </div>
+                             )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+             </div>
             
             {/* Config & Action */}
-            <div className="space-y-3 pt-2">
-              <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold block pl-1">{t.label_difficulty}</label>
+            <div className="space-y-3 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-between px-1">
+                 <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Difficulty</label>
+                 <span className="text-[10px] text-cyan-500 font-mono">{selectedSubTopics.length} Topics Selected</span>
+              </div>
               <div className="flex gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
                 {Object.values(Difficulty).map((diff) => (
                   <button 
@@ -238,27 +261,25 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                   </button>
                 ))}
               </div>
-            </div>
             
-            <Button 
-              onClick={actions.startQuiz} 
-              disabled={selectedSubTopics.length === 0} 
-              fullWidth 
-              className="mt-2 py-4 shadow-xl"
-            >
-              {selectedSubTopics.length > 1 
-                ? `Start Batch Challenge (${selectedSubTopics.length})` 
-                : t.btn_start_sim} <Play size={18} className="fill-white" />
-            </Button>
-
-            {actions.startDebugQuiz && (
-              <button
-                onClick={actions.startDebugQuiz}
-                className="w-full mt-4 text-[10px] text-slate-600 font-mono hover:text-rose-500 transition-colors uppercase tracking-widest flex items-center justify-center gap-2"
+              <Button 
+                onClick={actions.startQuiz} 
+                disabled={selectedSubTopics.length === 0} 
+                fullWidth 
+                className="mt-2 py-4 shadow-xl"
               >
-                <Bug size={12} /> Developer Override: Bypass AI
-              </button>
-            )}
+                {t.btn_start_sim} <Play size={18} className="fill-white" />
+              </Button>
+
+              {actions.startDebugQuiz && (
+                <button
+                  onClick={actions.startDebugQuiz}
+                  className="w-full mt-1 text-[10px] text-slate-700 font-mono hover:text-rose-500 transition-colors uppercase tracking-widest flex items-center justify-center gap-2"
+                >
+                  <Bug size={10} /> Bypass
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

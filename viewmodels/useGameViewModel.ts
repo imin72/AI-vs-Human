@@ -45,7 +45,8 @@ export const useGameViewModel = () => {
   const [userProfile, setUserProfile] = useState<UserProfile>({ gender: '', ageGroup: '', nationality: '' });
   
   // Selection State
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectionPhase, setSelectionPhase] = useState<'CATEGORY' | 'SUBTOPIC'>('CATEGORY');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubTopics, setSelectedSubTopics] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.MEDIUM);
   
@@ -83,11 +84,6 @@ export const useGameViewModel = () => {
     return Object.entries(t.topics.categories)
       .map(([id, label]) => ({ id, label }));
   }, [t]);
-
-  const displayedSubTopics = useMemo(() => {
-    if (!selectedCategory) return [];
-    return t.topics.subtopics[selectedCategory] || [];
-  }, [selectedCategory, t]);
 
   const finishQuiz = async (finalAnswers: UserAnswer[], currentTopic: string, profile: UserProfile, lang: Language) => {
     if (isPending) return;
@@ -165,17 +161,24 @@ export const useGameViewModel = () => {
       return;
     }
     if (stage !== AppStage.LANGUAGE) {
-      window.history.pushState({ stage, selectedCategory }, '');
+      window.history.pushState({ stage, selectedCategories }, '');
     }
-  }, [stage, selectedCategory]);
+  }, [stage, selectedCategories]);
 
   const performBackNavigation = useCallback((): boolean => {
     if (isPending) return false;
 
-    if (selectedCategory && stage === AppStage.TOPIC_SELECTION) { 
-      setSelectedCategory(''); 
-      setSelectedSubTopics([]);
-      return true;
+    // Handle 2-step selection logic
+    if (stage === AppStage.TOPIC_SELECTION) {
+      if (selectionPhase === 'SUBTOPIC') {
+        setSelectionPhase('CATEGORY');
+        setSelectedSubTopics([]); // Reset subtopics when going back to category selection
+        return true;
+      }
+      if (selectedCategories.length > 0) {
+        setSelectedCategories([]);
+        return true;
+      }
     }
     
     switch (stage) {
@@ -191,6 +194,7 @@ export const useGameViewModel = () => {
       case AppStage.QUIZ:
         if (window.confirm(t.common.confirm_exit)) {
           setStage(AppStage.TOPIC_SELECTION);
+          setSelectionPhase('CATEGORY');
           setQuizQueue([]);
           setBatchProgress({ total: 0, current: 0, topics: [] });
           return true;
@@ -199,11 +203,14 @@ export const useGameViewModel = () => {
       case AppStage.RESULTS:
       case AppStage.ERROR:
         setStage(AppStage.TOPIC_SELECTION);
+        // Keep the selection phase to allow easy retry of other topics, or reset?
+        // Let's reset to Category phase for fresh start
+        setSelectionPhase('CATEGORY');
         return true;
       default:
         return true;
     }
-  }, [stage, selectedCategory, isPending, t]);
+  }, [stage, selectionPhase, selectedCategories, isPending, t]);
 
   useEffect(() => {
     const handlePopState = (_: PopStateEvent) => {
@@ -213,13 +220,13 @@ export const useGameViewModel = () => {
       const success = performBackNavigation();
       
       if (!success) {
-        window.history.pushState({ stage, selectedCategory }, '');
+        window.history.pushState({ stage, selectedCategories }, '');
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [performBackNavigation, stage, selectedCategory]);
+  }, [performBackNavigation, stage, selectedCategories]);
 
   // --- Actions ---
   const actions = useMemo(() => ({
@@ -243,15 +250,27 @@ export const useGameViewModel = () => {
       setStage(AppStage.TOPIC_SELECTION);
     },
     selectCategory: (id: string) => {
-      setSelectedCategory(id);
-      setSelectedSubTopics([]);
+      // Toggle logic for multiple categories
+      setSelectedCategories(prev => {
+        if (prev.includes(id)) {
+          return prev.filter(cat => cat !== id);
+        } else {
+          return [...prev, id];
+        }
+      });
+    },
+    proceedToSubTopics: () => {
+      if (selectedCategories.length > 0) {
+        setSelectionPhase('SUBTOPIC');
+      }
     },
     selectSubTopic: (sub: string) => {
       setSelectedSubTopics(prev => {
         if (prev.includes(sub)) {
           return prev.filter(p => p !== sub);
         } else {
-          if (prev.length >= 5) return prev;
+          // Optional: Limit max selections if needed, e.g., 10
+          if (prev.length >= 10) return prev;
           return [...prev, sub];
         }
       });
@@ -272,6 +291,7 @@ export const useGameViewModel = () => {
       
       if (userProfile.nationality) {
         setStage(AppStage.TOPIC_SELECTION);
+        setSelectionPhase('CATEGORY');
       } else {
         setStage(AppStage.LANGUAGE);
       }
@@ -279,7 +299,7 @@ export const useGameViewModel = () => {
       setEvaluation(null);
       setUserAnswers([]);
       setCurrentQuestionIndex(0);
-      setSelectedCategory('');
+      setSelectedCategories([]);
       setSelectedSubTopics([]);
       setQuizQueue([]);
       setCurrentQuizSet(null);
@@ -413,12 +433,12 @@ export const useGameViewModel = () => {
     shuffleTopics: () => {},
     shuffleSubTopics: () => {},
     setCustomTopic: (_topic: string) => {}
-  }), [isPending, stage, selectedCategory, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, performBackNavigation]);
+  }), [isPending, stage, selectionPhase, selectedCategories, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, performBackNavigation]);
 
   return {
     state: {
       stage, language, userProfile,
-      topicState: { selectedCategory, selectedSubTopics, difficulty, displayedTopics, displayedSubTopics, isTopicLoading: isPending },
+      topicState: { selectionPhase, selectedCategories, selectedSubTopics, difficulty, displayedTopics, isTopicLoading: isPending },
       quizState: { 
         questions, 
         currentQuestionIndex, 

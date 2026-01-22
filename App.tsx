@@ -59,13 +59,14 @@ export default function App() {
             goHome: actions.goHome,
             shuffleTopics: actions.shuffleTopics,
             selectCategory: actions.selectCategory,
+            proceedToSubTopics: actions.proceedToSubTopics, // Added missing action
             setCustomTopic: actions.setCustomTopic,
             shuffleSubTopics: actions.shuffleSubTopics,
             selectSubTopic: actions.selectSubTopic,
             setDifficulty: actions.setDifficulty,
             startQuiz: actions.startQuiz,
             startDebugQuiz: actions.startDebugQuiz,
-            editProfile: actions.editProfile // Add edit action
+            editProfile: actions.editProfile
           }}
         />
       )}
