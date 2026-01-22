@@ -248,6 +248,11 @@ export const useGameViewModel = () => {
     editProfile: () => {
       setStage(AppStage.PROFILE);
     },
+    resetProfile: () => {
+      localStorage.removeItem(PROFILE_KEY);
+      setUserProfile({ gender: '', ageGroup: '', nationality: '' });
+      setStage(AppStage.PROFILE);
+    },
     updateProfile: (profile: Partial<UserProfile>) => setUserProfile(prev => ({ ...prev, ...profile })),
     submitProfile: () => {
       localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));

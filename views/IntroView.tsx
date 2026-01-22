@@ -10,6 +10,7 @@ interface IntroViewProps {
   onStart: () => void;
   onBack: () => void;
   onHome: () => void;
+  onResetProfile: () => void;
   backLabel: string;
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -17,7 +18,7 @@ interface IntroViewProps {
 
 const PROFILE_KEY = 'cognito_user_profile_v1';
 
-export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome, backLabel, language, setLanguage }) => {
+export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome, onResetProfile, backLabel, language, setLanguage }) => {
   const [hasProfile, setHasProfile] = useState(false);
 
   useEffect(() => {
@@ -97,7 +98,7 @@ export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome
         </Button>
         
         {hasProfile && (
-           <p className="mt-4 text-sm font-bold text-slate-500 cursor-pointer hover:text-rose-400 transition-colors" onClick={() => { localStorage.removeItem(PROFILE_KEY); window.location.reload(); }}>
+           <p className="mt-4 text-sm font-bold text-slate-500 cursor-pointer hover:text-rose-400 transition-colors" onClick={onResetProfile}>
              {t.btn_reset}
            </p>
         )}

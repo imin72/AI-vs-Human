@@ -29,6 +29,7 @@ export default function App() {
           onStart={actions.startIntro} 
           onBack={actions.goBack}
           onHome={actions.goHome}
+          onResetProfile={actions.resetProfile}
           backLabel={t.common.btn_back}
           language={language}
           setLanguage={actions.setLanguage}
