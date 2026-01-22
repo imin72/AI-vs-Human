@@ -29,7 +29,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Content Container */}
       <div className="relative z-10 flex flex-col items-center w-full h-full max-w-2xl mx-auto">
         {/* Header - Fixed Height */}
-        <header className="shrink-0 w-full flex flex-col items-center pt-2 pb-2 md:pt-6 md:pb-4 select-none z-20">
+        <header className="shrink-0 w-full flex flex-col items-center pt-10 pb-4 md:pt-14 md:pb-6 select-none z-20">
             <div className="relative flex items-center justify-center gap-3 md:gap-8 scale-75 md:scale-90 origin-top">
               
               {/* HUMAN */}
@@ -60,7 +60,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
         </header>
           
-        <main className="flex-grow w-full relative px-4 pb-4 flex flex-col overflow-hidden">
+        <main className="flex-grow w-full relative px-4 pb-8 md:pb-10 flex flex-col overflow-hidden">
           {children}
         </main>
       </div>
