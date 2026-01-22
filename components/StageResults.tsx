@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { EvaluationResult, Language, TOPIC_IDS } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Users, Home, ArrowRight, Activity, Terminal, Award, BarChart3, 
-  History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb } from 'lucide-react';
+import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Users, Home, ArrowRight, Activity, Terminal, Award, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, X, Search } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { TRANSLATIONS } from '../utils/translations';
@@ -22,7 +21,6 @@ interface StageResultsProps {
 
 const getTopicIcon = (id: string | undefined) => {
   if (!id) return <Zap size={16} />;
-  // Naive matching based on ID string inclusion
   const up = id.toUpperCase();
   if (up.includes(TOPIC_IDS.HISTORY.toUpperCase())) return <History size={16} />;
   if (up.includes(TOPIC_IDS.SCIENCE.toUpperCase())) return <FlaskConical size={16} />;
@@ -53,13 +51,19 @@ export const StageResults: React.FC<StageResultsProps> = ({
   language, 
   setLanguage 
 }) => {
-  const [activeTab, setActiveTab] = useState<'analysis' | 'details'>('analysis');
+  // Page 0: Summary, Page 1: Details
+  const [currentPage, setCurrentPage] = useState(0); 
   const [chartReady, setChartReady] = useState(false);
+  const [selectedResultForPopup, setSelectedResultForPopup] = useState<EvaluationResult | null>(null);
   const t = TRANSLATIONS[language].results;
+  const commonT = TRANSLATIONS[language].common;
 
-  // Determine if this is the Final Summary view
+  // Determine if this is the Final Summary view (batch finished) or single topic
   const isFinalSummary = remainingTopics === 0 && sessionResults.length > 1;
 
+  // If we are in "Final Summary", we show aggregated data in Page 0 and list of topics in Page 1.
+  // If we are in "Single Result", we show single data in Page 0 and list of questions in Page 1.
+  
   useEffect(() => {
     const timer = setTimeout(() => setChartReady(true), 500);
     return () => clearTimeout(timer);
@@ -76,149 +80,20 @@ export const StageResults: React.FC<StageResultsProps> = ({
     return { label: 'F', color: 'text-rose-500 shadow-rose-500/30' };
   };
 
-  const handleShare = async () => {
-    let shareText = "";
-    if (isFinalSummary) {
-      const avgScore = Math.round(sessionResults.reduce((a, b) => a + b.totalScore, 0) / sessionResults.length);
-      const grade = getGrade(avgScore);
-      shareText = `Cognito Human Verified 🧬\nOverall Rank: ${grade.label} (${avgScore}%)\n\nBreakdown:\n${sessionResults.map(r => `• ${r.title}: ${r.totalScore}`).join('\n')}\n\nProve your humanity:`;
-    } else {
-      const grade = getGrade(data.totalScore);
-      shareText = `Cognito Protocol Analysis 🧠\nTopic: ${data.title}\nScore: ${data.totalScore}/100 [Rank ${grade.label}]\nPercentile: Top ${100 - data.humanPercentile}%\n\nProve your humanity here:`;
-    }
-    
-    const url = window.location.href;
+  const currentScore = isFinalSummary 
+    ? Math.round(sessionResults.reduce((a, b) => a + b.totalScore, 0) / sessionResults.length)
+    : data.totalScore;
+  
+  const gradeInfo = getGrade(currentScore);
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Cognito: Human vs AI',
-          text: shareText,
-          url: url
-        });
-      } catch (err) {
-        console.error('Share failed', err);
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(`${shareText}\n${url}`);
-        alert(language === 'ko' ? '클립보드에 복사되었습니다!' : 'Copied to clipboard!');
-      } catch (err) {
-        alert('Failed to copy');
-      }
-    }
-  };
-
-  const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
-
-  // --- FINAL SUMMARY VIEW ---
-  if (isFinalSummary) {
-    const avgScore = Math.round(sessionResults.reduce((a, b) => a + b.totalScore, 0) / sessionResults.length);
-    const overallGrade = getGrade(avgScore);
-    
-    // Aggregated Chart Data
-    const summaryChartData = [
-      { subject: t.chart.logic, A: avgScore > 60 ? avgScore + 10 : avgScore, fullMark: 100 },
+  // Chart Data Preparation
+  const chartData = isFinalSummary ? [
+      { subject: t.chart.logic, A: currentScore > 60 ? currentScore + 10 : currentScore, fullMark: 100 },
       { subject: t.chart.intuition, A: sessionResults.reduce((a, b) => a + b.humanPercentile, 0) / sessionResults.length, fullMark: 100 },
-      { subject: t.chart.speed, A: Math.min(100, avgScore + 15), fullMark: 100 },
-      { subject: t.chart.accuracy, A: avgScore, fullMark: 100 },
+      { subject: t.chart.speed, A: Math.min(100, currentScore + 15), fullMark: 100 },
+      { subject: t.chart.accuracy, A: currentScore, fullMark: 100 },
       { subject: t.chart.cohort, A: sessionResults.reduce((a, b) => a + b.demographicPercentile, 0) / sessionResults.length, fullMark: 100 },
-    ];
-
-    return (
-      <div className="w-full h-full relative flex flex-col animate-fade-in">
-        <div className="flex justify-between items-center mb-3 shrink-0 z-20 px-4 pt-2">
-          <div className="flex items-center gap-2">
-             <Terminal size={16} className="text-cyan-400" />
-             <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">{t.header_aggregate}</span>
-          </div>
-          <div className="flex gap-2">
-            <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
-            <button onClick={onHome} className={btnStyle} aria-label="Home">
-              <Home size={20} />
-            </button>
-          </div>
-        </div>
-
-        <div className="glass-panel flex flex-col flex-grow h-0 rounded-3xl overflow-hidden shadow-2xl relative mx-auto w-full max-w-2xl">
-           <div className="p-6 md:p-8 flex-grow overflow-y-auto custom-scrollbar space-y-6">
-              
-              {/* Identity Card Header */}
-              <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-700 relative overflow-hidden">
-                 <div className="absolute top-0 right-0 p-4 opacity-10">
-                   <Brain size={120} />
-                 </div>
-                 
-                 <div className="relative z-10 flex flex-col items-center justify-center text-center">
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-2">{t.label_sync}</div>
-                    <div className={`text-6xl md:text-7xl font-black italic tracking-tighter drop-shadow-2xl mb-2 ${overallGrade.color}`}>
-                       {overallGrade.label}
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-6">
-                       {avgScore}<span className="text-sm text-slate-500 font-normal">/100 {t.unit_avg}</span>
-                    </div>
-
-                    <div className="w-full h-48 max-w-xs mx-auto">
-                      {chartReady ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                           <RadarChart cx="50%" cy="50%" outerRadius="70%" data={summaryChartData}>
-                             <PolarGrid stroke="#334155" />
-                             <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
-                             <Radar name="User" dataKey="A" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.4} />
-                           </RadarChart>
-                        </ResponsiveContainer>
-                      ) : <div className="h-full flex items-center justify-center"><Activity className="animate-pulse text-cyan-900"/></div>}
-                    </div>
-                 </div>
-              </div>
-
-              {/* Topic Grid */}
-              <div className="grid grid-cols-1 gap-3">
-                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">{t.header_breakdown}</h3>
-                 {sessionResults.map((res, idx) => {
-                   const g = getGrade(res.totalScore);
-                   return (
-                     <div key={idx} className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex items-center justify-between hover:border-cyan-500/30 transition-colors">
-                        <div className="flex items-center gap-4">
-                           <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-cyan-400 border border-slate-700">
-                             {getTopicIcon(res.id)}
-                           </div>
-                           <div>
-                              <div className="font-bold text-white text-sm">{res.title}</div>
-                              <div className="text-[10px] text-slate-400">{t.label_top} {100 - res.humanPercentile}% {t.suffix_global}</div>
-                           </div>
-                        </div>
-                        <div className="text-right">
-                           <div className={`text-xl font-black italic ${g.color}`}>{g.label}</div>
-                           <div className="text-[10px] font-mono text-slate-500">{res.totalScore} {t.unit_pts}</div>
-                        </div>
-                     </div>
-                   );
-                 })}
-              </div>
-           </div>
-
-           {/* Footer */}
-           <div className="p-4 border-t border-slate-800 bg-slate-900/90 backdrop-blur-md shrink-0">
-              <div className="grid grid-cols-2 gap-3">
-                 <Button onClick={onHome} variant="outline" className="text-sm">
-                    <RefreshCw size={16} /> {t.btn_retry}
-                 </Button>
-                 <Button onClick={handleShare} variant="primary" className="text-sm shadow-cyan-500/20">
-                    <Share2 size={16} /> {t.btn_share}
-                 </Button>
-              </div>
-           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // --- SINGLE TOPIC RESULT VIEW (Existing + Next Button Logic) ---
-  
-  const gradeInfo = getGrade(data.totalScore);
-  
-  const chartData = [
+  ] : [
     { subject: t.chart.accuracy, A: data.totalScore, fullMark: 100 },
     { subject: t.chart.speed, A: Math.min(100, data.totalScore + 10), fullMark: 100 },
     { subject: t.chart.cohort, A: data.demographicPercentile, fullMark: 100 }, 
@@ -226,155 +101,270 @@ export const StageResults: React.FC<StageResultsProps> = ({
     { subject: t.chart.intuition, A: data.humanPercentile, fullMark: 100 },
   ];
 
+  const handleShare = async () => {
+    const shareText = `Cognito Protocol 🧬\nScore: ${currentScore}/100 [${gradeInfo.label}]\n${isFinalSummary ? 'Aggregate Analysis' : `Topic: ${data.title}`}\n\nProve your humanity:`;
+    const url = window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Cognito', text: shareText, url }); } catch (err) { console.error(err); }
+    } else {
+      try { await navigator.clipboard.writeText(`${shareText}\n${url}`); alert('Copied!'); } catch (err) { alert('Failed'); }
+    }
+  };
+
+  const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
+
+  // Handle clicking a list item
+  const handleItemClick = (itemData: any) => {
+    if (isFinalSummary) {
+      // itemData is an EvaluationResult from sessionResults
+      setSelectedResultForPopup(itemData);
+    } else {
+      setSelectedResultForPopup(data);
+    }
+  };
+
   return (
     <div className="w-full h-full relative flex flex-col animate-fade-in">
-      <div className="flex justify-end items-center mb-3 shrink-0 z-20 gap-2">
-        <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
-        <button onClick={onHome} className={btnStyle} aria-label="Home">
-          <Home size={20} />
-        </button>
+      
+      {/* Top Controls */}
+      <div className="flex justify-between items-center mb-3 shrink-0 z-20 px-4 pt-2">
+         <div className="flex items-center gap-2">
+            <Terminal size={16} className="text-cyan-400" />
+            <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">
+              {isFinalSummary ? t.header_aggregate : t.badge_complete}
+            </span>
+         </div>
+         <div className="flex gap-2">
+           <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
+           <button onClick={onHome} className={btnStyle} aria-label="Home">
+             <Home size={20} />
+           </button>
+         </div>
       </div>
 
-      <div className="glass-panel flex flex-col flex-grow h-0 rounded-3xl overflow-hidden shadow-2xl relative">
-        {/* Background Grid */}
-        <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" 
-             style={{ backgroundImage: 'linear-gradient(rgba(6,182,212,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,0.1) 1px, transparent 1px)', backgroundSize: '20px 20px' }} 
-        />
+      {/* Main Content (Card Slider) */}
+      <div className="glass-panel flex-grow h-0 rounded-3xl overflow-hidden shadow-2xl relative mx-auto w-full max-w-2xl flex flex-col">
         
-        {/* Header Section */}
-        <div className="relative z-10 p-6 md:p-8 pb-0 shrink-0">
-          <div className="flex justify-between items-start mb-4">
-             <div>
-               <div className="flex items-center gap-2 mb-1">
-                 <Terminal size={14} className="text-cyan-500" />
-                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-500/80">{t.badge_complete}</span>
-               </div>
-               <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-none mb-1">{data.title}</h1>
-             </div>
-             
-             <div className={`relative group cursor-default`}>
-                <div className={`absolute inset-0 bg-current blur-xl opacity-20 group-hover:opacity-40 transition-opacity ${gradeInfo.color}`}></div>
-                <div className={`text-4xl md:text-5xl font-black italic tracking-tighter drop-shadow-lg ${gradeInfo.color}`}>
-                  {gradeInfo.label}
-                </div>
-             </div>
-          </div>
-
-          <div className="bg-slate-900/60 border-l-4 border-cyan-500 p-4 rounded-r-xl mb-4 backdrop-blur-sm">
-             <div className="flex items-center gap-2 mb-1">
-               <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
-               <span className="text-[10px] font-bold text-cyan-400 uppercase">{t.label_ai_observer}</span>
-             </div>
-             <p className="text-sm text-slate-200 italic leading-relaxed">"{data.aiComparison}"</p>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="relative z-10 flex border-b border-slate-800 px-6 shrink-0">
-           <button 
-             onClick={() => setActiveTab('analysis')}
-             className={`pb-3 px-4 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'analysis' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+        {/* Slider Container */}
+        <div className="flex-grow relative overflow-hidden">
+           <div 
+             className="absolute inset-0 flex transition-transform duration-500 ease-out will-change-transform"
+             style={{ transform: `translateX(-${currentPage * 100}%)` }}
            >
-             <div className="flex items-center gap-2"><Activity size={14} /> {t.tab_analysis}</div>
-           </button>
-           <button 
-             onClick={() => setActiveTab('details')}
-             className={`pb-3 px-4 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'details' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
-           >
-             <div className="flex items-center gap-2"><BarChart3 size={14} /> {t.tab_details}</div>
-           </button>
-        </div>
+              {/* PAGE 1: SUMMARY CARD */}
+              <div className="w-full h-full flex-shrink-0 p-6 md:p-8 overflow-y-auto custom-scrollbar flex flex-col items-center">
+                 <div className="w-full bg-slate-900/50 rounded-2xl p-6 border border-slate-700 relative overflow-hidden mb-4 flex-grow flex flex-col justify-center">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                      <Brain size={120} />
+                    </div>
+                    
+                    <div className="relative z-10 flex flex-col items-center justify-center text-center">
+                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-2">{t.label_sync}</div>
+                       <div className={`text-6xl md:text-8xl font-black italic tracking-tighter drop-shadow-2xl mb-4 ${gradeInfo.color}`}>
+                          {gradeInfo.label}
+                       </div>
+                       <div className="text-2xl font-bold text-white mb-8">
+                          {currentScore}<span className="text-sm text-slate-500 font-normal">/100 {t.unit_avg}</span>
+                       </div>
 
-        {/* Content Area */}
-        <div className="relative z-10 p-6 md:p-8 bg-slate-950/30 flex-grow overflow-y-auto custom-scrollbar">
-           {activeTab === 'analysis' ? (
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div className="h-56 relative flex items-center justify-center bg-slate-900/50 rounded-xl">
-                   {chartReady ? (
-                     <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart cx="50%" cy="50%" outerRadius="75%" data={chartData}>
-                          <PolarGrid stroke="#334155" />
-                          <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
-                          <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                          <Radar name="User" dataKey="A" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.3} />
-                        </RadarChart>
-                     </ResponsiveContainer>
-                   ) : (
-                     <div className="animate-pulse text-cyan-900"><Activity size={48} /></div>
-                   )}
-                </div>
+                       <div className="w-full h-56 max-w-xs mx-auto">
+                         {chartReady ? (
+                           <ResponsiveContainer width="100%" height="100%">
+                              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
+                                <PolarGrid stroke="#334155" />
+                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
+                                <Radar name="User" dataKey="A" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.4} />
+                              </RadarChart>
+                           </ResponsiveContainer>
+                         ) : <div className="h-full flex items-center justify-center"><Activity className="animate-pulse text-cyan-900"/></div>}
+                       </div>
+                    </div>
+                 </div>
+                 
+                 <div className="text-center text-xs text-slate-500 animate-pulse mt-2">
+                   {/* Swipe hint */}
+                   Swipe or click below for details
+                 </div>
+              </div>
 
-                <div className="space-y-3">
-                   <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                         <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-400"><Award size={18} /></div>
-                         <div>
-                            <div className="text-[10px] text-slate-400 font-bold uppercase">{t.label_correct}</div>
-                            <div className="text-lg font-bold text-white">{data.details.filter(d => d.isCorrect).length} / {data.details.length}</div>
-                         </div>
-                      </div>
-                      <div className="text-2xl font-black text-slate-700">/ 5</div>
-                   </div>
-
-                   <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                         <div className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400"><Users size={18} /></div>
-                         <div>
-                            <div className="text-[10px] text-slate-400 font-bold uppercase">{t.label_percentile}</div>
-                            <div className="text-lg font-bold text-white">{t.label_top} {100 - data.humanPercentile}%</div>
-                         </div>
-                      </div>
-                      <div className="text-right">
-                         <div className="text-[10px] text-emerald-500 font-mono">+{data.humanPercentile > 50 ? 'High' : 'Low'}</div>
-                      </div>
-                   </div>
-                </div>
-             </div>
-           ) : (
-             <div className="space-y-3">
-                {data.details.map((item, idx) => (
-                  <div key={idx} className={`p-4 rounded-xl border transition-all ${item.isCorrect ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-rose-950/20 border-rose-500/30'}`}>
-                     <div className="flex gap-3">
-                        <div className={`mt-1 shrink-0 ${item.isCorrect ? 'text-emerald-500' : 'text-rose-500'}`}>
-                           {item.isCorrect ? <CheckCircle size={18} /> : <XCircle size={18} />}
-                        </div>
-                        <div className="flex-1 space-y-2">
-                           <div className="flex justify-between items-start">
-                              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Q{idx + 1} Analysis</span>
-                              {!item.isCorrect && <span className="text-[10px] bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded">{t.label_missed}</span>}
-                           </div>
-                           <p className="text-sm text-slate-200 leading-relaxed">{item.aiComment}</p>
-                           {!item.isCorrect && (
-                             <div className="text-xs text-slate-400 bg-slate-900/50 p-2 rounded border-l-2 border-slate-600">
-                               <span className="font-bold text-slate-300">{t.label_fact}</span> {item.correctFact}
+              {/* PAGE 2: DETAILS LIST */}
+              <div className="w-full h-full flex-shrink-0 p-6 md:p-8 overflow-y-auto custom-scrollbar">
+                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1 mb-4 sticky top-0 bg-slate-950/80 backdrop-blur py-2 z-10">
+                   {t.header_breakdown}
+                 </h3>
+                 
+                 <div className="space-y-3">
+                    {isFinalSummary ? (
+                      // SESSION MODE: List of Topics
+                      sessionResults.map((res, idx) => {
+                        const g = getGrade(res.totalScore);
+                        return (
+                          <button 
+                            key={idx} 
+                            onClick={() => handleItemClick(res)}
+                            className="w-full bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex items-center justify-between hover:border-cyan-500/50 hover:bg-slate-800 transition-all group text-left"
+                          >
+                             <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-cyan-400 border border-slate-700 group-hover:border-cyan-500/30 transition-colors shrink-0">
+                                  {getTopicIcon(res.id)}
+                                </div>
+                                <div className="min-w-0">
+                                   <div className="font-bold text-white text-sm group-hover:text-cyan-300 transition-colors truncate leading-tight mb-1.5">{res.title}</div>
+                                   {/* Stats Badges inline */}
+                                   <div className="flex flex-wrap gap-1.5">
+                                      <span className="text-[10px] font-medium text-cyan-400 bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-500/20 whitespace-nowrap">
+                                        {t.level_ai}: {res.totalScore}
+                                      </span>
+                                      <span className="text-[10px] font-medium text-purple-400 bg-purple-950/40 px-1.5 py-0.5 rounded border border-purple-500/20 whitespace-nowrap">
+                                        {t.label_top} {100 - res.humanPercentile}%
+                                      </span>
+                                   </div>
+                                </div>
                              </div>
-                           )}
-                        </div>
-                     </div>
-                  </div>
-                ))}
-             </div>
-           )}
+                             <div className="text-right pl-2 shrink-0">
+                                <div className={`text-xl font-black italic ${g.color}`}>{g.label}</div>
+                                <div className="text-[10px] font-mono text-slate-500">{res.totalScore} {t.unit_pts}</div>
+                             </div>
+                          </button>
+                        );
+                      })
+                    ) : (
+                       // SINGLE MODE: List of Questions (Clicking opens popup for consistency)
+                       data.details.map((item, idx) => (
+                         <button 
+                           key={idx} 
+                           onClick={() => setSelectedResultForPopup(data)} // Open popup for this result
+                           className={`w-full p-4 rounded-xl border transition-all text-left ${item.isCorrect ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-rose-950/20 border-rose-500/30'} hover:opacity-80`}
+                         >
+                            <div className="flex gap-3">
+                               <div className={`mt-1 shrink-0 ${item.isCorrect ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                  {item.isCorrect ? <CheckCircle size={18} /> : <XCircle size={18} />}
+                                </div>
+                                <div>
+                                   <div className="text-xs font-bold text-slate-400 uppercase mb-1">Q{idx + 1}</div>
+                                   <div className="text-sm font-medium text-slate-200 line-clamp-2">{item.aiComment}</div>
+                                </div>
+                            </div>
+                         </button>
+                       ))
+                    )}
+                 </div>
+              </div>
+           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/90 backdrop-blur-md shrink-0 z-20">
+        {/* Footer Navigation (Slide Toggles) */}
+        <div className="p-4 border-t border-slate-800 bg-slate-900/90 backdrop-blur-md shrink-0 flex flex-col gap-3 z-20">
+           {/* Dots / Segmented Control */}
+           <div className="flex justify-center mb-1">
+              <div className="bg-slate-800 p-1 rounded-full flex gap-1">
+                 <button 
+                   onClick={() => setCurrentPage(0)}
+                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${currentPage === 0 ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                 >
+                   {t.page_summary}
+                 </button>
+                 <button 
+                   onClick={() => setCurrentPage(1)}
+                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${currentPage === 1 ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                 >
+                   {t.page_details}
+                 </button>
+              </div>
+           </div>
+
+           {/* Action Buttons */}
            {remainingTopics > 0 ? (
-             <Button onClick={onNextTopic} fullWidth className="py-4 text-base shadow-xl shadow-cyan-500/20 animate-pulse">
-                {t.btn_next_topic} {nextTopicName} <span className="bg-white/20 px-2 py-0.5 rounded text-xs ml-2">{remainingTopics} Left</span> <ArrowRight size={18} />
+             <Button onClick={onNextTopic} fullWidth className="py-3 text-sm shadow-xl shadow-cyan-500/20 animate-pulse">
+                {t.btn_next_topic} {nextTopicName} <span className="bg-white/20 px-2 py-0.5 rounded text-xs ml-2">{remainingTopics} Left</span> <ArrowRight size={16} />
              </Button>
            ) : (
              <div className="grid grid-cols-2 gap-3">
-                <Button onClick={onRestart} variant="outline" className="text-sm">
+                <Button onClick={onRestart} variant="outline" className="text-sm py-3">
                    <RefreshCw size={16} /> {t.btn_retry}
                 </Button>
-                <Button onClick={handleShare} variant="primary" className="text-sm shadow-cyan-500/20">
+                <Button onClick={handleShare} variant="primary" className="text-sm py-3 shadow-cyan-500/20">
                    <Share2 size={16} /> {t.btn_share}
                 </Button>
              </div>
            )}
         </div>
       </div>
+
+      {/* DETAIL POPUP MODAL */}
+      {selectedResultForPopup && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 animate-fade-in bg-slate-950/80 backdrop-blur-sm">
+           <div className="bg-slate-900 border border-slate-700 w-full max-w-lg max-h-[90%] rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
+              
+              {/* Popup Header */}
+              <div className="p-4 border-b border-slate-700 bg-slate-900 flex justify-between items-center shrink-0">
+                 <div>
+                    <h3 className="font-bold text-white flex items-center gap-2">
+                       {getTopicIcon(selectedResultForPopup.id)} {selectedResultForPopup.title}
+                    </h3>
+                    
+                    {/* Level Badges */}
+                    <div className="flex gap-2 mt-2">
+                      <div className="text-[10px] font-bold px-2 py-1 rounded bg-cyan-900/50 text-cyan-400 border border-cyan-500/30">
+                         {t.level_ai}: {selectedResultForPopup.totalScore}/100
+                      </div>
+                      <div className="text-[10px] font-bold px-2 py-1 rounded bg-purple-900/50 text-purple-400 border border-purple-500/30">
+                         {t.level_global}: {t.label_top} {100 - selectedResultForPopup.humanPercentile}%
+                      </div>
+                    </div>
+                 </div>
+                 <button 
+                   onClick={() => setSelectedResultForPopup(null)}
+                   className="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+                 >
+                    <X size={20} />
+                 </button>
+              </div>
+
+              {/* Popup Content: Question List */}
+              <div className="overflow-y-auto custom-scrollbar p-4 space-y-4">
+                 {selectedResultForPopup.details.map((item, idx) => (
+                    <div key={idx} className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
+                       <div className="flex justify-between items-start mb-2">
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.popup_question} {idx + 1}</span>
+                          {item.isCorrect ? (
+                             <span className="text-xs font-bold text-emerald-500 flex items-center gap-1"><CheckCircle size={12}/> Correct</span>
+                          ) : (
+                             <span className="text-xs font-bold text-rose-500 flex items-center gap-1"><XCircle size={12}/> Missed</span>
+                          )}
+                       </div>
+                       
+                       <p className="text-sm font-medium text-white mb-3 leading-relaxed">
+                          {item.aiComment} 
+                       </p>
+
+                       <div className="space-y-2 mt-3 pt-3 border-t border-slate-800/50">
+                          {!item.isCorrect && (
+                             <div className="text-xs">
+                                <span className="text-slate-500 font-bold block mb-1">{t.popup_correct_answer}:</span>
+                                <span className="text-cyan-400 bg-cyan-950/30 px-2 py-1 rounded border border-cyan-900/50 block w-full">
+                                  {item.correctFact}
+                                </span>
+                             </div>
+                          )}
+                          <div className="text-xs">
+                             <span className="text-slate-500 font-bold block mb-1">{t.popup_ai_comment}:</span>
+                             <p className="text-slate-400 italic">"{item.aiComment}"</p>
+                          </div>
+                       </div>
+                    </div>
+                 ))}
+              </div>
+
+              <div className="p-4 border-t border-slate-700 bg-slate-900 shrink-0">
+                 <Button onClick={() => setSelectedResultForPopup(null)} fullWidth variant="secondary" className="py-2 text-sm">
+                    {commonT.close}
+                 </Button>
+              </div>
+           </div>
+        </div>
+      )}
+
     </div>
   );
 };

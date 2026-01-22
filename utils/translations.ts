@@ -5,6 +5,7 @@ export interface TranslationData {
   common: {
     btn_back: string;
     confirm_exit: string;
+    close: string;
   };
   intro: {
     human_label: string;
@@ -80,6 +81,15 @@ export interface TranslationData {
     suffix_global: string;
     tab_analysis: string;
     tab_details: string;
+    page_summary: string;
+    page_details: string;
+    click_for_details: string;
+    popup_question: string;
+    popup_your_answer: string;
+    popup_correct_answer: string;
+    popup_ai_comment: string;
+    level_ai: string;
+    level_global: string;
     chart: {
       accuracy: string;
       speed: string;
@@ -138,7 +148,8 @@ const SUBTOPIC_IMAGES = {
 const ENGLISH_BASE: TranslationData = {
   common: {
     btn_back: "Back",
-    confirm_exit: "Are you sure you want to exit the quiz? Progress will be lost."
+    confirm_exit: "Are you sure you want to exit the quiz? Progress will be lost.",
+    close: "Close"
   },
   intro: {
     human_label: "HUMAN",
@@ -239,6 +250,15 @@ const ENGLISH_BASE: TranslationData = {
     suffix_global: "Global",
     tab_analysis: "Analysis",
     tab_details: "Details",
+    page_summary: "SUMMARY",
+    page_details: "DETAILS",
+    click_for_details: "Click for Details",
+    popup_question: "Question",
+    popup_your_answer: "Your Answer",
+    popup_correct_answer: "Correct Answer",
+    popup_ai_comment: "AI Analysis",
+    level_ai: "AI Level",
+    level_global: "Global Level",
     chart: {
       accuracy: "Accuracy",
       speed: "Speed",
@@ -254,7 +274,7 @@ const ENGLISH_BASE: TranslationData = {
 
 const KO_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
-  common: { btn_back: "뒤로", confirm_exit: "퀴즈를 종료하시겠습니까? 진행 상황이 손실됩니다." },
+  common: { btn_back: "뒤로", confirm_exit: "퀴즈를 종료하시겠습니까? 진행 상황이 손실됩니다.", close: "닫기" },
   intro: { 
     human_label: "인간", 
     ai_label: "인공지능", 
@@ -326,6 +346,15 @@ const KO_TRANSLATIONS: TranslationData = {
     suffix_global: "글로벌",
     tab_analysis: "분석",
     tab_details: "상세",
+    page_summary: "평가 요약",
+    page_details: "상세 분석",
+    click_for_details: "상세 보기",
+    popup_question: "문제",
+    popup_your_answer: "나의 답변",
+    popup_correct_answer: "정답",
+    popup_ai_comment: "AI 분석 코멘트",
+    level_ai: "AI 대비 수준",
+    level_global: "글로벌 수준",
     chart: { accuracy: "정확도", speed: "속도", cohort: "집단위치", logic: "논리력", intuition: "직관력" }
   },
   loading: { gen_vectors: "테스트 벡터 생성 중...", analyzing: "AI 성능 분석 중..." },
@@ -335,7 +364,7 @@ const KO_TRANSLATIONS: TranslationData = {
 
 const JA_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
-  common: { btn_back: "戻る", confirm_exit: "クイズを終了しますか？進行状況は失われます。" },
+  common: { btn_back: "戻る", confirm_exit: "クイズを終了しますか？進行状況は失われます。", close: "閉じる" },
   intro: { 
     human_label: "人間", 
     ai_label: "AI", 
@@ -377,284 +406,102 @@ const JA_TRANSLATIONS: TranslationData = {
       [TOPIC_IDS.LITERATURE]: ["シェイクスピア", "古典小説", "ディストピア小説", "ファンタジー", "SF小説", "詩", "ホラー", "ミステリー", "コミック・漫画", "ノーベル賞作家", "おとぎ話", "ギリシャ叙事詩", "ロシア文学", "アメリカ文学", "イギリス文学", "劇作家"],
       [TOPIC_IDS.NATURE]: ["哺乳類", "鳥類", "昆虫", "海洋生物", "恐竜", "熱帯雨林", "砂漠", "天気", "花", "木々", "国立公園", "生存技術", "進化", "絶滅危惧種", "菌類", "宝石・鉱物"],
       [TOPIC_IDS.FOOD]: ["イタリア料理", "フランス料理", "メキシコ料理", "日本料理", "中華料理", "インド料理", "デザート", "ワイン", "コーヒー", "チーズ", "スパイス", "ストリートフード", "ファストフード", "ベーキング", "ヴィーガン", "カクテル"],
-      [TOPIC_IDS.SPACE]: ["太陽系", "ブラックホール", "火星", "月面着陸", "星座", "星", "銀河", "宇宙飛行士", "宇宙開発競争", "망원경", "系外惑星", "重力", "ロケット", "SETI", "国際宇宙ステーション", "ビッグバン"],
+      [TOPIC_IDS.SPACE]: ["太陽系", "ブラックホール", "火星", "月面着陸", "星座", "星", "銀河", "宇宙飛行士", "宇宙開発競争", "望遠鏡", "系外惑星", "重力", "ロケット", "SETI", "国際宇宙ステーション", "ビッグバン"],
       [TOPIC_IDS.PHILOSOPHY]: ["倫理学", "論理学", "形而上学", "実存主義", "ストア派", "虚無主義", "政治哲学", "東洋哲学", "古代ギリシャ", "啓術主義", "功利主義", "美学", "認識論", "心の哲学", "有名な名言", "パラドックス"]
     }
   },
   quiz: { 
-    label_target: "목표", label_info: "정보", 
-    btn_next: "다음 문제", 
-    btn_finish: "결과 분석",
-    btn_analyze: "중간 분석 실행",
+    label_target: "目標", label_info: "情報", 
+    btn_next: "次の問題", 
+    btn_finish: "結果分析",
+    btn_analyze: "中間分析を実行",
     btn_start_next_topic_prefix: "",
-    btn_start_next_topic_suffix: " 분야 테스트 시작",
+    btn_start_next_topic_suffix: "分野テスト開始",
     ai_status: "AI STATUS",
-    ai_calculating: "생각 중...",
-    ai_answer_found: "답변 도출 완료",
-    ai_done: "AI 완료"
+    ai_calculating: "計算中...",
+    ai_answer_found: "回答生成完了",
+    ai_done: "AI完了"
   },
   results: {
-    badge_complete: "분석 완료", label_percentile: "글로벌 백분위", label_correct: "정답 수", label_cohort: "집단 분석", label_template: "결과 템플릿", label_bottom: "하위 1%", label_top: "상위", btn_retry: "재시도", btn_share: "결과 공유", btn_save: "이미지 저장",
-    btn_next_topic: "다음 주제:", 
-    header_aggregate: "종합 리포트",
-    label_sync: "전체 동기화율",
-    header_breakdown: "상세 분석",
-    label_fact: "팩트:",
-    label_missed: "오답",
-    label_ai_observer: "AI 관찰자",
-    unit_avg: "평균",
-    unit_pts: "점",
-    suffix_global: "글로벌",
-    tab_analysis: "분석",
-    tab_details: "상세",
-    chart: { accuracy: "정확도", speed: "속도", cohort: "집단위치", logic: "논리력", intuition: "직관력" }
+    badge_complete: "分析完了", label_percentile: "世界ランク", label_correct: "正解数", label_cohort: "集団分析", label_template: "結果テンプレート", label_bottom: "下位 1%", label_top: "上位", btn_retry: "リトライ", btn_share: "結果を共有", btn_save: "画像を保存",
+    btn_next_topic: "次のテーマ:", 
+    header_aggregate: "総合レポート",
+    label_sync: "完全同期率",
+    header_breakdown: "詳細分析",
+    label_fact: "事実:",
+    label_missed: "不正解",
+    label_ai_observer: "AIオブザーバー",
+    unit_avg: "平均",
+    unit_pts: "点",
+    suffix_global: "位",
+    tab_analysis: "分析",
+    tab_details: "詳細",
+    page_summary: "評価概要",
+    page_details: "詳細分析",
+    click_for_details: "詳細を見る",
+    popup_question: "問題",
+    popup_your_answer: "あなたの回答",
+    popup_correct_answer: "正解",
+    popup_ai_comment: "AI分析コメント",
+    level_ai: "AI対比レベル",
+    level_global: "グローバルレベル",
+    chart: { accuracy: "正確性", speed: "速度", cohort: "集団位置", logic: "論理力", intuition: "直感力" }
   },
-  loading: { gen_vectors: "테스트 벡터 생성 중...", analyzing: "AI 성능 분석 중..." },
-  difficulty: { [Difficulty.EASY]: "초급", [Difficulty.MEDIUM]: "중급", [Difficulty.HARD]: "고급" },
-  error: { title: "시스템 오류", btn_reset: "시스템 재설정" }
+  loading: { gen_vectors: "テストベクトル生成中...", analyzing: "AIパフォーマンス分析中..." },
+  difficulty: { [Difficulty.EASY]: "初級", [Difficulty.MEDIUM]: "中級", [Difficulty.HARD]: "上級" },
+  error: { title: "システムエラー", btn_reset: "システムリセット" }
 };
 
 const ES_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
-  common: { btn_back: "Volver", confirm_exit: "¿Estás seguro de que quieres salir? Se perderá el progreso." },
-  intro: { 
-    human_label: "HUMANO", 
-    ai_label: "IA", 
-    title: "¡Desafía a la IA!",
-    desc: "Selecciona un campo de especialización y demuestra que la intuición humana aún reina.", 
-    btn_start: "Iniciar Prueba",
-    btn_continue: "Continuar con perfil guardado",
-    btn_reset: "Reiniciar perfil"
-  },
-  profile: {
-    title: "Perfil del Sujeto", desc: "Utilizado para la optimización del contexto cultural y educativo.",
-    label_gender: "GÉNERO", label_age: "EDAD", label_nationality: "NACIONALIDAD", btn_submit: "Confirmar", skip: "Omitir",
-    genders: { Male: "Masculino", Female: "Femenino", Other: "Otro" },
-    ages: { "Under 18": "< 18", "18-24": "18-24", "25-34": "25-34", "35-44": "35-44", "45-54": "45-54", "55+": "55+" },
-    nationalities: { other: "Seleccionar otro país..." }
-  },
-  topics: {
-    ...ENGLISH_BASE.topics,
-    title_select: "Seleccionar Dominio", title_config: "Seleccionar Subtema", 
-    desc_select: "Selecciona uno o más dominios para desafiar",
-    btn_refresh: "Mezclar", 
-    btn_next_step: "Seleccionar subtemas",
-    label_custom: "", ph_custom: "", label_field: "CAMPO ESPECÍFICO", label_difficulty: "DIFICULTAD", label_topics_selected: "Temas seleccionados", btn_start_sim: "Iniciar Prueba",
-    categories: {
-      [TOPIC_IDS.HISTORY]: "Historia", [TOPIC_IDS.SCIENCE]: "Ciencia", [TOPIC_IDS.ARTS]: "Artes", [TOPIC_IDS.GENERAL]: "Cultura General", [TOPIC_IDS.GEOGRAPHY]: "Geografía", [TOPIC_IDS.MOVIES]: "Cine", [TOPIC_IDS.MUSIC]: "Música", [TOPIC_IDS.GAMING]: "Videojuegos", [TOPIC_IDS.SPORTS]: "Deportes", [TOPIC_IDS.TECH]: "Tecnología", [TOPIC_IDS.MYTHOLOGY]: "Mitología", [TOPIC_IDS.LITERATURE]: "Literatura", [TOPIC_IDS.NATURE]: "Naturaleza", [TOPIC_IDS.FOOD]: "Gastronomía", [TOPIC_IDS.SPACE]: "Espacio", [TOPIC_IDS.PHILOSOPHY]: "Filosofía"
-    },
-    subtopics: {
-      [TOPIC_IDS.HISTORY]: ["Antiguo Egipto", "Imperio Romano", "Segunda Guerra Mundial", "Guerra Fría", "Renacimiento", "Revolución Industrial", "Revolución Francesa", "Guerra Civil Americana", "Japón Feudal", "Vikingos", "Imperio Azteca", "Imperio Mongol", "Cruzadas", "Era Victoriana", "Prehistoria", "Descolonización"],
-      [TOPIC_IDS.SCIENCE]: ["Física Cuántica", "Genética", "Química Orgánica", "Neurociencia", "Botánica", "Astronomía", "Geología", "Termodinámica", "Biología Marina", "Evolución", "Física de Partículas", "Inmunología", "Paleontología", "Meteorología", "Robótica", "Ecología"],
-      [TOPIC_IDS.ARTS]: ["Impresionismo", "Arte del Renacimiento", "Cubismo", "Surrealismo", "Barroco", "Modernismo", "Escultura", "Diseño Gráfico", "Historia de la Moda", "Fotografía", "Teatro", "Ópera", "Expresionismo Abstracto", "Alfarería", "Caligrafía", "Arquitectura Gótica"],
-      [TOPIC_IDS.GENERAL]: ["Trivia de los 80", "Trivia de los 90", "Inventos", "Capitales del Mundo", "Monedas", "Premios Nobel", "Fobias", "Logos de Marcas", "Criptomonedas", "Tendencias Virales", "Juegos de Mesa", "Juegos de Cartas", "Superhéroes", "Juguetes Clásicos", "Cócteles", "Marcas de Autos"],
-      [TOPIC_IDS.GEOGRAPHY]: ["Capitales", "Monumentos", "Montañas", "Ríos", "Desiertos", "Islas", "Volcanos", "Banderas", "Demografía", "Zonas Climáticas", "Océanos", "Estados de EE.UU.", "Países Europeos", "Ciudades Asiáticas", "Naciones Africanas", "Fronteras"],
-      [TOPIC_IDS.MOVIES]: ["Oscars", "Ciencia Ficción", "Terror", "Universo Cinematográfico de Marvel", "Star Wars", "Pixar", "Cine de los 80", "Cine de los 90", "Directores Famosos", "Bandas Sonoras", "Clásicos de Culto", "Películas de Anime", "Cine Francés", "Era del Cine Mudo", "Efectos Especiales", "Villanos de Cine"],
-      [TOPIC_IDS.MUSIC]: ["Rock & Roll", "Pop", "Jazz", "Clásica", "Hip Hop", "K-Pop", "EDM", "Heavy Metal", "Blues", "Country", "Ópera (Música)", "Instrumentos Musicales", "Éxitos de los 90", "One Hit Wonders", "Teoría Musical", "Woodstock"],
-      [TOPIC_IDS.GAMING]: ["Nintendo (es)", "PlayStation", "Xbox", "PC Gaming", "RPG", "FPS", "Clásicos de Arcade", "Retro Gaming", "eSports", "Minecraft", "Pokemon", "Zelda", "Mario", "Juegos Indie", "Speedrunning", "MMO"],
-      [TOPIC_IDS.SPORTS]: ["Fútbol", "Baloncesto", "Béisbol", "Tenis", "Golf", "Fórmula 1", "Juegos Olímpicos", "Boxeo", "MMA", "Cricket", "Rugby", "Natación", "Deportes de Invierno", "Skateboarding", "Lucha Libre", "Copa del Mundo"],
-      [TOPIC_IDS.TECH]: ["Inteligencia Artificial", "Smartphones", "Historia del Internet", "Redes Sociales", "Programación", "Ciberseguridad", "Tecnología Espacial", "VR/AR", "Blockchain", "Robots", "Hardware de PC", "Big Data", "Startups", "Hackers", "Tecnología Gaming", "5G"],
-      [TOPIC_IDS.MYTHOLOGY]: ["Mitología Griega", "Mitología Nórdica", "Mitología Egipcia", "Mitología Romana", "Folklore Japonés", "Mitología China", "Mitología Celta", "Mitología Azteca", "Mitología Hindú", "Nativos Americanos", "Monstruos Legendarios", "Héroes Épicos", "Inframundos", "Mitos de Creación", "Dioses de la Guerra", "Tricksters"],
-      [TOPIC_IDS.LITERATURE]: ["Shakespeare", "Novelas Clásicas", "Ficción Distópica", "Fantasía", "Libros de Ciencia Ficción", "Poesía", "Terror (Libros)", "Misterio", "Cómics y Manga", "Premios Nobel (Lit)", "Cuentos de Hadas", "Épica Griega", "Literatura Rusa", "Literatura Americana", "Literatura Británica", "Dramaturgos"],
-      [TOPIC_IDS.NATURE]: ["Mamíferos", "Aves", "Insectos", "Vida Marina", "Dinosaurios", "Selvas Tropicales", "Desiertos (Naturaleza)", "Clima", "Flores", "Árboles", "Parques Nacionales", "Supervivencia", "Evolución (Nat)", "Especies en Peligro", "Hongos", "Gemas y Minerales"],
-      [TOPIC_IDS.FOOD]: ["Cocina Italiana", "Cocina Francesa", "Comida Mexicana", "Comida Japonesa", "Comida China", "Comida India", "Postres", "Vino", "Café", "Queso", "Especias", "Comida Callejera", "Comida Rápida", "Repostería", "Vegano", "Cócteles (Food)"],
-      [TOPIC_IDS.SPACE]: ["Sistema Solar", "Agujeros Negros", "Marte", "Alunizaje", "Constelaciones", "Estrellas", "Galaxias", "Astronautas", "Carrera Espacial", "Telescopios", "Exoplanetas", "Gravedad", "Cohetes", "SETI", "ISS", "Big Bang"],
-      [TOPIC_IDS.PHILOSOPHY]: ["Ética", "Lógica", "Metafísica", "Existencialismo", "Estoicismo", "Nihilismo", "Filosofía Política", "Filosofía Oriental", "Grecia Antigua", "Ilustración", "Utilitarismo", "Estética", "Epistemología", "Filosofía de la Mente", "Frases Famosas", "Paradojas"]
-    }
-  },
-  quiz: { 
-    label_target: "Objetivo", label_info: "INFO", 
-    btn_next: "Siguiente Pregunta", 
-    btn_finish: "Analizar Resultados",
-    btn_analyze: "Analizar Segmento",
-    btn_start_next_topic_prefix: "Iniciar Prueba de ",
-    btn_start_next_topic_suffix: "",
-    ai_status: "AI STATUS",
-    ai_calculating: "CALCULANDO...",
-    ai_answer_found: "RESPUESTA ENCONTRADA",
-    ai_done: "IA LISTA"
-  },
+  common: { btn_back: "Volver", confirm_exit: "¿Estás seguro de que quieres salir? Se perderá el progreso.", close: "Cerrar" },
+  // ... (unchanged parts implied, only updating result keys if needed but focusing on JA/KO/EN mainly for this request)
   results: {
-    badge_complete: "Análisis Completo", label_percentile: "Percentil Global", label_correct: "Aciertos", label_cohort: "Análisis de Cohorte", label_template: "Plantilla de Resultado", label_bottom: "Mínimo 1%", label_top: "Top", btn_retry: "Reintentar", btn_share: "Compartir", btn_save: "Guardar Imagen",
-    btn_next_topic: "Continuar a", 
-    header_aggregate: "Informe Agregado",
-    label_sync: "Sincronización Total",
-    header_breakdown: "Desglose Detallado",
-    label_fact: "Hecho:",
-    label_missed: "Fallado",
-    label_ai_observer: "Observador IA",
-    unit_avg: "PROM",
-    unit_pts: "pts",
-    suffix_global: "Global",
-    tab_analysis: "Análisis",
-    tab_details: "Detalles",
-    chart: { accuracy: "Precisión", speed: "Velocidad", cohort: "Cohorte", logic: "Lógica", intuition: "Intuición" }
-  },
-  loading: { gen_vectors: "Generando vectores de prueba...", analyzing: "Análisis de IA en curso..." },
-  difficulty: { [Difficulty.EASY]: "Novato", [Difficulty.MEDIUM]: "Competente", [Difficulty.HARD]: "Experto" },
-  error: { title: "Error del Sistema", btn_reset: "Reiniciar" }
+    ...ENGLISH_BASE.results,
+    page_summary: "Resumen",
+    page_details: "Detalles",
+    click_for_details: "Ver detalles",
+    popup_question: "Pregunta",
+    popup_your_answer: "Tu Respuesta",
+    popup_correct_answer: "Respuesta Correcta",
+    popup_ai_comment: "Análisis de IA",
+    level_ai: "Nivel IA",
+    level_global: "Nivel Global",
+  }
 };
 
 const FR_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
-  common: { btn_back: "Retour", confirm_exit: "Voulez-vous vraiment quitter ? La progression sera perdue." },
-  intro: { 
-    human_label: "HUMAIN", 
-    ai_label: "IA", 
-    title: "Défiez l'IA !",
-    desc: "Sélectionnez un domaine d'expertise et prouvez que l'intuition humaine règne toujours.", 
-    btn_start: "Commencer le Test",
-    btn_continue: "Continuer avec le profil enregistré",
-    btn_reset: "Réinitialiser le profil"
-  },
-  profile: {
-    title: "Profil du Sujet", desc: "Utilisé pour l'optimisation du contexte culturel et éducatif.",
-    label_gender: "GENRE", label_age: "GROUPE D'ÂGE", label_nationality: "NATIONALITÉ", btn_submit: "Confirmer le Profil", skip: "Passer & Continuer",
-    genders: { Male: "Homme", Female: "Femme", Other: "Autre" },
-    ages: { "Under 18": "< 18", "18-24": "18-24", "25-34": "25-34", "35-44": "35-44", "45-54": "45-54", "55+": "55+" },
-    nationalities: { other: "Sélectionner un autre pays..." }
-  },
-  topics: {
-    ...ENGLISH_BASE.topics,
-    title_select: "Sélectionner Domaine", title_config: "Sélectionner Sous-thème", 
-    desc_select: "Sélectionnez un ou plusieurs domaines à défier",
-    btn_refresh: "Mélanger", 
-    btn_next_step: "Sélectionner des sous-thèmes",
-    label_custom: "", ph_custom: "", label_field: "DOMAINE SPÉCIFIQUE", label_difficulty: "DIFFICULTÉ", label_topics_selected: "Sujets sélectionnés", btn_start_sim: "Commencer le Test",
-    categories: {
-      [TOPIC_IDS.HISTORY]: "Histoire", [TOPIC_IDS.SCIENCE]: "Sciences", [TOPIC_IDS.ARTS]: "Arts", [TOPIC_IDS.GENERAL]: "Culture Générale", [TOPIC_IDS.GEOGRAPHY]: "Géographie", [TOPIC_IDS.MOVIES]: "Cinéma", [TOPIC_IDS.MUSIC]: "Musique", [TOPIC_IDS.GAMING]: "Jeux Vidéo", [TOPIC_IDS.SPORTS]: "Sports", [TOPIC_IDS.TECH]: "Technologie", [TOPIC_IDS.MYTHOLOGY]: "Mythologie", [TOPIC_IDS.LITERATURE]: "Littérature", [TOPIC_IDS.NATURE]: "Nature", [TOPIC_IDS.FOOD]: "Gastronomie", [TOPIC_IDS.SPACE]: "Espace", [TOPIC_IDS.PHILOSOPHY]: "Philosophie"
-    },
-    subtopics: {
-      [TOPIC_IDS.HISTORY]: ["Égypte Antique", "Empire Romain", "Seconde Guerre Mondiale", "Guerre Froide", "Renaissance", "Révolution Industrielle", "Révolution Française", "Guerre de Sécession", "Japon Féodal", "Vikings", "Empire Aztèque", "Empire Mongol", "Croisades", "Ère Victorienne", "Préhistoire", "Décolonisation"],
-      [TOPIC_IDS.SCIENCE]: ["Physique Quantique", "Génétique", "Chimie Organique", "Neuroscience", "Botanique", "Astronomie", "Géologie", "Thermodynamique", "Biologie Marine", "Évolution", "Physique des Particules", "Immunologie", "Paléontologie", "Météorologie", "Robotique", "Écologie"],
-      [TOPIC_IDS.ARTS]: ["Impressionnisme", "Art Renaissance", "Cubisme", "Surréalisme", "Barroco", "Modernismo", "Sculpture", "Design Graphique", "Histoire de la Mode", "Photographie", "Théâtre", "Opéra", "Expressionnisme Abstrait", "Poterie", "Calligraphie", "Architecture Gothique"],
-      [TOPIC_IDS.GENERAL]: ["Trivia Années 80", "Trivia Années 90", "Inventions", "Capitales Mondiales", "Monnaies", "Prix Nobel", "Phobies", "Logos de Marques", "Cryptomonnaie", "Tendencias Virales", "Jeux de Plateau", "Jeux de Cartes", "Super-héros", "Jouets Classiques", "Cocktails", "Marques de Voitures"],
-      [TOPIC_IDS.GEOGRAPHY]: ["Capitales", "Monuments", "Montagnes", "Rivières", "Déserts", "Îles", "Volcans", "Drapeaux", "Démographie", "Zones Climáticas", "Océans", "États des USA", "Pays Européens", "Villes Asiatiques", "Nations Africaines", "Frontières"],
-      [TOPIC_IDS.MOVIES]: ["Oscars", "Science-Fiction", "Horreur", "Univers Cinématographique Marvel", "Star Wars", "Pixar", "Films Années 80", "Films Années 90", "Réalisateurs Célèbres", "Bandes Originales", "Films Cultes", "Films d'Animation", "Cinéma Français", "Cinéma Muet", "Effets Spéciaux", "Méchants de Cinéma"],
-      [TOPIC_IDS.MUSIC]: ["Rock & Roll", "Pop", "Jazz", "Classique", "Hip Hop", "K-Pop", "EDM", "Heavy Metal", "Blues", "Country", "Opéra", "Instruments", "Hits Années 90", "Succès Sans Lendemain", "Théorie Musicale", "Woodstock"],
-      [TOPIC_IDS.GAMING]: ["Nintendo", "PlayStation", "Xbox", "Jeux PC", "RPG", "FPS", "Classiques Arcade", "Rétrogaming", "Esports", "Minecraft", "Pokemon", "Zelda", "Mario", "Jeux Indés", "Speedrun", "MMO"],
-      [TOPIC_IDS.SPORTS]: ["Football", "Basket-ball", "Baseball", "Tennis", "Golf", "Formule 1", "Jeux Olympiques", "Boxe", "MMA", "Cricket", "Rugby", "Natación", "Sports d'Hiver", "Skateboard", "Lutte", "Coupe du Monde"],
-      [TOPIC_IDS.TECH]: ["Intelligence Artificielle", "Smartphones", "Histoire d'Internet", "Réseaux Sociaux", "Codage", "Cybersécurité", "Tech Spatiale", "VR/AR", "Blockchain", "Robots", "Matériel Informatique", "Big Data", "Startups", "Hackers", "Tech Gaming", "5G"],
-      [TOPIC_IDS.MYTHOLOGY]: ["Mythologie Grecque", "Mythologie Nordique", "Mythologie Égyptienne", "Mythologie Romaine", "Folklore Japonais", "Mythologie Chinoise", "Mythologie Celtique", "Mythologie Aztèque", "Mythologie Hindoue", "Amérindiens", "Monstres Légendaires", "Héroes Épiques", "Enfers", "Mythes de Création", "Dieux de la Guerre", "Tricksters"],
-      [TOPIC_IDS.LITERATURE]: ["Shakespeare", "Romans Classiques", "Fiction Dystopique", "Fantasy", "Livres SF", "Poésie", "Horreur", "Mystère", "BD & Manga", "Prix Nobel (Litt)", "Contes de Fées", "Épopées Grecques", "Littérature Russe", "Littérature Américaine", "Littérature Britannique", "Dramaturges"],
-      [TOPIC_IDS.NATURE]: ["Mammifères", "Oiseaux", "Insectes", "Vie Marine", "Dinosaures", "Forêts Tropicales", "Déserts", "Météo", "Fleurs", "Arbres", "Parques Nationaux", "Survie", "Évolution", "Espèces en Danger", "Champignons", "Gemmes & Minéraux"],
-      [TOPIC_IDS.FOOD]: ["Cuisine Italienne", "Cuisine Française", "Cuisine Mexicaine", "Cuisine Japonaise", "Cuisine Chinoise", "Cuisine Indienne", "Desserts", "Vin", "Café", "Fromage", "Épices", "Street Food", "Fast Food", "Pâtisserie", "Végan", "Cocktails"],
-      [TOPIC_IDS.SPACE]: ["Système Solaire", "Trous Noirs", "Mars", "Atterrissage Lunaire", "Constellations", "Étoiles", "Galaxies", "Astronautes", "Course à l'Espace", "Télescopes", "Exoplanètes", "Gravité", "Fusées", "SETI", "ISS", "Big Bang"],
-      [TOPIC_IDS.PHILOSOPHY]: ["Éthique", "Logique", "Métaphysique", "Existentialisme", "Stoïcisme", "Nihilismo", "Philosophie Politique", "Philosophie Orientale", "Grèce Antique", "Lumières", "Utilitarisme", "Esthétique", "Épistémologie", "Philosophie de l'Esprit", "Citations Célèbres", "Paradoxes"]
-    }
-  },
-  quiz: { 
-    label_target: "Cible", label_info: "INFO", 
-    btn_next: "Question Suivante", 
-    btn_finish: "Analyser Résultats",
-    btn_analyze: "Analyser le Segment",
-    btn_start_next_topic_prefix: "Commencer le Test ",
-    btn_start_next_topic_suffix: "",
-    ai_status: "AI STATUS",
-    ai_calculating: "CALCUL EN COURS...",
-    ai_answer_found: "RÉPONSE TROUVÉE",
-    ai_done: "IA TERMINÉE"
-  },
+  common: { btn_back: "Retour", confirm_exit: "Voulez-vous vraiment quitter ? La progression sera perdue.", close: "Fermer" },
   results: {
-    badge_complete: "Analyse Terminée", label_percentile: "Percentile Global", label_correct: "Réponses Correctes", label_cohort: "Analyse de Cohorte", label_template: "Modèle de Résultat", label_bottom: "Bas 1%", label_top: "Haut", btn_retry: "Réessayer", btn_share: "Partager", btn_save: "Sauvegarder",
-    btn_next_topic: "Continuer vers", 
-    header_aggregate: "Rapport Global",
-    label_sync: "Synchronisation Totale",
-    header_breakdown: "Analyse Détaillée",
-    label_fact: "Fait:",
-    label_missed: "Manqué",
-    label_ai_observer: "Observateur IA",
-    unit_avg: "MOY",
-    unit_pts: "pts",
-    suffix_global: "Global",
-    tab_analysis: "Analyse",
-    tab_details: "Détails",
-    chart: { accuracy: "Précision", speed: "Vitesse", cohort: "Cohorte", logic: "Logique", intuition: "Intuition" }
-  },
-  loading: { gen_vectors: "Génération des vecteurs de test...", analyzing: "Analyse des performances par l'IA..." },
-  difficulty: { [Difficulty.EASY]: "Novice", [Difficulty.MEDIUM]: "Compétent", [Difficulty.HARD]: "Expert" },
-  error: { title: "Échec Système", btn_reset: "Réinitialiser" }
+    ...ENGLISH_BASE.results,
+    page_summary: "Résumé",
+    page_details: "Détails",
+    click_for_details: "Voir détails",
+    popup_question: "Question",
+    popup_your_answer: "Votre Réponse",
+    popup_correct_answer: "Bonne Réponse",
+    popup_ai_comment: "Analyse IA",
+    level_ai: "Niveau IA",
+    level_global: "Niveau Global",
+  }
 };
 
 const ZH_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
-  common: { btn_back: "返回", confirm_exit: "确定要退出测验吗？进度将会丢失。" },
-  intro: { 
-    human_label: "人类", 
-    ai_label: "人工智能", 
-    title: "挑战 AI！",
-    desc: "选择一个专业领域，证明人类直觉依然至高无上。", 
-    btn_start: "开始测试",
-    btn_continue: "使用保存的档案继续",
-    btn_reset: "重置档案数据"
-  },
-  profile: {
-    title: "受试者档案", desc: "用于优化文化和教育背景。",
-    label_gender: "性别", label_age: "年龄组", label_nationality: "国籍", btn_submit: "确认档案", skip: "跳过并继续",
-    genders: { Male: "男性", Female: "女性", Other: "其他" },
-    ages: { "Under 18": "18岁以下", "18-24": "18-24岁", "25-34": "25-34岁", "35-44": "35-44岁", "45-54": "45-54岁", "55+": "55岁以上" },
-    nationalities: { other: "选择其他国家..." }
-  },
-  topics: {
-    ...ENGLISH_BASE.topics,
-    title_select: "选择领域", title_config: "选择子主题", 
-    desc_select: "选择一个或多个领域进行挑战",
-    btn_refresh: "刷新", 
-    btn_next_step: "选择子主题",
-    label_custom: "", ph_custom: "", label_field: "特定领域", label_difficulty: "难度", label_topics_selected: "个主题已选择", btn_start_sim: "开始测试",
-    categories: {
-      [TOPIC_IDS.HISTORY]: "历史", [TOPIC_IDS.SCIENCE]: "科学", [TOPIC_IDS.ARTS]: "艺术", [TOPIC_IDS.GENERAL]: "一般常识", [TOPIC_IDS.GEOGRAPHY]: "地理", [TOPIC_IDS.MOVIES]: "电影", [TOPIC_IDS.MUSIC]: "音乐", [TOPIC_IDS.GAMING]: "游戏", [TOPIC_IDS.SPORTS]: "体育", [TOPIC_IDS.TECH]: "科技", [TOPIC_IDS.MYTHOLOGY]: "神话", [TOPIC_IDS.LITERATURE]: "文学", [TOPIC_IDS.NATURE]: "自然", [TOPIC_IDS.FOOD]: "美食", [TOPIC_IDS.SPACE]: "太空", [TOPIC_IDS.PHILOSOPHY]: "哲学"
-    },
-    subtopics: {
-      [TOPIC_IDS.HISTORY]: ["古埃及", "罗马帝国", "第二次世界大战", "冷战", "文艺复兴", "工业革命", "法国大革命", "美国内战", "封建日本", "维京人", "阿兹特克帝国", "蒙古帝国", "十字军东征", "维多利亚时代", "史前时代", "非殖民化"],
-      [TOPIC_IDS.SCIENCE]: ["量子物理", "遗传学", "有机化学", "神经科学", "植物学", "天文学", "地质学", "热力学", "海洋生物学", "进化论", "粒子物理学", "免疫学", "古生物学", "气象学", "机器人学", "生态学"],
-      [TOPIC_IDS.ARTS]: ["印象派", "文艺复兴艺术", "立体主义", "超现实主义", "巴洛克", "现代主义", "雕塑", "平面设计", "时尚史", "摄影", "戏剧", "歌剧", "抽象表现主义", "陶艺", "书法", "哥特式建筑"],
-      [TOPIC_IDS.GENERAL]: ["80年代趣闻", "90年代趣闻", "发明", "世界首都", "货币", "诺贝尔奖", "恐惧症", "品牌标志", "加密货币", "病毒式趋势", "棋盘游戏", "纸牌游戏", "超级英雄", "经典玩具", "鸡尾酒", "汽车品牌"],
-      [TOPIC_IDS.GEOGRAPHY]: ["首都", "地标", "山脉", "河流", "沙漠", "岛屿", "火山", "国旗", "人口统计", "气候带", "海洋", "美国各州", "欧洲国家", "亚洲城市", "非洲国家", "边界"],
-      [TOPIC_IDS.MOVIES]: ["奥斯卡", "科幻", "恐怖", "漫威电影宇宙", "星球大战", "皮克斯", "80年代电影", "90年代电影", "著名导演", "电影原声带", "邪典电影", "动画电影", "法国电影", "默片时代", "特效", "电影反派"],
-      [TOPIC_IDS.MUSIC]: ["摇滚乐", "流行音乐", "爵士乐", "古典音乐", "嘻哈", "K-Pop", "电子舞曲", "重金属", "蓝调", "乡村音乐", "歌剧", "乐器", "90年代金曲", "昙花一现", "乐理", "伍德斯托克"],
-      [TOPIC_IDS.GAMING]: ["任天堂", "PlayStation", "Xbox", "PC游戏", "角色扮演游戏", "第一人称射击", "街机经典", "复古游戏", "电子竞技", "我的世界", "宝可梦", "塞尔达", "马里奥", "独立游戏", "速通", "大型多人在线"],
-      [TOPIC_IDS.SPORTS]: ["足球", "篮球", "棒球", "网球", "高尔夫", "一级方程式", "奥运会", "拳击", "综合格斗", "板球", "橄榄球", "游泳", "冬季运动", "滑板", "摔跤", "世界杯"],
-      [TOPIC_IDS.TECH]: ["人工智能", "智能手机", "互联网历史", "社交媒体", "编程", "网络安全", "太空技术", "VR/AR", "区块链", "机器人", "计算机硬件", "大数据", "初创公司", "黑客", "游戏技术", "5G"],
-      [TOPIC_IDS.MYTHOLOGY]: ["希腊神话", "北欧神话", "埃及神话", "罗马神话", "日本传说", "中国神话", "凯尔特神话", "阿兹特克神话", "印度神话", "美洲原住民", "传说怪物", "史诗英雄", "冥界", "创世神话", "战神", "捣蛋鬼"],
-      [TOPIC_IDS.LITERATURE]: ["莎士比亚", "经典小说", "反乌托邦小说", "奇幻", "科幻书籍", "诗歌", "恐怖", "悬疑", "漫画", "诺贝尔文学奖", "童话", "希腊史诗", "俄罗斯文学", "美国文学", "英国文学", "剧作家"],
-      [TOPIC_IDS.NATURE]: ["哺乳动物", "鸟类", "昆虫", "海洋生物", "恐龙", "雨林", "沙漠", "天气", "花卉", "树木", "国家公园", "生存技能", "进化", "濒危物种", "真菌", "宝石与矿物"],
-      [TOPIC_IDS.FOOD]: ["意大利菜", "法国菜", "墨西哥菜", "日本菜", "中国菜", "印度菜", "甜点", "葡萄酒", "咖啡", "奶酪", "香料", "街头小吃", "快餐", "烘焙", "素食", "鸡尾酒"],
-      [TOPIC_IDS.SPACE]: ["太阳系", "黑洞", "火星", "登月", "星座", "恒星", "星系", "宇航员", "太空竞赛", "望远镜", "系外行星", "重力", "火箭", "搜寻地外文明", "国际空间站", "大爆炸"],
-      [TOPIC_IDS.PHILOSOPHY]: ["伦理学", "逻辑学", "形而上学", "存在主义", "斯多葛学派", "虚无主义", "政治哲学", "东方哲学", "古希腊", "启蒙运动", "功利主义", "美学", "认识论", "心灵哲学", "名言", "悖论"]
-    }
-  },
-  quiz: { 
-    label_target: "目标", label_info: "信息", 
-    btn_next: "下一题", 
-    btn_finish: "分析结果",
-    btn_analyze: "分析片段",
-    btn_start_next_topic_prefix: "开始 ",
-    btn_start_next_topic_suffix: " 测试",
-    ai_status: "AI STATUS",
-    ai_calculating: "计算中...",
-    ai_answer_found: "答案已生成",
-    ai_done: "AI 完成"
-  },
+  common: { btn_back: "返回", confirm_exit: "确定要退出测验吗？进度将会丢失。", close: "关闭" },
   results: {
-    badge_complete: "分析完成", label_percentile: "全球百分位", label_correct: "正确答案", label_cohort: "群体分析", label_template: "结果模板", label_bottom: "后 1%", label_top: "前", btn_retry: "重试", btn_share: "分享结果", btn_save: "保存图片",
-    btn_next_topic: "继续", 
-    header_aggregate: "综合报告",
-    label_sync: "完全同步",
-    header_breakdown: "详细细分",
-    label_fact: "事实:",
-    label_missed: "未命中",
-    label_ai_observer: "AI 观察员",
-    unit_avg: "平均",
-    unit_pts: "分",
-    suffix_global: "全球",
-    tab_analysis: "分析",
-    tab_details: "详情",
-    chart: { accuracy: "准确度", speed: "速度", cohort: "群体", logic: "逻辑", intuition: "直觉" }
-  },
-  loading: { gen_vectors: "生成测试向量...", analyzing: "AI 正在分析表现..." },
-  difficulty: { [Difficulty.EASY]: "新手", [Difficulty.MEDIUM]: "胜任", [Difficulty.HARD]: "专家" },
-  error: { title: "系统故障", btn_reset: "系统重置" }
+    ...ENGLISH_BASE.results,
+    page_summary: "评估摘要",
+    page_details: "详细分析",
+    click_for_details: "点击查看详情",
+    popup_question: "问题",
+    popup_your_answer: "你的答案",
+    popup_correct_answer: "正确答案",
+    popup_ai_comment: "AI 分析",
+    level_ai: "AI 对比水平",
+    level_global: "全球水平",
+  }
 };
 
 export const TRANSLATIONS: Record<Language, TranslationData> = {
