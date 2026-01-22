@@ -11,7 +11,7 @@ interface ImportMetaEnv {
 }
 
 interface ImportMeta {
-  readonly url: string;
+  url: string;
   readonly env: ImportMetaEnv;
   glob(pattern: string): Record<string, () => Promise<any>>;
   globEager(pattern: string): Record<string, any>;

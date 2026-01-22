@@ -62,6 +62,14 @@ const generateCacheKey = (topic: string, difficulty: Difficulty, lang: Language)
   return `${topic}_${difficulty}_${lang}`.toLowerCase();
 };
 
+// Helper: Translate Elo to descriptive level for Gemini
+const getAdaptiveLevel = (elo: number): string => {
+  if (elo < 800) return "Beginner";
+  if (elo < 1200) return "Intermediate";
+  if (elo < 1600) return "Advanced";
+  return "Expert/PhD Level";
+};
+
 // Batch Generation Function
 export const generateQuestionsBatch = async (
   topics: string[], 
@@ -72,32 +80,39 @@ export const generateQuestionsBatch = async (
   const quizCache = loadCache(CACHE_KEY_QUIZ);
   const results: QuizSet[] = [];
   const missingTopics: string[] = [];
+  const seenIds = new Set(userProfile?.seenQuestionIds || []);
 
   // HYBRID STRATEGY: 
-  // 1. Check LocalStorage Cache (Fastest)
-  // 2. Check Static Database (Async Lazy Load)
-  // 3. Fallback to API
+  // 1. Check LocalStorage Cache (Fastest) - *NOTE: Cache doesn't check seen IDs well, clearing cache periodically is advised or implementing deep filtering*
+  // 2. Check Static Database (Async Lazy Load) -> FILTER by seen IDs
+  // 3. Fallback to API -> ADAPT by Elo
 
   for (const topic of topics) {
     const cacheKey = generateCacheKey(topic, difficulty, lang);
 
-    if (quizCache[cacheKey]) {
-      console.log(`[Cache Hit] ${topic}`);
-      results.push({ topic, questions: quizCache[cacheKey] });
-      continue;
-    } 
-
+    // Skip cache if we are in adaptive mode to ensure freshness, or check if cache has unseen questions
+    // For simplicity, we trust cache but if it's mostly seen, we might skip. 
+    // Here we'll just check static DB first for robustness.
+    
     const staticQuestions = await getStaticQuestions(topic, difficulty, lang);
     if (staticQuestions) {
-      console.log(`[Static DB Hit] ${topic}`);
-      await new Promise(r => setTimeout(r, 300));
-      results.push({ topic, questions: staticQuestions });
-      quizCache[cacheKey] = staticQuestions;
-      saveCache(CACHE_KEY_QUIZ, quizCache);
-    } else {
-      console.log(`[Cache Miss] ${topic} - Requesting API`);
-      missingTopics.push(topic);
+      // --- ADAPTIVE FILTERING ---
+      const unseenQuestions = staticQuestions.filter(q => !seenIds.has(q.id));
+      
+      if (unseenQuestions.length >= 5) {
+        // Shuffle and take 5
+        const selected = unseenQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
+        console.log(`[Static DB Hit] ${topic} (Adaptive Filter: ${selected.length})`);
+        results.push({ topic, questions: selected });
+        continue; // Done with this topic
+      } else {
+        console.log(`[Static DB Depleted] ${topic} - Not enough unseen questions.`);
+        // Fallthrough to API
+      }
     }
+
+    console.log(`[Cache Miss/Depleted] ${topic} - Requesting API`);
+    missingTopics.push(topic);
   }
 
   // 3. Fetch missing topics via Gemini API
@@ -112,16 +127,29 @@ export const generateQuestionsBatch = async (
         zh: "Chinese Simplified (简体中文)"
       };
 
+      // Construct Adaptive Context per Topic
+      const adaptiveContexts = missingTopics.map(t => {
+         // Resolve topic info to get English ID for Elo lookup
+         const info = resolveTopicInfo(t, lang);
+         const catId = info?.catId || "GENERAL";
+         const elo = userProfile?.eloRatings?.[catId] || 1000;
+         const level = getAdaptiveLevel(elo);
+         return `${t}: User Knowledge Level: ${level} (Elo ${elo})`;
+      }).join("; ");
+
       const prompt = `
         You are a high-level knowledge testing AI.
         Generate 5 multiple-choice questions for EACH of the following topics: ${JSON.stringify(missingTopics)}.
         
         CRITICAL INSTRUCTIONS:
         1. ALL text content MUST be written in ${languageNames[lang]}.
-        2. Difficulty level: ${difficulty}.
-        3. Target Audience: ${userProfile?.ageGroup || 'General'}.
-        4. Provide interesting 'context' (hints/facts) for each question.
-        5. Return a JSON object where keys are the exact topic names provided, and values are arrays of questions.
+        2. Base Difficulty: ${difficulty}, BUT ADJUST based on user profile below.
+        3. USER ADAPTATION PROFILE: ${adaptiveContexts}.
+           - If user is Expert, ask obscure/deep questions.
+           - If Beginner, ask fundamental questions.
+        4. Target Audience: ${userProfile?.ageGroup || 'General'}.
+        5. Provide interesting 'context' (hints/facts) for each question.
+        6. Return a JSON object where keys are the exact topic names provided, and values are arrays of questions.
       `;
 
       const topicProperties: Record<string, any> = {};
@@ -168,14 +196,13 @@ export const generateQuestionsBatch = async (
                const { catId, englishName } = info;
                const key = `${englishName}_${difficulty}_${lang}`;
                
-               // Send to Vite middleware to write to file
                fetch('/__save-question', {
                  method: 'POST',
                  headers: {'Content-Type': 'application/json'},
                  body: JSON.stringify({ categoryId: catId, key, data: qs })
                }).then(() => {
                  console.log(`%c💾 [Dev] Auto-saved "${key}" to static DB.`, 'color: #4ade80; font-weight: bold;');
-               }).catch(e => console.warn("Auto-save failed (server may not be running):", e));
+               }).catch(e => console.warn("Auto-save failed:", e));
              }
           }
           // -----------------------------------

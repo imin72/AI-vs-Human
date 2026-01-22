@@ -58,7 +58,13 @@ interface AccumulatedBatchData {
 export const useGameViewModel = () => {
   const [stage, setStage] = useState<AppStage>(AppStage.LANGUAGE);
   const [language, setLanguage] = useState<Language>('en');
-  const [userProfile, setUserProfile] = useState<UserProfile>({ gender: '', ageGroup: '', nationality: '' });
+  const [userProfile, setUserProfile] = useState<UserProfile>({ 
+    gender: '', 
+    ageGroup: '', 
+    nationality: '',
+    eloRatings: {},
+    seenQuestionIds: []
+  });
   
   // Selection State
   const [selectionPhase, setSelectionPhase] = useState<'CATEGORY' | 'SUBTOPIC'>('CATEGORY');
@@ -93,7 +99,13 @@ export const useGameViewModel = () => {
     try {
       const saved = localStorage.getItem(PROFILE_KEY);
       if (saved) {
-        setUserProfile(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Ensure new fields exist for legacy profiles
+        setUserProfile({
+          ...parsed,
+          eloRatings: parsed.eloRatings || {},
+          seenQuestionIds: parsed.seenQuestionIds || []
+        });
       }
     } catch (e) {
       console.warn("Failed to load profile");
@@ -124,28 +136,53 @@ export const useGameViewModel = () => {
     try {
       // 1. Prepare data for API
       const batchInputs: BatchEvaluationInput[] = [];
-      let updatedProfile = { ...profile };
-      const currentScores = { ...profile.scores };
+      
+      // Update User Stats (Elo & History)
+      const updatedProfile = { ...profile };
+      const currentScores = { ...(profile.scores || {}) };
+      const currentElos = { ...(profile.eloRatings || {}) };
+      const seenIds = new Set(profile.seenQuestionIds || []);
 
       allBatches.forEach(batch => {
         const correctCount = batch.answers.filter(a => a.isCorrect).length;
         const totalCount = batch.answers.length;
         const score = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
         
-        // Update High Score Locally
+        // Update High Score
         if (score >= (currentScores[batch.topicLabel] || 0)) {
            currentScores[batch.topicLabel] = score;
         }
 
+        // --- ADAPTIVE LEARNING LOGIC ---
+        // 1. Track Seen Questions
+        batch.answers.forEach(a => seenIds.add(a.questionId));
+
+        // 2. Update Elo Rating (Simple Implementation)
+        // Base Elo starts at 1000. 
+        // If score > 70, rating increases. If < 50, rating decreases.
+        const currentElo = currentElos[batch.topicId] || 1000;
+        let eloChange = 0;
+        
+        if (score >= 80) eloChange = 30; // Strong performance
+        else if (score >= 60) eloChange = 10; // Moderate improvement
+        else if (score >= 40) eloChange = -10; // Slight struggle
+        else eloChange = -20; // Needs easier questions
+
+        currentElos[batch.topicId] = Math.max(0, currentElo + eloChange);
+        // -------------------------------
+
         batchInputs.push({
           topic: batch.topicLabel,
           score: score,
-          performance: batch.answers // Pass full answers including text
+          performance: batch.answers 
         });
       });
 
       // Save Profile Updates
       updatedProfile.scores = currentScores;
+      updatedProfile.eloRatings = currentElos;
+      updatedProfile.seenQuestionIds = Array.from(seenIds);
+      
       setUserProfile(updatedProfile);
       localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));
 
@@ -186,7 +223,7 @@ export const useGameViewModel = () => {
         id: allBatches[idx].topicId
       }));
 
-      setEvaluation(resultsWithIds[0]); // Show first one by default if needed, or aggregate
+      setEvaluation(resultsWithIds[0]); 
       setSessionResults(resultsWithIds);
       setStage(AppStage.RESULTS);
 
@@ -235,14 +272,12 @@ export const useGameViewModel = () => {
         setStage(AppStage.LANGUAGE);
         return true;
       case AppStage.QUIZ:
-        // *** NEW LOGIC: Go back to previous question if possible ***
         if (currentQuestionIndex > 0) {
            setCurrentQuestionIndex(prev => prev - 1);
-           setUserAnswers(prev => prev.slice(0, -1)); // Remove the answer for the question we are going back to
+           setUserAnswers(prev => prev.slice(0, -1)); 
            setSelectedOption(null);
-           return true; // Navigation handled
+           return true; 
         }
-        // Only confirm exit if at the first question of the set
         if (window.confirm(t.common.confirm_exit)) {
           setStage(AppStage.TOPIC_SELECTION);
           setSelectionPhase('CATEGORY');
@@ -365,7 +400,6 @@ export const useGameViewModel = () => {
     goBack: () => {
       if (isPending) return;
       
-      // *** NEW LOGIC: Consistent with performBackNavigation ***
       if (stage === AppStage.QUIZ) {
         if (currentQuestionIndex > 0) {
           setCurrentQuestionIndex(prev => prev - 1);
@@ -373,7 +407,6 @@ export const useGameViewModel = () => {
           setSelectedOption(null);
           return;
         }
-        // Fallthrough to standard confirm exit
       }
 
       if (stage === AppStage.TOPIC_SELECTION && selectionPhase === 'SUBTOPIC') {
@@ -464,7 +497,6 @@ export const useGameViewModel = () => {
       }
     },
     
-    // Explicitly add nextTopicInQueue for manual transitions if needed (and to satisfy App.tsx typing)
     nextTopicInQueue: () => {
       if (quizQueue.length > 0) {
          const [next, ...rest] = quizQueue;
@@ -561,10 +593,8 @@ export const useGameViewModel = () => {
       setSelectedOption(null);
       
       if (currentQuestionIndex < questions.length - 1) {
-        // Next Question
         setCurrentQuestionIndex(prev => prev + 1);
       } else {
-        // End of current Topic
         const currentTopicLabel = currentQuizSet?.topic || (batchProgress.topics[batchProgress.current - 1] || "Unknown");
         const currentTopicId = getTopicIdFromLabel(currentTopicLabel);
         
@@ -578,12 +608,10 @@ export const useGameViewModel = () => {
         setCompletedBatches(newCompletedBatches);
 
         if (quizQueue.length > 0) {
-           // Proceed to Next Topic immediately
            const nextProgress = {
               ...batchProgress,
               current: batchProgress.current + 1
            };
-           // Perform transition logic inline to avoid dependency issues
            const [next, ...rest] = quizQueue;
            setQuizQueue(rest);
            setCurrentQuizSet(next);
@@ -592,7 +620,6 @@ export const useGameViewModel = () => {
            setUserAnswers([]);
            setBatchProgress(nextProgress);
         } else {
-           // All topics done, Analyze Batch
            finishBatchQuiz(newCompletedBatches, userProfile, language);
         }
       }

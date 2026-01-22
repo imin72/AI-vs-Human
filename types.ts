@@ -24,6 +24,14 @@ export interface UserProfile {
   ageGroup: string;
   nationality: string;
   scores?: Record<string, number>; // Topic Name -> High Score
+  
+  // --- New Adaptive Learning Fields ---
+  eloRatings?: Record<string, number>; // Topic ID -> Elo Score (Default: 1000)
+  seenQuestionIds?: number[]; // List of IDs already answered to prevent duplicates
+  traits?: {
+    avgResponseTime?: number; // Seconds
+    impulsiveness?: number; // 0-100
+  };
 }
 
 export interface QuizQuestion {
