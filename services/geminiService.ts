@@ -1,14 +1,14 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language } from "../types";
+import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language, QuizSet } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const MODEL_NAME = 'gemini-3-flash-preview';
 
-const CACHE_KEY_QUIZ = "cognito_quiz_cache_v1";
+const CACHE_KEY_QUIZ = "cognito_quiz_cache_v2"; // Version bumped for structure change
 const CACHE_KEY_EVAL = "cognito_eval_cache_v1";
 
-// 비상용 폴백 퀴즈 (API 장애 발생 시 제공 - 기본 영어지만 서비스 안정성용)
+// 비상용 폴백 퀴즈
 const FALLBACK_QUIZ: QuizQuestion[] = [
   { id: 1, question: "Which is not a characteristic of Human Intelligence?", options: ["Emotional Intuition", "Pattern Recognition", "Finite Biological Memory", "Infinite Electricity Consumption"], correctAnswer: "Infinite Electricity Consumption", context: "AI uses vast amounts of electricity compared to the human brain." },
   { id: 2, question: "What is the Turing Test designed to determine?", options: ["CPU Speed", "AI's ability to exhibit human-like behavior", "Battery life", "Internet connectivity"], correctAnswer: "AI's ability to exhibit human-like behavior" },
@@ -55,74 +55,119 @@ const cleanJson = (text: string | undefined): string => {
   return match ? match[0] : text.trim();
 };
 
+// Batch Generation Function
+export const generateQuestionsBatch = async (
+  topics: string[], 
+  difficulty: Difficulty, 
+  lang: Language,
+  userProfile?: UserProfile
+): Promise<QuizSet[]> => {
+  const quizCache = loadCache(CACHE_KEY_QUIZ);
+  const results: QuizSet[] = [];
+  const missingTopics: string[] = [];
+
+  // 1. Check Cache
+  for (const topic of topics) {
+    const cacheKey = `quiz_${topic}_${difficulty}_${lang}`.toLowerCase();
+    if (quizCache[cacheKey]) {
+      results.push({ topic, questions: quizCache[cacheKey] });
+    } else {
+      missingTopics.push(topic);
+    }
+  }
+
+  // 2. Fetch missing topics in one batch
+  if (missingTopics.length > 0) {
+    try {
+      const languageNames: Record<Language, string> = {
+        en: "English",
+        ko: "Korean (한국어)",
+        ja: "Japanese (日本語)",
+        es: "Spanish (Español)",
+        fr: "French (Français)",
+        zh: "Chinese Simplified (简体中文)"
+      };
+
+      const prompt = `
+        You are a high-level knowledge testing AI.
+        Generate 5 multiple-choice questions for EACH of the following topics: ${JSON.stringify(missingTopics)}.
+        
+        CRITICAL INSTRUCTIONS:
+        1. ALL text content MUST be written in ${languageNames[lang]}.
+        2. Difficulty level: ${difficulty}.
+        3. Target Audience: ${userProfile?.ageGroup || 'General'}.
+        4. Provide interesting 'context' (hints/facts) for each question.
+        5. Return a JSON object where keys are the exact topic names provided, and values are arrays of questions.
+      `;
+
+      // Construct dynamic schema based on missing topics
+      const topicProperties: Record<string, any> = {};
+      missingTopics.forEach(topic => {
+        topicProperties[topic] = {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.INTEGER },
+              question: { type: Type.STRING },
+              options: { type: Type.ARRAY, items: { type: Type.STRING } },
+              correctAnswer: { type: Type.STRING },
+              context: { type: Type.STRING }
+            },
+            required: ["id", "question", "options", "correctAnswer"]
+          }
+        };
+      });
+
+      const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
+        model: MODEL_NAME,
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: topicProperties,
+            required: missingTopics
+          }
+        }
+      }));
+
+      const generatedData = JSON.parse(cleanJson(response.text));
+      
+      missingTopics.forEach(topic => {
+        if (generatedData[topic]) {
+          const qs = generatedData[topic];
+          // Save to cache
+          const cacheKey = `quiz_${topic}_${difficulty}_${lang}`.toLowerCase();
+          quizCache[cacheKey] = qs;
+          
+          results.push({ topic, questions: qs });
+        }
+      });
+      
+      saveCache(CACHE_KEY_QUIZ, quizCache);
+    } catch (error) {
+      console.error("Batch Quiz Generation Failed:", error);
+      // Fallback for missing topics
+      missingTopics.forEach(topic => {
+         results.push({ topic, questions: FALLBACK_QUIZ });
+      });
+    }
+  }
+
+  // Sort results to match original order
+  return topics.map(t => results.find(r => r.topic === t)!).filter(Boolean);
+};
+
+// Keep single generation for backward compatibility or single re-tries
 export const generateQuestions = async (
   topic: string, 
   difficulty: Difficulty, 
   lang: Language,
   userProfile?: UserProfile
 ): Promise<QuizQuestion[]> => {
-  const cacheKey = `quiz_${topic}_${difficulty}_${lang}`.toLowerCase();
-  const quizCache = loadCache(CACHE_KEY_QUIZ);
-  if (quizCache[cacheKey]) return quizCache[cacheKey];
-
-  try {
-    // 언어에 따른 명시적 지침 추가
-    const languageNames: Record<Language, string> = {
-      en: "English",
-      ko: "Korean (한국어)",
-      ja: "Japanese (日本語)",
-      es: "Spanish (Español)",
-      fr: "French (Français)",
-      zh: "Chinese Simplified (简体中文)"
-    };
-
-    const prompt = `
-      You are a high-level knowledge testing AI.
-      Generate 5 multiple-choice questions about the topic: "${topic}".
-      
-      CRITICAL INSTRUCTIONS:
-      1. ALL text content (question, options, context) MUST be written in ${languageNames[lang]}.
-      2. Difficulty level: ${difficulty}.
-      3. Target Audience: ${userProfile?.ageGroup || 'General'}.
-      4. Ensure technical accuracy and provide interesting 'context' (hints/facts) for each question in ${languageNames[lang]}.
-      5. Return ONLY a valid JSON object.
-    `;
-
-    const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: [{ parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            questions: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.INTEGER },
-                  question: { type: Type.STRING },
-                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  correctAnswer: { type: Type.STRING },
-                  context: { type: Type.STRING }
-                },
-                required: ["id", "question", "options", "correctAnswer"]
-              }
-            }
-          }
-        }
-      }
-    }));
-
-    const qs = JSON.parse(cleanJson(response.text)).questions;
-    quizCache[cacheKey] = qs;
-    saveCache(CACHE_KEY_QUIZ, quizCache);
-    return qs;
-  } catch (error) {
-    console.error("Quiz Generation Failed:", error);
-    return FALLBACK_QUIZ;
-  }
+  const res = await generateQuestionsBatch([topic], difficulty, lang, userProfile);
+  return res[0]?.questions || FALLBACK_QUIZ;
 };
 
 export const evaluateAnswers = async (
@@ -201,7 +246,7 @@ export const evaluateAnswers = async (
       demographicPercentile: score,
       demographicComment: lang === 'ko' ? "서버 연결이 원활하지 않아 로컬 분석을 수행합니다." : "Cognito server is temporarily offline. Using local analysis.",
       aiComparison: lang === 'ko' ? "인간의 지능은 안정적이나, AI는 현재 재교정 중입니다." : "Human intelligence is stable; AI is currently recalibrating.",
-      title: lang === 'ko' ? "로컬 분석 모드" : "Local Analysis Mode",
+      title: topic,
       details: performance.map(p => ({
         questionId: p.id,
         isCorrect: p.ok,

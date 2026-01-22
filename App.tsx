@@ -51,7 +51,8 @@ export default function App() {
           t={{...t.topics, difficulty: t.difficulty, btn_back: t.common.btn_back}} 
           state={{
             ...topicState,
-            errorMsg: resultState.errorMsg
+            errorMsg: resultState.errorMsg,
+            userProfile // Pass profile for badges
           }}
           actions={{
             goBack: actions.goBack,
@@ -63,7 +64,8 @@ export default function App() {
             selectSubTopic: actions.selectSubTopic,
             setDifficulty: actions.setDifficulty,
             startQuiz: actions.startQuiz,
-            startDebugQuiz: actions.startDebugQuiz
+            startDebugQuiz: actions.startDebugQuiz,
+            editProfile: actions.editProfile // Add edit action
           }}
         />
       )}
@@ -77,13 +79,14 @@ export default function App() {
           questions={quizState.questions}
           currentIndex={quizState.currentQuestionIndex}
           selectedOption={quizState.selectedOption}
-          topicLabel={topicState.selectedSubTopic || topicState.selectedCategory}
+          topicLabel={state.quizState.questions.length > 0 ? (state.quizState.questions[0] as any).topic || topicState.selectedSubTopics[0] || "Quiz" : "Quiz"}
           onSelectOption={actions.selectOption}
           onConfirm={actions.confirmAnswer}
           onBack={actions.goBack}
           onHome={actions.goHome}
           backLabel={t.common.btn_back}
           language={language}
+          batchProgress={quizState.batchProgress} // Pass batch info
         />
       )}
       
@@ -96,6 +99,8 @@ export default function App() {
           data={resultState.evaluation} 
           onRestart={actions.resetApp} 
           onHome={actions.goHome}
+          onNextTopic={actions.nextTopicInQueue}
+          remainingTopics={quizState.remainingTopics}
           language={language} 
         />
       )}

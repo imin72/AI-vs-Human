@@ -7,27 +7,77 @@ import {
   Difficulty, 
   QuizQuestion, 
   UserAnswer, 
-  EvaluationResult
+  EvaluationResult,
+  QuizSet
 } from '../types';
-import { generateQuestions, evaluateAnswers } from '../services/geminiService';
+import { generateQuestionsBatch, evaluateAnswers } from '../services/geminiService';
 import { TRANSLATIONS } from '../utils/translations';
+
+const PROFILE_KEY = 'cognito_user_profile_v1';
+
+const DEBUG_QUIZ: QuizQuestion[] = [
+  { 
+    id: 1, 
+    question: "Which protocol is used for secure web browsing?", 
+    options: ["HTTP", "HTTPS", "FTP", "SMTP"], 
+    correctAnswer: "HTTPS", 
+    context: "Hypertext Transfer Protocol Secure is the standard." 
+  },
+  { 
+    id: 2, 
+    question: "What is the time complexity of binary search?", 
+    options: ["O(n)", "O(log n)", "O(n^2)", "O(1)"], 
+    correctAnswer: "O(log n)", 
+    context: "Binary search divides the search interval in half." 
+  },
+  {
+    id: 3,
+    question: "Which React hook is used for side effects?",
+    options: ["useState", "useEffect", "useMemo", "useReducer"],
+    correctAnswer: "useEffect",
+    context: "useEffect handles side effects in function components."
+  }
+];
 
 export const useGameViewModel = () => {
   const [stage, setStage] = useState<AppStage>(AppStage.LANGUAGE);
   const [language, setLanguage] = useState<Language>('en');
   const [userProfile, setUserProfile] = useState<UserProfile>({ gender: '', ageGroup: '', nationality: '' });
+  
+  // Selection State
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [selectedSubTopic, setSelectedSubTopic] = useState<string>('');
+  const [selectedSubTopics, setSelectedSubTopics] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.MEDIUM);
+  
+  // Quiz Execution State
+  const [quizQueue, setQuizQueue] = useState<QuizSet[]>([]);
+  const [currentQuizSet, setCurrentQuizSet] = useState<QuizSet | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  
+  // Batch Progress Tracking
+  const [batchProgress, setBatchProgress] = useState<{ total: number, current: number, topics: string[] }>({ total: 0, current: 0, topics: [] });
+
+  // Result State
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [isPending, setIsPending] = useState(false);
 
   const t = useMemo(() => TRANSLATIONS[language], [language]);
+
+  // Load Profile on Mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PROFILE_KEY);
+      if (saved) {
+        setUserProfile(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.warn("Failed to load profile");
+    }
+  }, []);
 
   const displayedTopics = useMemo(() => {
     return Object.entries(t.topics.categories)
@@ -49,12 +99,50 @@ export const useGameViewModel = () => {
       const totalCount = finalAnswers.length;
       const score = Math.round((correctCount / totalCount) * 100);
       
+      // Update High Score Logic (Local Only)
+      const currentScores = profile.scores || {};
+      const previousScore = currentScores[currentTopic] || 0;
+      let updatedProfile = profile;
+      if (score >= previousScore) {
+        updatedProfile = {
+          ...profile,
+          scores: { ...currentScores, [currentTopic]: score }
+        };
+        setUserProfile(updatedProfile);
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));
+      }
+
+      // --- DEBUG MODE CHECK ---
+      // If the topic is "Debug...", skip the API call
+      if (currentTopic.startsWith("Debug")) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Fake analyzing delay
+        const mockResult: EvaluationResult = {
+          totalScore: score,
+          humanPercentile: 99,
+          aiComparison: "[DEBUG] AI Analysis bypassed. Pure logic verified.",
+          demographicPercentile: 50,
+          demographicComment: "Debug environment detected. Metrics simulated.",
+          title: currentTopic,
+          details: finalAnswers.map(a => ({
+            questionId: a.questionId,
+            isCorrect: a.isCorrect,
+            aiComment: a.isCorrect ? "Correct (Debug)" : "Incorrect (Debug)",
+            correctFact: "Debug Fact: The correct answer was " + a.correctAnswer
+          }))
+        };
+        setEvaluation(mockResult);
+        setStage(AppStage.RESULTS);
+        setIsPending(false);
+        return;
+      }
+
+      // --- REAL MODE ---
       const performanceSummary = finalAnswers.map(a => ({
         id: a.questionId,
         ok: a.isCorrect
       }));
 
-      const res = await evaluateAnswers(currentTopic, score, profile, lang, performanceSummary);
+      const res = await evaluateAnswers(currentTopic, score, updatedProfile, lang, performanceSummary);
       setEvaluation({ ...res, totalScore: score });
       setStage(AppStage.RESULTS);
     } catch (e: any) {
@@ -68,42 +156,32 @@ export const useGameViewModel = () => {
   // --- History Navigation Logic ---
   const isNavigatingBackRef = useRef(false);
 
-  // Initialize History
   useEffect(() => {
     window.history.replaceState({ stage: 'root' }, '');
   }, []);
 
-  // Sync forward navigation to history
   useEffect(() => {
     if (isNavigatingBackRef.current) {
       isNavigatingBackRef.current = false;
       return;
     }
-    
-    // Push state when moving deeper into the app
-    // We treat LANGUAGE as root, so anything else pushes history
     if (stage !== AppStage.LANGUAGE) {
-      // Also account for sub-states like selectedCategory in TOPIC_SELECTION
-      if (stage === AppStage.TOPIC_SELECTION && !selectedCategory) {
-         // This is the base topic selection, only push if we came from PROFILE
-      }
       window.history.pushState({ stage, selectedCategory }, '');
     }
   }, [stage, selectedCategory]);
 
-  // Handle actual back logic (state updates)
   const performBackNavigation = useCallback((): boolean => {
     if (isPending) return false;
 
     if (selectedCategory && stage === AppStage.TOPIC_SELECTION) { 
       setSelectedCategory(''); 
-      setSelectedSubTopic(''); 
+      setSelectedSubTopics([]);
       return true;
     }
     
     switch (stage) {
       case AppStage.TOPIC_SELECTION:
-        setStage(AppStage.PROFILE);
+        setStage(AppStage.INTRO); 
         return true;
       case AppStage.PROFILE:
         setStage(AppStage.INTRO);
@@ -114,9 +192,11 @@ export const useGameViewModel = () => {
       case AppStage.QUIZ:
         if (window.confirm(t.common.confirm_exit)) {
           setStage(AppStage.TOPIC_SELECTION);
+          setQuizQueue([]);
+          setBatchProgress({ total: 0, current: 0, topics: [] });
           return true;
         }
-        return false; // Cancelled
+        return false;
       case AppStage.RESULTS:
       case AppStage.ERROR:
         setStage(AppStage.TOPIC_SELECTION);
@@ -126,20 +206,14 @@ export const useGameViewModel = () => {
     }
   }, [stage, selectedCategory, isPending, t]);
 
-  // Listen for browser back button (popstate)
   useEffect(() => {
     const handlePopState = (_: PopStateEvent) => {
-      // If we are at LANGUAGE, allow default behavior (exit app/close tab)
-      if (stage === AppStage.LANGUAGE) {
-        return; 
-      }
+      if (stage === AppStage.LANGUAGE) return; 
 
       isNavigatingBackRef.current = true;
       const success = performBackNavigation();
       
       if (!success) {
-        // Navigation was cancelled (e.g. Quiz confirm rejected)
-        // We must push state back to restore the history stack
         window.history.pushState({ stage, selectedCategory }, '');
       }
     };
@@ -148,28 +222,47 @@ export const useGameViewModel = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [performBackNavigation, stage, selectedCategory]);
 
+  // --- Actions ---
   const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { 
       setLanguage(lang); 
       setStage(AppStage.INTRO); 
     },
-    startIntro: () => setStage(AppStage.PROFILE),
+    startIntro: () => {
+      if (userProfile.gender && userProfile.nationality) {
+        setStage(AppStage.TOPIC_SELECTION);
+      } else {
+        setStage(AppStage.PROFILE);
+      }
+    },
+    editProfile: () => {
+      setStage(AppStage.PROFILE);
+    },
     updateProfile: (profile: Partial<UserProfile>) => setUserProfile(prev => ({ ...prev, ...profile })),
-    submitProfile: () => setStage(AppStage.TOPIC_SELECTION),
+    submitProfile: () => {
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
+      setStage(AppStage.TOPIC_SELECTION);
+    },
     selectCategory: (id: string) => {
       setSelectedCategory(id);
-      setSelectedSubTopic('');
+      setSelectedSubTopics([]);
     },
-    selectSubTopic: (sub: string) => setSelectedSubTopic(sub),
+    selectSubTopic: (sub: string) => {
+      setSelectedSubTopics(prev => {
+        if (prev.includes(sub)) {
+          return prev.filter(p => p !== sub);
+        } else {
+          if (prev.length >= 5) return prev;
+          return [...prev, sub];
+        }
+      });
+    },
     setDifficulty: (diff: Difficulty) => setDifficulty(diff),
     
-    // Modified goBack to use History API
     goBack: () => {
       if (isPending) return;
       if (stage === AppStage.LANGUAGE) return;
-      
-      // Trigger browser back, which will fire popstate and run performBackNavigation
-      window.history.back();
+      performBackNavigation();
     },
     
     goHome: () => {
@@ -177,26 +270,54 @@ export const useGameViewModel = () => {
       if (stage === AppStage.QUIZ) {
         if (!window.confirm(t.common.confirm_exit)) return;
       }
-      setStage(AppStage.LANGUAGE);
-      // Reset basic states
+      
+      if (userProfile.nationality) {
+        setStage(AppStage.TOPIC_SELECTION);
+      } else {
+        setStage(AppStage.LANGUAGE);
+      }
+      
       setEvaluation(null);
       setUserAnswers([]);
       setCurrentQuestionIndex(0);
       setSelectedCategory('');
-      setSelectedSubTopic('');
+      setSelectedSubTopics([]);
+      setQuizQueue([]);
+      setCurrentQuizSet(null);
+      setBatchProgress({ total: 0, current: 0, topics: [] });
     },
+
+    resetApp: () => {
+      setUserAnswers([]); 
+      setCurrentQuestionIndex(0); 
+      setEvaluation(null);
+      setStage(AppStage.QUIZ);
+    },
+
     startQuiz: async () => {
       if (isPending) return;
-      const finalTopic = selectedSubTopic;
-      if (!finalTopic) return;
+      if (selectedSubTopics.length === 0) return;
       
       setIsPending(true);
       setStage(AppStage.LOADING_QUIZ);
       try {
-        const qs = await generateQuestions(finalTopic, difficulty, language, userProfile);
-        setQuestions(qs);
+        const quizSets = await generateQuestionsBatch(selectedSubTopics, difficulty, language, userProfile);
+        
+        // Setup Queue & Batch Info
+        const [first, ...rest] = quizSets;
+        setQuizQueue(rest);
+        setCurrentQuizSet(first);
+        setQuestions(first.questions);
         setCurrentQuestionIndex(0);
         setUserAnswers([]);
+        
+        // Initialize Batch Progress
+        setBatchProgress({
+          total: selectedSubTopics.length,
+          current: 1,
+          topics: selectedSubTopics
+        });
+        
         setStage(AppStage.QUIZ);
       } catch (e: any) {
         setErrorMsg(e.message || "Failed to initialize protocol");
@@ -205,35 +326,58 @@ export const useGameViewModel = () => {
         setIsPending(false);
       }
     },
-    startDebugQuiz: () => {
-      const debugQuestions: QuizQuestion[] = [
-        {
-          id: 1,
-          question: "This is a debug question to test layout constraints. It is intentionally long to see how the UI handles multi-line text and sticky headers. Does the header overlap the text when scrolled?",
-          options: ["Layout looks good", "Header overlaps text", "Text is too small", "Margins are wrong"],
-          correctAnswer: "Layout looks good",
-          context: "Layout Debugging Context"
-        },
-        {
-          id: 2,
-          question: "Short question check.",
-          options: ["A", "B", "C", "D"],
-          correctAnswer: "A",
-          context: "Short Context"
-        },
-        {
-          id: 3,
-          question: "Extreme length test: " + "repeat ".repeat(50) + "end.",
-          options: ["Option 1", "Option 2", "Option 3", "Option 4"],
-          correctAnswer: "Option 1",
-          context: "Scrolling test"
-        }
-      ];
-      setQuestions(debugQuestions);
+    
+    nextTopicInQueue: () => {
+      if (quizQueue.length === 0) return;
+      
+      const [next, ...rest] = quizQueue;
+      setQuizQueue(rest);
+      setCurrentQuizSet(next);
+      setQuestions(next.questions);
       setCurrentQuestionIndex(0);
       setUserAnswers([]);
+      setEvaluation(null);
+      
+      // Update Batch Progress
+      setBatchProgress(prev => ({
+        ...prev,
+        current: prev.current + 1
+      }));
+      
       setStage(AppStage.QUIZ);
     },
+
+    startDebugQuiz: async () => {
+       if (isPending) return;
+       setIsPending(true);
+       setStage(AppStage.LOADING_QUIZ);
+       await new Promise(resolve => setTimeout(resolve, 800));
+       
+       // Simulate 3 Topics for Debugging Batch Flow
+       const debugTopics = ["Debug Alpha", "Debug Beta", "Debug Gamma"];
+       const debugSets: QuizSet[] = debugTopics.map((topic, index) => ({
+         topic: topic,
+         questions: DEBUG_QUIZ.map(q => ({
+            ...q,
+            id: q.id + (index * 100), // Ensure unique IDs for React keys
+            question: `[${topic}] ${q.question}`
+         }))
+       }));
+       
+       const [first, ...rest] = debugSets;
+       
+       setQuizQueue(rest);
+       setCurrentQuizSet(first);
+       setQuestions(first.questions);
+       setCurrentQuestionIndex(0);
+       setUserAnswers([]);
+       
+       setBatchProgress({ total: debugTopics.length, current: 1, topics: debugTopics });
+       
+       setStage(AppStage.QUIZ);
+       setIsPending(false);
+    },
+    
     selectOption: (option: string) => setSelectedOption(option),
     confirmAnswer: () => {
       if (!selectedOption) return;
@@ -252,30 +396,20 @@ export const useGameViewModel = () => {
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
       } else {
-        const currentTopic = selectedSubTopic;
+        const currentTopic = currentQuizSet?.topic || "Unknown";
         finishQuiz(updated, currentTopic, userProfile, language);
       }
-    },
-    resetApp: () => { 
-      setStage(AppStage.TOPIC_SELECTION);
-      setEvaluation(null); 
-      setUserAnswers([]); 
-      setCurrentQuestionIndex(0); 
-      setSelectedCategory(''); 
-      setSelectedSubTopic('');
-      setErrorMsg('');
-      setIsPending(false);
     },
     shuffleTopics: () => {},
     shuffleSubTopics: () => {},
     setCustomTopic: (_topic: string) => {}
-  }), [isPending, stage, selectedCategory, selectedSubTopic, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, performBackNavigation]);
+  }), [isPending, stage, selectedCategory, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, performBackNavigation]);
 
   return {
     state: {
       stage, language, userProfile,
-      topicState: { selectedCategory, selectedSubTopic, difficulty, displayedTopics, displayedSubTopics, isTopicLoading: isPending },
-      quizState: { questions, currentQuestionIndex, userAnswers, selectedOption },
+      topicState: { selectedCategory, selectedSubTopics, difficulty, displayedTopics, displayedSubTopics, isTopicLoading: isPending },
+      quizState: { questions, currentQuestionIndex, userAnswers, selectedOption, remainingTopics: quizQueue.length, batchProgress },
       resultState: { evaluation, errorMsg }
     },
     actions, t

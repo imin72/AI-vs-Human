@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Brain, Cpu, ArrowRight, ChevronLeft, Home } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Brain, Cpu, ArrowRight, ChevronLeft, Home, UserCheck } from 'lucide-react';
 import { Button } from '../components/Button';
 
 interface IntroViewProps {
@@ -11,7 +11,21 @@ interface IntroViewProps {
   backLabel: string;
 }
 
+const PROFILE_KEY = 'cognito_user_profile_v1';
+
 export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome, backLabel }) => {
+  const [hasProfile, setHasProfile] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(PROFILE_KEY);
+    if (saved) {
+      const p = JSON.parse(saved);
+      if (p.nationality && p.gender) {
+        setHasProfile(true);
+      }
+    }
+  }, []);
+
   const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
 
   return (
@@ -59,8 +73,22 @@ export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome
         </div>
 
         <Button onClick={onStart} fullWidth className="text-lg py-4 group">
-          {t.btn_start} <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+          {hasProfile ? (
+            <span className="flex items-center gap-2">
+              <UserCheck size={20} /> Continue with Saved Profile
+            </span>
+          ) : (
+            <>
+              {t.btn_start} <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+            </>
+          )}
         </Button>
+        
+        {hasProfile && (
+           <p className="mt-4 text-xs text-slate-500 cursor-pointer hover:text-rose-400 transition-colors" onClick={() => { localStorage.removeItem(PROFILE_KEY); window.location.reload(); }}>
+             Reset Profile Data
+           </p>
+        )}
       </div>
     </div>
   );

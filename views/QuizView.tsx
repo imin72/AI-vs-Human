@@ -16,6 +16,7 @@ interface QuizViewProps {
   onHome: () => void;
   backLabel: string;
   language: Language;
+  batchProgress?: { total: number; current: number; topics: string[] };
 }
 
 export const QuizView: React.FC<QuizViewProps> = ({ 
@@ -27,7 +28,8 @@ export const QuizView: React.FC<QuizViewProps> = ({
   onConfirm,
   onBack,
   onHome,
-  language
+  language,
+  batchProgress
 }) => {
   const question = questions[currentIndex];
   const [aiLogs, setAiLogs] = useState<string[]>([]);
@@ -52,8 +54,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
     setShowHint(false); 
     setAiProgress(0);
 
-    // AI 문제 풀이 시간 시뮬레이션 (문제 길이에 비례)
-    // 기본 2초 + 글자당 0.05초 (긴 문제는 더 오래 걸림)
+    // AI 문제 풀이 시간 시뮬레이션
     const thinkingTime = 2000 + (question.question.length * 50);
     const updateInterval = 50;
     const progressStep = 100 / (thinkingTime / updateInterval);
@@ -145,7 +146,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
         <Home size={20} />
       </button>
 
-      {/* 상단 AI 상태창 (Sticky 적용) - 크기 확대 */}
+      {/* 상단 AI 상태창 */}
       <div className="sticky top-2 z-40 glass-panel p-4 md:p-5 rounded-3xl border-cyan-500/30 flex items-center justify-between overflow-hidden shadow-2xl backdrop-blur-xl transition-all duration-300">
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -164,7 +165,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
           </div>
         </div>
         
-        {/* AI Progress Bar in Header - 크기 확대 */}
+        {/* AI Progress Bar */}
         <div className="flex flex-col items-end gap-1.5 w-32 md:w-40">
            <div className="text-[10px] md:text-xs font-mono text-slate-400 flex items-center gap-1.5">
              {isAiDone ? <CheckCircle2 size={12} className="text-rose-500"/> : <Timer size={12} className="animate-spin" />}
@@ -178,6 +179,32 @@ export const QuizView: React.FC<QuizViewProps> = ({
            </div>
         </div>
       </div>
+
+      {/* Batch Progress Indicator */}
+      {batchProgress && batchProgress.total > 1 && (
+        <div className="flex items-center justify-center gap-2 mb-2 animate-fade-in">
+          {Array.from({ length: batchProgress.total }).map((_, idx) => {
+            const step = idx + 1;
+            const isDone = step < batchProgress.current;
+            const isCurrent = step === batchProgress.current;
+            return (
+              <div key={idx} className={`transition-all duration-500 flex items-center`}>
+                <div 
+                  className={`w-3 h-3 rounded-full border transition-all duration-500 ${
+                   isDone ? 'bg-green-500 border-green-400' :
+                   isCurrent ? 'bg-cyan-400 border-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.8)] scale-125' :
+                   'bg-slate-800 border-slate-600'
+                  }`} 
+                  title={`Topic ${step}: ${batchProgress.topics[idx] || 'Unknown'}`} 
+                />
+                {idx < batchProgress.total - 1 && (
+                  <div className={`w-6 h-0.5 mx-1 rounded-full transition-colors duration-500 ${isDone ? 'bg-green-900' : 'bg-slate-800'}`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* 메인 퀴즈 카드 */}
       <div className={`glass-panel p-6 md:p-8 rounded-3xl space-y-6 relative overflow-visible transition-all duration-700 border ${
@@ -196,9 +223,11 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
         {/* Header Row: Topic, Bubble, Counter */}
         <div className="flex justify-between items-start text-sm text-slate-400 uppercase tracking-wider relative min-h-[44px] mb-2">
-          <span className="bg-slate-800 px-3 py-1 rounded-full text-[10px] font-bold border border-slate-700 text-cyan-400 shrink-0 mt-1">
-              {topicLabel}
-          </span>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="bg-slate-800 px-3 py-1 rounded-full text-[10px] font-bold border border-slate-700 text-cyan-400 shrink-0">
+                {topicLabel}
+            </span>
+          </div>
 
           {/* AI 도발 말풍선 - 중앙 배치 */}
           <div className="absolute left-0 right-0 -top-2 flex justify-center pointer-events-none z-20">

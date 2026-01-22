@@ -21,22 +21,26 @@ import {
   Lightbulb,
   Dices,
   Home,
-  Bug
+  Bug,
+  CheckCircle2,
+  UserPen,
+  Medal
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
-import { Difficulty, TOPIC_IDS } from '../types.ts';
+import { Difficulty, TOPIC_IDS, UserProfile } from '../types.ts';
 import { TRANSLATIONS } from '../utils/translations.ts';
 
 interface TopicSelectionViewProps {
   t: any;
   state: {
     selectedCategory: string;
-    selectedSubTopic: string;
+    selectedSubTopics: string[];
     difficulty: Difficulty;
     displayedTopics: {id: string, label: string}[];
     displayedSubTopics: string[];
     isTopicLoading: boolean;
     errorMsg: string;
+    userProfile?: UserProfile; 
   };
   actions: {
     goBack: () => void;
@@ -49,6 +53,7 @@ interface TopicSelectionViewProps {
     startQuiz: () => void;
     setCustomTopic: (topic: string) => void;
     startDebugQuiz?: () => void;
+    editProfile: () => void;
   };
 }
 
@@ -75,7 +80,7 @@ const getCategoryIcon = (id: string) => {
 };
 
 export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state, actions }) => {
-  const { selectedCategory, selectedSubTopic, difficulty, displayedTopics, displayedSubTopics, errorMsg } = state;
+  const { selectedCategory, selectedSubTopics, difficulty, displayedTopics, displayedSubTopics, errorMsg, userProfile } = state;
   
   const [subsetCategories, setSubsetCategories] = useState<{id: string, label: string}[]>([]);
   const [subsetSubTopics, setSubsetSubTopics] = useState<string[]>([]);
@@ -103,7 +108,6 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
   };
 
   const getImageUrl = (keyword: string) => {
-    // 프리뷰 환경에서 절대 경로 보장을 위해 t에서 직접 이미지를 가져오거나 원문 대조
     if (t.subtopicImages && t.subtopicImages[keyword]) return t.subtopicImages[keyword];
     
     const currentLangSubtopics = t.subtopics[selectedCategory] || [];
@@ -121,12 +125,22 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
 
   return (
     <div className="w-full max-w-2xl relative pt-16 animate-fade-in flex flex-col items-center">
-      <button 
-        onClick={actions.goBack}
-        className={`${navBtnStyle} left-0 md:-left-12`}
-      >
-        <ChevronLeft size={20} />
-      </button>
+      <div className="absolute top-4 left-0 md:-left-12 flex gap-2 z-20">
+        <button 
+          onClick={actions.goBack}
+          className="text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        {/* Profile Edit Button */}
+        <button 
+          onClick={actions.editProfile}
+          className="text-cyan-400 bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 hover:text-white transition-all border border-cyan-500/20 shadow-lg"
+          aria-label="Edit Profile"
+        >
+          <UserPen size={20} />
+        </button>
+      </div>
 
       <button 
         onClick={actions.goHome}
@@ -141,6 +155,9 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           <h2 className="text-2xl font-bold tracking-tight text-white">
             {!selectedCategory ? t.title_select : t.title_config}
           </h2>
+          {selectedCategory && (
+             <p className="text-xs text-slate-400 mt-1">Select multiple topics for continuous challenge</p>
+          )}
         </div>
         
         {errorMsg && <div className="text-red-400 text-center text-xs bg-red-900/20 p-3 rounded-xl border border-red-500/20 animate-pulse">{errorMsg}</div>}
@@ -187,30 +204,49 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
               </button>
 
               <div className="grid grid-cols-2 gap-3">
-                {subsetSubTopics.map(sub => (
-                  <button 
-                    key={sub} 
-                    onClick={() => actions.selectSubTopic(sub)} 
-                    className={`group relative aspect-video rounded-2xl overflow-hidden border transition-all bg-slate-900 ${
-                      selectedSubTopic === sub 
-                        ? 'border-cyan-400 ring-2 ring-cyan-500/50' 
-                        : 'border-slate-800 hover:border-slate-500'
-                    }`}
-                  >
-                    <div 
-                      className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-500 group-hover:scale-110"
-                      style={{ backgroundImage: `url('${getImageUrl(sub)}')`, backgroundSize: 'cover' }}
-                    />
-                    <div className="absolute inset-0 bg-slate-950/40 group-hover:bg-slate-950/20 transition-colors" />
-                    <div className="absolute inset-0 p-3 flex items-center justify-center">
-                      <span className={`text-sm md:text-base font-black text-center uppercase tracking-wide leading-tight drop-shadow-lg ${
-                        selectedSubTopic === sub ? 'text-cyan-300' : 'text-white'
-                      }`}>
-                        {sub}
-                      </span>
-                    </div>
-                  </button>
-                ))}
+                {subsetSubTopics.map(sub => {
+                  const isSelected = selectedSubTopics.includes(sub);
+                  const score = userProfile?.scores?.[sub];
+                  
+                  return (
+                    <button 
+                      key={sub} 
+                      onClick={() => actions.selectSubTopic(sub)} 
+                      className={`group relative aspect-video rounded-2xl overflow-hidden border transition-all bg-slate-900 ${
+                        isSelected 
+                          ? 'border-cyan-400 ring-2 ring-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.4)]' 
+                          : 'border-slate-800 hover:border-slate-500'
+                      }`}
+                    >
+                      <div 
+                        className={`absolute inset-0 bg-cover bg-center transition-transform duration-500 ${isSelected ? 'scale-110 opacity-40' : 'opacity-60 group-hover:scale-110'}`}
+                        style={{ backgroundImage: `url('${getImageUrl(sub)}')`, backgroundSize: 'cover' }}
+                      />
+                      <div className={`absolute inset-0 transition-colors ${isSelected ? 'bg-slate-950/20' : 'bg-slate-950/40 group-hover:bg-slate-950/20'}`} />
+                      
+                      {isSelected && (
+                         <div className="absolute top-2 right-2 bg-cyan-500 text-white rounded-full p-0.5 z-10 shadow-sm animate-bounce">
+                           <CheckCircle2 size={14} />
+                         </div>
+                      )}
+
+                      {/* Score Badge */}
+                      {!isSelected && score !== undefined && (
+                        <div className="absolute top-2 right-2 bg-amber-500/90 backdrop-blur text-white text-[10px] font-black px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm border border-amber-400/50">
+                           <Medal size={10} /> {score}
+                        </div>
+                      )}
+
+                      <div className="absolute inset-0 p-3 flex items-center justify-center">
+                        <span className={`text-sm md:text-base font-black text-center uppercase tracking-wide leading-tight drop-shadow-lg ${
+                          isSelected ? 'text-cyan-200' : 'text-white'
+                        }`}>
+                          {sub}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
             
@@ -235,23 +271,26 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
             
             <Button 
               onClick={actions.startQuiz} 
-              disabled={!selectedSubTopic} 
+              disabled={selectedSubTopics.length === 0} 
               fullWidth 
               className="mt-2 py-4 shadow-xl"
             >
-              {t.btn_start_sim} <Play size={18} className="fill-white" />
+              {selectedSubTopics.length > 1 
+                ? `Start Batch Challenge (${selectedSubTopics.length})` 
+                : t.btn_start_sim} <Play size={18} className="fill-white" />
             </Button>
+
+            {actions.startDebugQuiz && (
+              <button
+                onClick={actions.startDebugQuiz}
+                className="w-full mt-4 text-[10px] text-slate-600 font-mono hover:text-rose-500 transition-colors uppercase tracking-widest flex items-center justify-center gap-2"
+              >
+                <Bug size={12} /> Developer Override: Bypass AI
+              </button>
+            )}
           </div>
         )}
       </div>
-      
-      {/* Debug Button */}
-      <button 
-        onClick={actions.startDebugQuiz}
-        className="mt-6 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900/50 border border-slate-800 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:text-cyan-400 hover:border-cyan-500/50 transition-all opacity-40 hover:opacity-100"
-      >
-        <Bug size={12} /> Debug Layout
-      </button>
     </div>
   );
 };

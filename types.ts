@@ -23,6 +23,7 @@ export interface UserProfile {
   gender: string;
   ageGroup: string;
   nationality: string;
+  scores?: Record<string, number>; // Topic Name -> High Score
 }
 
 export interface QuizQuestion {
@@ -31,6 +32,11 @@ export interface QuizQuestion {
   options: string[];
   correctAnswer: string;
   context?: string; 
+}
+
+export interface QuizSet {
+  topic: string;
+  questions: QuizQuestion[];
 }
 
 export interface UserAnswer {
