@@ -260,9 +260,32 @@ export const useGameViewModel = () => {
   // --- Actions ---
   const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { 
+      const currentLang = language;
+      const nextLang = lang;
+      
+      // Map currently selected subtopics to the new language to persist selection
+      if (selectedSubTopics.length > 0) {
+        const currentT = TRANSLATIONS[currentLang];
+        const nextT = TRANSLATIONS[nextLang];
+        const newSelected: string[] = [];
+        
+        selectedSubTopics.forEach(topicName => {
+           for (const [catId, list] of Object.entries(currentT.topics.subtopics)) {
+              const index = list.indexOf(topicName);
+              if (index !== -1) {
+                 const nextName = nextT.topics.subtopics[catId]?.[index];
+                 if (nextName) {
+                    newSelected.push(nextName);
+                 }
+                 break;
+              }
+           }
+        });
+        
+        setSelectedSubTopics(newSelected);
+      }
+      
       setLanguage(lang); 
-      // Subtopic strings are language-dependent, so we must clear them to prevent invalid states
-      setSelectedSubTopics([]);
       
       if (stage === AppStage.LANGUAGE) {
          setStage(AppStage.INTRO); 

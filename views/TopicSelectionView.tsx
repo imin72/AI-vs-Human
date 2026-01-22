@@ -81,31 +81,38 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
       {/* Main Glass Panel */}
       <div className="glass-panel flex flex-col flex-grow h-0 rounded-3xl overflow-hidden shadow-2xl">
         {/* Compact Header - Unified Title & Controls */}
-        <div className="p-4 pb-2 shrink-0 border-b border-white/5 bg-slate-900/40 flex justify-between items-start gap-4">
+        <div className="p-4 pb-2 shrink-0 border-b border-white/5 bg-slate-900/40 flex justify-between items-start gap-3">
           <div className="flex flex-col min-w-0 flex-1 pt-1">
             <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2 truncate leading-tight">
               {isCategoryPhase ? t.title_select : t.title_config}
             </h2>
-            <p className="text-xs text-slate-400 mt-1 whitespace-normal break-words leading-relaxed pr-2">
+            <p className="text-xs text-slate-400 mt-2 whitespace-normal break-words leading-relaxed">
               {t.desc_select}
             </p>
           </div>
           
           <div className="flex gap-2 shrink-0 items-start">
-             {isCategoryPhase && (
-               <>
-                 <button onClick={actions.shuffleTopics} className={`${btnStyle} text-slate-300 hover:text-cyan-400`} aria-label="Shuffle">
-                   <RefreshCw size={18} />
+             {/* Left Column: Language & Refresh */}
+             <div className="flex flex-col gap-2">
+                 <LanguageSwitcher currentLanguage={language} onLanguageChange={actions.setLanguage} />
+                 {isCategoryPhase && (
+                   <button onClick={actions.shuffleTopics} className={`${btnStyle} text-slate-300 hover:text-cyan-400`} aria-label="Shuffle">
+                     <RefreshCw size={18} />
+                   </button>
+                 )}
+             </div>
+
+             {/* Right Column: Home & Profile */}
+             <div className="flex flex-col gap-2">
+                 <button onClick={actions.goHome} className={btnStyle} aria-label="Home">
+                   <Home size={18} />
                  </button>
-                 <button onClick={actions.editProfile} className={`${btnStyle} text-cyan-400 hover:text-white border-cyan-500/20`}>
-                   <UserPen size={18} />
-                 </button>
-               </>
-             )}
-             <LanguageSwitcher currentLanguage={language} onLanguageChange={actions.setLanguage} />
-             <button onClick={actions.goHome} className={btnStyle} aria-label="Home">
-               <Home size={18} />
-             </button>
+                 {isCategoryPhase && (
+                   <button onClick={actions.editProfile} className={`${btnStyle} text-cyan-400 hover:text-white border-cyan-500/20`}>
+                     <UserPen size={18} />
+                   </button>
+                 )}
+             </div>
           </div>
         </div>
         
@@ -168,14 +175,16 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
         ) : (
           /* STEP 2: SUBTOPIC SELECTION */
           <>
-            <div className="flex-grow overflow-y-auto custom-scrollbar p-4 space-y-6">
+            <div className="flex-grow overflow-y-auto custom-scrollbar relative">
                 {groupedSubTopics.map((group) => (
-                  <div key={group.catId} className="space-y-2">
-                    <div className="sticky top-0 z-10 bg-slate-950/80 backdrop-blur-md py-2 px-1 border-b border-slate-800 flex items-center gap-2 rounded-lg">
+                  <div key={group.catId}>
+                    {/* Sticky Header: Full width, opaque, square corners to sit flush */}
+                    <div className="sticky top-0 z-10 bg-slate-950 px-4 py-3 border-b border-slate-800 flex items-center gap-2 shadow-md">
                        <span className="text-cyan-400">{getCategoryIcon(group.catId)}</span>
                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{group.label}</h3>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    {/* Content Grid: Padded */}
+                    <div className="grid grid-cols-2 gap-2 p-4 pt-2">
                       {group.subtopics.map((sub: string) => {
                         const isSelected = selectedSubTopics.includes(sub);
                         const score = userProfile?.scores?.[sub];
