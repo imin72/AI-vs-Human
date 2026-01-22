@@ -272,7 +272,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
         </div>
       </div>
 
-      {/* 순서 변경: 1. 다음 버튼 */}
+      {/* 1. 다음 버튼 */}
       <div className="pt-2">
         <Button 
           onClick={onConfirm} 
@@ -284,21 +284,9 @@ export const QuizView: React.FC<QuizViewProps> = ({
         </Button>
       </div>
 
-      {/* 순서 변경: 2. Human Progress */}
-      <div className="flex flex-col gap-2">
-        <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">
-           <span>Human Progress</span>
-           <span>{Math.round(((currentIndex + 1) / questions.length) * 100)}%</span>
-        </div>
-        <div className="h-2 w-full bg-slate-800/50 rounded-full overflow-hidden border border-slate-700/30">
-          <div 
-            className="h-full bg-gradient-to-r from-rose-500 via-purple-500 to-cyan-500 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(6,182,212,0.5)]"
-            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-          ></div>
-        </div>
-      </div>
+      {/* Human Progress Bar Deleted Here */}
 
-      {/* 순서 변경: 3. AI Status */}
+      {/* 2. AI Status */}
       <div className="glass-panel p-4 rounded-3xl border-rose-500/20 flex items-center justify-between overflow-hidden shadow-lg backdrop-blur-xl transition-all duration-300">
         <div className="flex items-center gap-4">
           <div className="relative">
