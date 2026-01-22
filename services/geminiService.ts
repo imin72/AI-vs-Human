@@ -227,6 +227,7 @@ export const evaluateBatchAnswers = async (
       2. Each item in "results" must correspond to the input topics in order.
       3. For "details", provide a brief witty comment on why they might have missed it or a congratulation.
       4. "aiComparison" and "demographicComment" should be creative and slightly provocative (Human vs AI theme).
+      5. Include "questionId" in details to match input.
     `;
 
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
@@ -278,13 +279,19 @@ export const evaluateBatchAnswers = async (
     return parsed.results.map((res: any, index: number) => ({
       ...res,
       totalScore: batches[index].score,
-      // Map details back to IDs if needed, ensuring length matches
-      details: batches[index].performance.map((p, pIdx) => ({
-        questionId: p.id,
-        isCorrect: p.ok,
-        aiComment: res.details?.[pIdx]?.aiComment || "Analysis unavailable",
-        correctFact: res.details?.[pIdx]?.correctFact || "N/A"
-      }))
+      // Map details back to IDs to ensure correct order matching user's experience
+      details: batches[index].performance.map((p) => {
+        // Find the AI detail that matches this question ID
+        const aiDetail = res.details?.find((d: any) => d.questionId === p.id);
+        
+        return {
+          questionId: p.id,
+          isCorrect: p.ok,
+          // Use found detail or fallback to "Analysis unavailable"
+          aiComment: aiDetail?.aiComment || "Analysis unavailable",
+          correctFact: aiDetail?.correctFact || "N/A"
+        };
+      })
     }));
 
   } catch (error) {

@@ -57,6 +57,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
   const [chartReady, setChartReady] = useState(false);
   const [selectedResultForPopup, setSelectedResultForPopup] = useState<EvaluationResult | null>(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [isGeneratingShare, setIsGeneratingShare] = useState(false);
   
   // Refs for capturing individual slides
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -108,15 +109,64 @@ export const StageResults: React.FC<StageResultsProps> = ({
 
   // --- Share Functions ---
   const shareText = `Cognito Protocol 🧬\nScore: ${currentScore}/100 [${gradeInfo.label}]\n${isFinalSummary ? 'Aggregate Analysis' : `Topic: ${data.title}`}\n\nProve your humanity:`;
+  const hashtags = "HumanVsAI,Cognito";
   const shareUrl = window.location.href;
 
-  const handleSystemShare = async () => {
-    if (navigator.share) {
-      try { await navigator.share({ title: 'Cognito', text: shareText, url: shareUrl }); } catch (err) { console.error(err); }
-    } else {
-      handleCopyLink();
+  // Generic function to generate blob and try native sharing
+  const performNativeShare = async (platform?: 'twitter' | 'instagram' | 'system') => {
+    setIsGeneratingShare(true);
+    const targetRef = currentPage === 0 ? summaryRef : detailsRef;
+    
+    try {
+      if (targetRef.current) {
+        // Generate Blob directly
+        const blob = await toPng(targetRef.current, { cacheBust: true, backgroundColor: '#020617' })
+          .then(dataUrl => fetch(dataUrl))
+          .then(res => res.blob());
+
+        const file = new File([blob], `cognito-result-${Date.now()}.png`, { type: 'image/png' });
+        
+        // Try Web Share API Level 2 (File sharing)
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'Cognito Analysis',
+            text: shareText,
+            files: [file],
+            url: shareUrl
+          });
+        } else {
+          // Fallback based on platform
+          if (platform === 'twitter') {
+            const text = encodeURIComponent(shareText);
+            const url = encodeURIComponent(shareUrl);
+            window.open(`https://x.com/intent/tweet?text=${text}&url=${url}&hashtags=${hashtags}`, '_blank');
+          } else if (platform === 'instagram') {
+             // For Instagram/Others without native share, download the image and prompt
+             const link = document.createElement('a');
+             link.download = file.name;
+             link.href = URL.createObjectURL(blob);
+             link.click();
+             alert("Image downloaded! Open Instagram to share it to your Story.");
+          } else {
+            // System fallback
+            handleCopyLink();
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Share failed", err);
+      if (platform === 'twitter') {
+         // Text only fallback for Twitter
+         const text = encodeURIComponent(shareText);
+         const url = encodeURIComponent(shareUrl);
+         window.open(`https://x.com/intent/tweet?text=${text}&url=${url}&hashtags=${hashtags}`, '_blank');
+      } else {
+         alert("Could not generate share image.");
+      }
+    } finally {
+      setIsGeneratingShare(false);
+      setShowShareMenu(false);
     }
-    setShowShareMenu(false);
   };
 
   const handleCopyLink = () => {
@@ -124,24 +174,8 @@ export const StageResults: React.FC<StageResultsProps> = ({
     setShowShareMenu(false);
   };
 
-  const handleTwitterShare = () => {
-    const text = encodeURIComponent(shareText);
-    const url = encodeURIComponent(shareUrl);
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
-    setShowShareMenu(false);
-  };
-
-  const handleInstagramShare = async () => {
-    // For web, we can't deep link to Instagram Stories with an image directly.
-    // The best UX is to save the image and prompt the user.
-    await handleSaveImage();
-    // setTimeout(() => alert("Image saved! Upload it to your Instagram Story."), 1000);
-  };
-
   const handleSaveImage = async () => {
-    // Capture the visible slide based on currentPage
     const targetRef = currentPage === 0 ? summaryRef : detailsRef;
-    
     if (targetRef.current) {
       try {
         const dataUrl = await toPng(targetRef.current, { cacheBust: true, backgroundColor: '#020617' });
@@ -286,8 +320,8 @@ export const StageResults: React.FC<StageResultsProps> = ({
                                    <span className="text-[10px] font-mono font-bold text-cyan-400">{res.totalScore}</span>
                                 </div>
                                 <div className="bg-slate-950/60 rounded p-1 border border-slate-800 flex justify-between items-center px-2">
-                                   <span className="text-[8px] text-slate-500 font-bold uppercase">Global</span>
-                                   <span className="text-[10px] font-mono font-bold text-purple-400">Top {100 - res.humanPercentile}%</span>
+                                   <span className="text-[8px] text-slate-500 font-bold uppercase">{t.suffix_global || "Global"}</span>
+                                   <span className="text-[10px] font-mono font-bold text-purple-400">{t.label_top} {100 - res.humanPercentile}%</span>
                                 </div>
                              </div>
                           </button>
@@ -305,7 +339,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
                                   {item.isCorrect ? <CheckCircle size={18} /> : <XCircle size={18} />}
                                 </div>
                                 <div>
-                                   <div className="text-xs font-bold text-slate-400 uppercase mb-1">Q{idx + 1}</div>
+                                   <div className="text-xs font-bold text-slate-400 uppercase mb-1">{t.popup_question} {idx + 1}</div>
                                    <div className="text-sm font-medium text-slate-200 line-clamp-2">{item.aiComment}</div>
                                 </div>
                             </div>
@@ -359,29 +393,36 @@ export const StageResults: React.FC<StageResultsProps> = ({
            <div className="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden p-6 space-y-4">
               <h3 className="text-lg font-bold text-white text-center mb-4">{t.btn_share}</h3>
               
-              <div className="grid grid-cols-2 gap-3">
-                 <button onClick={handleSystemShare} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
-                    <Smartphone size={24} className="text-purple-400" />
-                    <span className="text-xs font-bold text-slate-300">System</span>
-                 </button>
-                 
-                 <button onClick={handleTwitterShare} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
-                    <Twitter size={24} className="text-sky-400" />
-                    <span className="text-xs font-bold text-slate-300">X / Twitter</span>
-                 </button>
+              {isGeneratingShare ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <RefreshCw className="animate-spin text-cyan-400 mb-2" />
+                  <span className="text-xs text-slate-400">Generating snapshot...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                   <button onClick={() => performNativeShare('system')} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
+                      <Smartphone size={24} className="text-purple-400" />
+                      <span className="text-xs font-bold text-slate-300">System</span>
+                   </button>
+                   
+                   <button onClick={() => performNativeShare('twitter')} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
+                      <Twitter size={24} className="text-sky-400" />
+                      <span className="text-xs font-bold text-slate-300">X / Twitter</span>
+                   </button>
 
-                 <button onClick={handleInstagramShare} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
-                    <Instagram size={24} className="text-rose-500" />
-                    <span className="text-xs font-bold text-slate-300">Instagram</span>
-                 </button>
+                   <button onClick={() => performNativeShare('instagram')} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
+                      <Instagram size={24} className="text-rose-500" />
+                      <span className="text-xs font-bold text-slate-300">Instagram</span>
+                   </button>
 
-                 <button onClick={handleSaveImage} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
-                    <Download size={24} className="text-emerald-400" />
-                    <span className="text-xs font-bold text-slate-300">
-                        Save Image
-                    </span>
-                 </button>
-              </div>
+                   <button onClick={handleSaveImage} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
+                      <Download size={24} className="text-emerald-400" />
+                      <span className="text-xs font-bold text-slate-300">
+                          {t.btn_save}
+                      </span>
+                   </button>
+                </div>
+              )}
 
               <div className="flex flex-col gap-2 mt-2">
                  <div className="bg-slate-800/50 p-2 rounded text-center">
