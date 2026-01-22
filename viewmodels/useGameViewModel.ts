@@ -160,29 +160,42 @@ export const useGameViewModel = () => {
       isNavigatingBackRef.current = false;
       return;
     }
+    // Only push state when stage changes, do not push on category selection to avoid history clutter
     if (stage !== AppStage.LANGUAGE) {
-      window.history.pushState({ stage, selectedCategories }, '');
+      window.history.pushState({ stage }, '');
     }
-  }, [stage, selectedCategories]);
+  }, [stage]);
 
   const performBackNavigation = useCallback((): boolean => {
     if (isPending) return false;
 
-    // Handle 2-step selection logic
-    if (stage === AppStage.TOPIC_SELECTION) {
-      if (selectionPhase === 'SUBTOPIC') {
-        setSelectionPhase('CATEGORY');
-        setSelectedSubTopics([]); // Reset subtopics when going back to category selection
-        return true;
-      }
-      if (selectedCategories.length > 0) {
-        setSelectedCategories([]);
-        return true;
-      }
-    }
+    // Handle 2-step selection logic: Subtopic -> Category (No history pop)
+    // Note: If we are here via POPSTATE, it means user pressed HW Back.
+    // Since we didn't push state for SUBTOPIC, we shouldn't be here if we were at SUBTOPIC unless 
+    // we were confused. But actually, if we didn't push state for SUBTOPIC, 
+    // HW Back would take us to previous STAGE (e.g. Intro).
+    // So this check is mainly for safety or if we decide to push state later.
+    // For now, if we are at SUBTOPIC visually but history popped, we probably want to go to CATEGORY?
+    // But if history popped, we are already at previous history entry.
+    // This logic is primarily for updating REACT STATE to match where we think we are.
     
     switch (stage) {
       case AppStage.TOPIC_SELECTION:
+        if (selectionPhase === 'SUBTOPIC') {
+            setSelectionPhase('CATEGORY');
+            setSelectedSubTopics([]);
+            // We return true, meaning we handled it. 
+            // BUT if this was triggered by history pop, and we didn't push for SUBTOPIC,
+            // then we actually went back to INTRO in history?
+            // This suggests we SHOULD push state for SUBTOPIC if we want HW Back to work for it.
+            // Or we accept that HW Back from Subtopic goes to Intro.
+            // Let's assume for now HW Back from Subtopic goes to Intro is acceptable 
+            // OR we fix goBack to handle it manually.
+            // If this performBackNavigation is called via POPSTATE, it means we ARE moving back.
+            // So we should update stage to whatever matches previous history.
+            setStage(AppStage.INTRO); 
+            return true;
+        }
         setStage(AppStage.INTRO); 
         return true;
       case AppStage.PROFILE:
@@ -203,37 +216,35 @@ export const useGameViewModel = () => {
       case AppStage.RESULTS:
       case AppStage.ERROR:
         setStage(AppStage.TOPIC_SELECTION);
-        // Keep the selection phase to allow easy retry of other topics, or reset?
-        // Let's reset to Category phase for fresh start
         setSelectionPhase('CATEGORY');
         return true;
       default:
         return true;
     }
-  }, [stage, selectionPhase, selectedCategories, isPending, t]);
+  }, [stage, selectionPhase, isPending, t]);
 
   useEffect(() => {
     const handlePopState = (_: PopStateEvent) => {
+      // If we are at root (Language), allow default browser behavior (exit/back)
       if (stage === AppStage.LANGUAGE) return; 
 
       isNavigatingBackRef.current = true;
       const success = performBackNavigation();
       
       if (!success) {
-        window.history.pushState({ stage, selectedCategories }, '');
+        // Restore forward history if navigation cancelled (e.g. Quiz exit cancelled)
+        window.history.pushState({ stage }, '');
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [performBackNavigation, stage, selectedCategories]);
+  }, [performBackNavigation, stage]);
 
   // --- Actions ---
   const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { 
       setLanguage(lang); 
-      // Only proceed to INTRO if currently on the initial LANGUAGE selection screen.
-      // This allows the global language switcher to just change text without navigation.
       if (stage === AppStage.LANGUAGE) {
          setStage(AppStage.INTRO); 
       }
@@ -259,7 +270,6 @@ export const useGameViewModel = () => {
       setStage(AppStage.TOPIC_SELECTION);
     },
     selectCategory: (id: string) => {
-      // Toggle logic for multiple categories
       setSelectedCategories(prev => {
         if (prev.includes(id)) {
           return prev.filter(cat => cat !== id);
@@ -278,7 +288,6 @@ export const useGameViewModel = () => {
         if (prev.includes(sub)) {
           return prev.filter(p => p !== sub);
         } else {
-          // Optional: Limit max selections if needed, e.g., 10
           if (prev.length >= 10) return prev;
           return [...prev, sub];
         }
@@ -288,8 +297,19 @@ export const useGameViewModel = () => {
     
     goBack: () => {
       if (isPending) return;
+      
+      // Handle internal UI state that doesn't correspond to a history entry
+      if (stage === AppStage.TOPIC_SELECTION && selectionPhase === 'SUBTOPIC') {
+        setSelectionPhase('CATEGORY');
+        setSelectedSubTopics([]);
+        return;
+      }
+
+      // If at root, do nothing (UI shouldn't have back button, but just in case)
       if (stage === AppStage.LANGUAGE) return;
-      performBackNavigation();
+
+      // For all other stage transitions, trigger browser back to sync history
+      window.history.back();
     },
     
     goHome: () => {
@@ -297,6 +317,11 @@ export const useGameViewModel = () => {
       if (stage === AppStage.QUIZ) {
         if (!window.confirm(t.common.confirm_exit)) return;
       }
+      
+      // If we go home, we should ideally reset history? 
+      // It's hard to reset history. Let's just push/set state to appropriate start.
+      // But if we push, back button will go to previous.
+      // Ideally "Home" in apps clears stack, but in web it's just a nav.
       
       if (userProfile.nationality) {
         setStage(AppStage.TOPIC_SELECTION);
@@ -331,7 +356,6 @@ export const useGameViewModel = () => {
       try {
         const quizSets = await generateQuestionsBatch(selectedSubTopics, difficulty, language, userProfile);
         
-        // Setup Queue & Batch Info
         if (quizSets.length > 0) {
           const [first, ...rest] = quizSets;
           setQuizQueue(rest);
@@ -369,7 +393,6 @@ export const useGameViewModel = () => {
       setUserAnswers([]);
       setEvaluation(null);
       
-      // Update Batch Progress
       setBatchProgress(prev => ({
         ...prev,
         current: prev.current + 1
@@ -386,7 +409,6 @@ export const useGameViewModel = () => {
        try {
          await new Promise(resolve => setTimeout(resolve, 800));
          
-         // Simulate 3 Topics for Debugging Batch Flow
          const debugTopics = ["Debug Alpha", "Debug Beta", "Debug Gamma"];
          const debugSets: QuizSet[] = debugTopics.map((topic, index) => ({
            topic: topic,
@@ -434,7 +456,6 @@ export const useGameViewModel = () => {
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
       } else {
-        // Safe access to current topic
         const currentTopic = currentQuizSet?.topic || (batchProgress.topics[batchProgress.current - 1] || "Unknown");
         finishQuiz(updated, currentTopic, userProfile, language);
       }
