@@ -36,8 +36,19 @@ export const QuizView: React.FC<QuizViewProps> = ({
   const [aiComment, setAiComment] = useState("");
   const [showHint, setShowHint] = useState(false);
   const [aiProgress, setAiProgress] = useState(0); 
+  
+  // Refs for scrolling
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
+  
   const t = TRANSLATIONS[language].quiz;
+
+  // Scroll to top when question changes
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentIndex, topicLabel]);
 
   useEffect(() => {
     const logs = [
@@ -130,9 +141,11 @@ export const QuizView: React.FC<QuizViewProps> = ({
   
   if (isLastQuestion) {
     if (!isBatchFinished && batchProgress) {
+      // If there are more topics, indicate proceeding to next topic
       const nextTopic = batchProgress.topics[batchProgress.current] || "Next";
       buttonText = `${t.btn_start_next_topic_prefix}${nextTopic}${t.btn_start_next_topic_suffix}`;
     } else {
+      // Final Finish
       buttonText = t.btn_finish;
     }
   }
@@ -174,8 +187,8 @@ export const QuizView: React.FC<QuizViewProps> = ({
         <div className={`glass-panel flex-grow flex flex-col min-h-0 rounded-3xl relative overflow-hidden transition-all duration-700 border ${
           isAiDone ? 'border-rose-500 shadow-[0_0_30px_rgba(225,29,72,0.2)] bg-rose-950/20' : 'border-white/10'
         }`}>
-          {/* Scrollable Question & Options */}
-          <div className="flex-grow overflow-y-auto custom-scrollbar p-6 md:p-8">
+          {/* Scrollable Question & Options - Added ref here */}
+          <div ref={scrollContainerRef} className="flex-grow overflow-y-auto custom-scrollbar p-6 md:p-8">
             
             {/* Header: Topic & Counter */}
             <div className="flex justify-between items-start text-sm text-slate-400 uppercase tracking-wider relative min-h-[40px] mb-2">

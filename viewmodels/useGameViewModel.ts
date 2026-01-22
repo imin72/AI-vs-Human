@@ -10,7 +10,7 @@ import {
   EvaluationResult,
   QuizSet
 } from '../types';
-import { generateQuestionsBatch, evaluateAnswers } from '../services/geminiService';
+import { generateQuestionsBatch, evaluateBatchAnswers, BatchEvaluationInput } from '../services/geminiService';
 import { TRANSLATIONS } from '../utils/translations';
 
 const PROFILE_KEY = 'cognito_user_profile_v1';
@@ -49,6 +49,12 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return newArr;
 };
 
+interface AccumulatedBatchData {
+  topicLabel: string;
+  topicId: string;
+  answers: UserAnswer[];
+}
+
 export const useGameViewModel = () => {
   const [stage, setStage] = useState<AppStage>(AppStage.LANGUAGE);
   const [language, setLanguage] = useState<Language>('en');
@@ -71,10 +77,12 @@ export const useGameViewModel = () => {
   
   // Batch Progress Tracking
   const [batchProgress, setBatchProgress] = useState<{ total: number, current: number, topics: string[] }>({ total: 0, current: 0, topics: [] });
+  // Store answers for multiple topics to analyze at the end
+  const [completedBatches, setCompletedBatches] = useState<AccumulatedBatchData[]>([]);
 
   // Result State
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
-  const [sessionResults, setSessionResults] = useState<EvaluationResult[]>([]); // New: Store all results
+  const [sessionResults, setSessionResults] = useState<EvaluationResult[]>([]); 
   const [errorMsg, setErrorMsg] = useState('');
   const [isPending, setIsPending] = useState(false);
 
@@ -101,81 +109,86 @@ export const useGameViewModel = () => {
 
   // Determine topic ID from label (helper)
   const getTopicIdFromLabel = (label: string): string => {
-    // Reverse lookup from translation or displayedTopics
-    // This is a best-effort match since we only have the translated label in some contexts
-    // Ideally we should pass IDs through the quiz set.
     const topicObj = displayedTopics.find(t => t.label === label);
     if (topicObj) return topicObj.id;
     
-    // Fallback: check raw string match against keys
     const rawKey = Object.keys(t.topics.categories).find(k => t.topics.categories[k] === label);
     return rawKey || "GENERAL"; 
   };
 
-  const finishQuiz = async (finalAnswers: UserAnswer[], currentTopicLabel: string, profile: UserProfile, lang: Language) => {
+  const finishBatchQuiz = async (allBatches: AccumulatedBatchData[], profile: UserProfile, lang: Language) => {
     if (isPending) return;
     setIsPending(true);
     setStage(AppStage.ANALYZING);
-    
+
     try {
-      const correctCount = finalAnswers.filter(a => a.isCorrect).length;
-      const totalCount = finalAnswers.length;
-      const score = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+      // 1. Prepare data for API
+      const batchInputs: BatchEvaluationInput[] = [];
+      let updatedProfile = { ...profile };
+      const currentScores = { ...profile.scores };
+
+      allBatches.forEach(batch => {
+        const correctCount = batch.answers.filter(a => a.isCorrect).length;
+        const totalCount = batch.answers.length;
+        const score = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+        
+        // Update High Score Locally
+        if (score >= (currentScores[batch.topicLabel] || 0)) {
+           currentScores[batch.topicLabel] = score;
+        }
+
+        batchInputs.push({
+          topic: batch.topicLabel,
+          score: score,
+          performance: batch.answers.map(a => ({ id: a.questionId, ok: a.isCorrect }))
+        });
+      });
+
+      // Save Profile Updates
+      updatedProfile.scores = currentScores;
+      setUserProfile(updatedProfile);
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));
+
+      // 2. DEBUG MODE Check
+      const isDebug = allBatches.some(b => b.topicLabel.startsWith("Debug"));
+      if (isDebug) {
+         await new Promise(resolve => setTimeout(resolve, 800));
+         const mockResults: EvaluationResult[] = allBatches.map(b => ({
+            id: b.topicId,
+            totalScore: 80,
+            humanPercentile: 90,
+            aiComparison: "Debug Mode Analysis.",
+            demographicPercentile: 50,
+            demographicComment: "Simulated Data.",
+            title: b.topicLabel,
+            details: b.answers.map(a => ({
+               questionId: a.questionId,
+               isCorrect: a.isCorrect,
+               aiComment: "Debug Comment",
+               correctFact: "Debug Fact"
+            }))
+         }));
+         setEvaluation(mockResults[0]);
+         setSessionResults(mockResults);
+         setStage(AppStage.RESULTS);
+         return;
+      }
+
+      // 3. Real API Call (Batch)
+      const results = await evaluateBatchAnswers(batchInputs, updatedProfile, lang);
       
-      // Update High Score Logic (Local Only)
-      const currentScores = profile.scores || {};
-      const previousScore = currentScores[currentTopicLabel] || 0;
-      let updatedProfile = profile;
-      if (score >= previousScore) {
-        updatedProfile = {
-          ...profile,
-          scores: { ...currentScores, [currentTopicLabel]: score }
-        };
-        setUserProfile(updatedProfile);
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));
-      }
-
-      // Identify Topic ID for iconography
-      const currentTopicId = getTopicIdFromLabel(currentTopicLabel);
-
-      // --- DEBUG MODE CHECK ---
-      if (currentTopicLabel.startsWith("Debug")) {
-        await new Promise(resolve => setTimeout(resolve, 800)); 
-        const mockResult: EvaluationResult = {
-          id: currentTopicId,
-          totalScore: score,
-          humanPercentile: 99,
-          aiComparison: "[DEBUG] AI Analysis bypassed. Pure logic verified.",
-          demographicPercentile: 50,
-          demographicComment: "Debug environment detected. Metrics simulated.",
-          title: currentTopicLabel,
-          details: finalAnswers.map(a => ({
-            questionId: a.questionId,
-            isCorrect: a.isCorrect,
-            aiComment: a.isCorrect ? "Correct (Debug)" : "Incorrect (Debug)",
-            correctFact: "Debug Fact: The correct answer was " + a.correctAnswer
-          }))
-        };
-        setEvaluation(mockResult);
-        setSessionResults(prev => [...prev, mockResult]); // Add to session history
-        setStage(AppStage.RESULTS);
-        return;
-      }
-
-      // --- REAL MODE ---
-      const performanceSummary = finalAnswers.map(a => ({
-        id: a.questionId,
-        ok: a.isCorrect
+      // Inject IDs back into results for iconography
+      const resultsWithIds = results.map((res, idx) => ({
+        ...res,
+        id: allBatches[idx].topicId
       }));
 
-      const res = await evaluateAnswers(currentTopicLabel, score, updatedProfile, lang, performanceSummary);
-      const finalResult = { ...res, totalScore: score, id: currentTopicId };
-      
-      setEvaluation(finalResult);
-      setSessionResults(prev => [...prev, finalResult]); // Add to session history
+      setEvaluation(resultsWithIds[0]); // Show first one by default if needed, or aggregate
+      setSessionResults(resultsWithIds);
       setStage(AppStage.RESULTS);
+
     } catch (e: any) {
-      console.error("Finish Quiz Error", e);
+      console.error("Batch Finish Error", e);
       setErrorMsg(e.message || "Unknown analysis error");
       setStage(AppStage.ERROR);
     } finally {
@@ -224,17 +237,17 @@ export const useGameViewModel = () => {
           setSelectionPhase('CATEGORY');
           setQuizQueue([]);
           setBatchProgress({ total: 0, current: 0, topics: [] });
-          setSessionResults([]); // Clear session
+          setSessionResults([]); 
+          setCompletedBatches([]);
           return true;
         }
         return false;
       case AppStage.RESULTS:
       case AppStage.ERROR:
-        // If mid-session, warn user? Or just exit. 
-        // For simplicity, go back to selection.
         setStage(AppStage.TOPIC_SELECTION);
         setSelectionPhase('CATEGORY');
-        setSessionResults([]); // Clear session
+        setSessionResults([]); 
+        setCompletedBatches([]);
         return true;
       default:
         return true;
@@ -263,7 +276,7 @@ export const useGameViewModel = () => {
       const currentLang = language;
       const nextLang = lang;
       
-      // Map currently selected subtopics to the new language to persist selection
+      // Map currently selected subtopics to the new language
       if (selectedSubTopics.length > 0) {
         const currentT = TRANSLATIONS[currentLang];
         const nextT = TRANSLATIONS[nextLang];
@@ -316,7 +329,7 @@ export const useGameViewModel = () => {
         if (prev.includes(id)) {
           return prev.filter(cat => cat !== id);
         } else {
-          if (prev.length >= 4) return prev; // Limit to 4
+          if (prev.length >= 4) return prev; 
           return [...prev, id];
         }
       });
@@ -331,7 +344,7 @@ export const useGameViewModel = () => {
         if (prev.includes(sub)) {
           return prev.filter(p => p !== sub);
         } else {
-          if (prev.length >= 4) return prev; // Limit to 4
+          if (prev.length >= 4) return prev; 
           return [...prev, sub];
         }
       });
@@ -370,11 +383,11 @@ export const useGameViewModel = () => {
       setQuizQueue([]);
       setCurrentQuizSet(null);
       setBatchProgress({ total: 0, current: 0, topics: [] });
-      setSessionResults([]); // Clear session
+      setSessionResults([]); 
+      setCompletedBatches([]);
     },
 
     resetApp: () => {
-      // Clear quiz state
       setUserAnswers([]); 
       setCurrentQuestionIndex(0); 
       setEvaluation(null);
@@ -382,13 +395,12 @@ export const useGameViewModel = () => {
       setCurrentQuizSet(null);
       setBatchProgress({ total: 0, current: 0, topics: [] });
       setSessionResults([]); 
+      setCompletedBatches([]);
 
-      // Reset selection state
       setSelectionPhase('CATEGORY');
       setSelectedCategories([]);
       setSelectedSubTopics([]);
 
-      // Navigate to Topic Selection
       setStage(AppStage.TOPIC_SELECTION);
     },
 
@@ -408,7 +420,8 @@ export const useGameViewModel = () => {
           setQuestions(first.questions);
           setCurrentQuestionIndex(0);
           setUserAnswers([]);
-          setSessionResults([]); // New batch starts
+          setSessionResults([]); 
+          setCompletedBatches([]); // Reset accumulator
           
           setBatchProgress({
             total: selectedSubTopics.length,
@@ -428,24 +441,25 @@ export const useGameViewModel = () => {
       }
     },
     
+    // Explicitly add nextTopicInQueue for manual transitions if needed (and to satisfy App.tsx typing)
     nextTopicInQueue: () => {
-      if (quizQueue.length === 0) return;
-      
-      const [next, ...rest] = quizQueue;
-      setQuizQueue(rest);
-      setCurrentQuizSet(next);
-      setQuestions(next.questions);
-      setCurrentQuestionIndex(0);
-      setUserAnswers([]);
-      setEvaluation(null);
-      // Do NOT clear sessionResults here, we want to accumulate
-      
-      setBatchProgress(prev => ({
-        ...prev,
-        current: prev.current + 1
-      }));
-      
-      setStage(AppStage.QUIZ);
+      if (quizQueue.length > 0) {
+         const [next, ...rest] = quizQueue;
+         
+         const nextProgress = {
+            ...batchProgress,
+            current: batchProgress.current + 1
+         };
+
+         setQuizQueue(rest);
+         setCurrentQuizSet(next);
+         setQuestions(next.questions);
+         setCurrentQuestionIndex(0);
+         setUserAnswers([]);
+         setBatchProgress(nextProgress);
+         
+         setStage(AppStage.QUIZ);
+      }
     },
 
     startDebugQuiz: async () => {
@@ -473,7 +487,8 @@ export const useGameViewModel = () => {
          setQuestions(first.questions);
          setCurrentQuestionIndex(0);
          setUserAnswers([]);
-         setSessionResults([]); // Reset session
+         setSessionResults([]);
+         setCompletedBatches([]);
          
          setBatchProgress({ total: debugTopics.length, current: 1, topics: debugTopics });
          
@@ -518,15 +533,45 @@ export const useGameViewModel = () => {
         correctAnswer: question.correctAnswer, 
         isCorrect: selectedOption === question.correctAnswer 
       };
-      const updated = [...userAnswers, answer];
-      setUserAnswers(updated);
+      const updatedAnswers = [...userAnswers, answer];
+      setUserAnswers(updatedAnswers);
       setSelectedOption(null);
       
       if (currentQuestionIndex < questions.length - 1) {
+        // Next Question
         setCurrentQuestionIndex(prev => prev + 1);
       } else {
-        const currentTopic = currentQuizSet?.topic || (batchProgress.topics[batchProgress.current - 1] || "Unknown");
-        finishQuiz(updated, currentTopic, userProfile, language);
+        // End of current Topic
+        const currentTopicLabel = currentQuizSet?.topic || (batchProgress.topics[batchProgress.current - 1] || "Unknown");
+        const currentTopicId = getTopicIdFromLabel(currentTopicLabel);
+        
+        const batchData: AccumulatedBatchData = {
+           topicLabel: currentTopicLabel,
+           topicId: currentTopicId,
+           answers: updatedAnswers
+        };
+        
+        const newCompletedBatches = [...completedBatches, batchData];
+        setCompletedBatches(newCompletedBatches);
+
+        if (quizQueue.length > 0) {
+           // Proceed to Next Topic immediately
+           const nextProgress = {
+              ...batchProgress,
+              current: batchProgress.current + 1
+           };
+           // Perform transition logic inline to avoid dependency issues
+           const [next, ...rest] = quizQueue;
+           setQuizQueue(rest);
+           setCurrentQuizSet(next);
+           setQuestions(next.questions);
+           setCurrentQuestionIndex(0);
+           setUserAnswers([]);
+           setBatchProgress(nextProgress);
+        } else {
+           // All topics done, Analyze Batch
+           finishBatchQuiz(newCompletedBatches, userProfile, language);
+        }
       }
     },
     shuffleTopics: () => {
@@ -534,7 +579,7 @@ export const useGameViewModel = () => {
     },
     shuffleSubTopics: () => {},
     setCustomTopic: (_topic: string) => {}
-  }), [isPending, stage, selectionPhase, selectedCategories, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, performBackNavigation, displayedTopics]);
+  }), [isPending, stage, selectionPhase, selectedCategories, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, performBackNavigation, displayedTopics, completedBatches]);
 
   return {
     state: {
@@ -549,7 +594,7 @@ export const useGameViewModel = () => {
         nextTopicName: quizQueue.length > 0 ? quizQueue[0].topic : undefined,
         batchProgress 
       },
-      resultState: { evaluation, sessionResults, errorMsg } // Expose sessionResults
+      resultState: { evaluation, sessionResults, errorMsg } 
     },
     actions, t
   };

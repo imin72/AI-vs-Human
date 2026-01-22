@@ -170,6 +170,7 @@ export const generateQuestions = async (
   return res[0]?.questions || FALLBACK_QUIZ;
 };
 
+// Original single evaluation function (kept for reference or single mode fallback)
 export const evaluateAnswers = async (
   topic: string, 
   score: number,
@@ -177,12 +178,29 @@ export const evaluateAnswers = async (
   lang: Language,
   performance: {id: number, ok: boolean}[]
 ): Promise<EvaluationResult> => {
-  const cacheKey = `eval_${topic}_${score}_${lang}_${userProfile.ageGroup}_p${performance.map(p=>p.ok?1:0).join('')}`.toLowerCase();
-  const evalCache = loadCache(CACHE_KEY_EVAL);
-  if (evalCache[cacheKey]) return evalCache[cacheKey];
+  // Use batch function for consistency, wrapping single item
+  const results = await evaluateBatchAnswers([{
+    topic,
+    score,
+    performance
+  }], userProfile, lang);
+  return results[0];
+};
 
+export interface BatchEvaluationInput {
+  topic: string;
+  score: number;
+  performance: {id: number, ok: boolean}[];
+}
+
+// New Batch Evaluation Function
+export const evaluateBatchAnswers = async (
+  batches: BatchEvaluationInput[],
+  userProfile: UserProfile,
+  lang: Language
+): Promise<EvaluationResult[]> => {
   try {
-    const languageNames: Record<Language, string> = {
+     const languageNames: Record<Language, string> = {
       en: "English",
       ko: "Korean (한국어)",
       ja: "Japanese (日本語)",
@@ -191,20 +209,27 @@ export const evaluateAnswers = async (
       zh: "Chinese Simplified (简体中文)"
     };
 
-    const perfStr = performance.map(p => `Q${p.id}:${p.ok?'Correct':'Incorrect'}`).join(', ');
+    const summaries = batches.map(b => 
+      `Topic: ${b.topic}, Score: ${b.score}/100, Details: [${b.performance.map(p => `Q${p.id}:${p.ok?'O':'X'}`).join(',')}]`
+    ).join('\n');
+
     const prompt = `
-      Generate a witty, human-vs-AI style performance report in ${languageNames[lang]}.
-      Topic: "${topic}"
-      User Score: ${score}/100
-      User Context: ${userProfile.ageGroup}, ${userProfile.nationality}
-      Performance: ${perfStr}
+      You are an AI analyst evaluating human intelligence.
+      Analyze the user's performance across multiple topics and generate a separate report for EACH topic.
       
+      User Context: Age ${userProfile.ageGroup}, Nationality ${userProfile.nationality}.
+      Language: ${languageNames[lang]} (Return ALL text in this language).
+
+      Input Data:
+      ${summaries}
+
       REQUIREMENTS:
-      1. ALL analysis text (aiComparison, demographicComment, aiComment, correctFact) MUST be in ${languageNames[lang]}.
-      2. Be analytical yet slightly provocative, like a superior but fair AI.
-      3. Return a valid JSON.
+      1. Return a JSON object containing an array "results".
+      2. Each item in "results" must correspond to the input topics in order.
+      3. For "details", provide a brief witty comment on why they might have missed it or a congratulation.
+      4. "aiComparison" and "demographicComment" should be creative and slightly provocative (Human vs AI theme).
     `;
-    
+
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: MODEL_NAME,
       contents: [{ parts: [{ text: prompt }] }],
@@ -213,20 +238,28 @@ export const evaluateAnswers = async (
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            humanPercentile: { type: Type.INTEGER },
-            demographicPercentile: { type: Type.INTEGER },
-            demographicComment: { type: Type.STRING },
-            aiComparison: { type: Type.STRING },
-            title: { type: Type.STRING },
-            details: {
+            results: {
               type: Type.ARRAY,
               items: {
                 type: Type.OBJECT,
                 properties: {
-                  questionId: { type: Type.INTEGER },
-                  isCorrect: { type: Type.BOOLEAN },
-                  aiComment: { type: Type.STRING },
-                  correctFact: { type: Type.STRING }
+                  humanPercentile: { type: Type.INTEGER },
+                  demographicPercentile: { type: Type.INTEGER },
+                  demographicComment: { type: Type.STRING },
+                  aiComparison: { type: Type.STRING },
+                  title: { type: Type.STRING },
+                  details: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        questionId: { type: Type.INTEGER },
+                        isCorrect: { type: Type.BOOLEAN },
+                        aiComment: { type: Type.STRING },
+                        correctFact: { type: Type.STRING }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -234,25 +267,43 @@ export const evaluateAnswers = async (
         }
       }
     }));
+
+    const parsed = JSON.parse(cleanJson(response.text));
     
-    const result = JSON.parse(cleanJson(response.text));
-    evalCache[cacheKey] = result;
-    saveCache(CACHE_KEY_EVAL, evalCache);
-    return result;
-  } catch (error) {
-    return {
-      totalScore: score,
-      humanPercentile: score,
-      demographicPercentile: score,
-      demographicComment: lang === 'ko' ? "서버 연결이 원활하지 않아 로컬 분석을 수행합니다." : "Cognito server is temporarily offline. Using local analysis.",
-      aiComparison: lang === 'ko' ? "인간의 지능은 안정적이나, AI는 현재 재교정 중입니다." : "Human intelligence is stable; AI is currently recalibrating.",
-      title: topic,
-      details: performance.map(p => ({
+    // Fallback if results are missing or mismatched
+    if (!parsed.results || !Array.isArray(parsed.results) || parsed.results.length !== batches.length) {
+       throw new Error("Batch analysis result mismatch");
+    }
+
+    // Merge score back into results (API doesn't calculate score, it analyzes it)
+    return parsed.results.map((res: any, index: number) => ({
+      ...res,
+      totalScore: batches[index].score,
+      // Map details back to IDs if needed, ensuring length matches
+      details: batches[index].performance.map((p, pIdx) => ({
         questionId: p.id,
         isCorrect: p.ok,
-        aiComment: lang === 'ko' ? "분석 완료." : "Analysis complete.",
+        aiComment: res.details?.[pIdx]?.aiComment || "Analysis unavailable",
+        correctFact: res.details?.[pIdx]?.correctFact || "N/A"
+      }))
+    }));
+
+  } catch (error) {
+    console.error("Batch Evaluation Failed", error);
+    // Fallback generation
+    return batches.map(b => ({
+      totalScore: b.score,
+      humanPercentile: b.score,
+      demographicPercentile: b.score,
+      demographicComment: lang === 'ko' ? "서버 부하로 인해 로컬 분석으로 대체되었습니다." : "Local analysis used due to server load.",
+      aiComparison: "AI recalibrating...",
+      title: b.topic,
+      details: b.performance.map(p => ({
+        questionId: p.id,
+        isCorrect: p.ok,
+        aiComment: "N/A",
         correctFact: "N/A"
       }))
-    };
+    }));
   }
 };
