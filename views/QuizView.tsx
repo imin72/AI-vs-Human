@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronLeft, Cpu, Terminal, Zap, Lightbulb, Home } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Cpu, Terminal, Zap, Lightbulb, Home, Timer, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { QuizQuestion, Language } from '../types';
 import { TRANSLATIONS } from '../utils/translations';
@@ -33,10 +33,11 @@ export const QuizView: React.FC<QuizViewProps> = ({
   const [aiLogs, setAiLogs] = useState<string[]>([]);
   const [aiComment, setAiComment] = useState("");
   const [showHint, setShowHint] = useState(false);
+  const [aiProgress, setAiProgress] = useState(0); // 0 to 100
   const logContainerRef = useRef<HTMLDivElement>(null);
   const t = TRANSLATIONS[language].quiz;
 
-  // AI 사고 프로세스 로그 시뮬레이션
+  // AI 사고 프로세스 로그 및 타이머 시뮬레이션
   useEffect(() => {
     const logs = [
       "INITIALIZING NEURAL NETWORK...",
@@ -49,13 +50,31 @@ export const QuizView: React.FC<QuizViewProps> = ({
     
     setAiLogs([]);
     setShowHint(false); 
+    setAiProgress(0);
+
+    // AI 문제 풀이 시간 시뮬레이션 (문제 길이에 비례)
+    // 기본 2초 + 글자당 0.05초 (긴 문제는 더 오래 걸림)
+    const thinkingTime = 2000 + (question.question.length * 50);
+    const updateInterval = 50;
+    const progressStep = 100 / (thinkingTime / updateInterval);
+
+    let progressTimer = setInterval(() => {
+      setAiProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(progressTimer);
+          return 100;
+        }
+        return prev + progressStep;
+      });
+    }, updateInterval);
+
     let i = 0;
-    const interval = setInterval(() => {
+    const logInterval = setInterval(() => {
       if (i < logs.length) {
         setAiLogs(prev => [...prev, logs[i]].slice(-4));
         i++;
       } else {
-        clearInterval(interval);
+        clearInterval(logInterval);
       }
     }, 1200);
 
@@ -64,8 +83,11 @@ export const QuizView: React.FC<QuizViewProps> = ({
       (language === 'ko' ? "다음 단계는 더 어려울 것입니다." : "The next sequence will be more complex.")
     );
 
-    return () => clearInterval(interval);
-  }, [currentIndex, topicLabel, language]);
+    return () => {
+      clearInterval(logInterval);
+      clearInterval(progressTimer);
+    };
+  }, [currentIndex, topicLabel, language, question.question]);
 
   // 보기를 선택할 때마다 AI의 도발
   useEffect(() => {
@@ -102,6 +124,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
   }, [aiLogs]);
 
   const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
+  const isAiDone = aiProgress >= 100;
 
   return (
     <div className="flex flex-col gap-4 w-full max-w-2xl animate-fade-in pb-8 relative pt-16">
@@ -122,36 +145,55 @@ export const QuizView: React.FC<QuizViewProps> = ({
         <Home size={20} />
       </button>
 
-      {/* 상단 AI 상태창 */}
-      <div className="glass-panel p-3 rounded-2xl border-cyan-500/30 flex items-center justify-between overflow-hidden">
+      {/* 상단 AI 상태창 (Sticky 적용) */}
+      <div className="sticky top-2 z-40 glass-panel p-3 rounded-2xl border-cyan-500/30 flex items-center justify-between overflow-hidden shadow-2xl backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Cpu size={24} className="text-cyan-400 animate-pulse" />
-            <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+            <Cpu size={24} className={`${isAiDone ? 'text-rose-500' : 'text-cyan-400'} animate-pulse transition-colors duration-500`} />
+            <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full animate-ping ${isAiDone ? 'bg-rose-500' : 'bg-green-500'}`}></div>
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] font-black text-cyan-500 uppercase tracking-tighter">AI STATUS: ACTIVE</span>
+            <span className={`text-[10px] font-black uppercase tracking-tighter transition-colors ${isAiDone ? 'text-rose-500' : 'text-cyan-500'}`}>
+              AI STATUS: {isAiDone ? 'ANSWER FOUND' : 'PROCESSING...'}
+            </span>
             <div ref={logContainerRef} className="h-4 overflow-hidden">
-               <p className="text-[9px] font-mono text-cyan-300/70 uppercase leading-tight">
+               <p className={`text-[9px] font-mono uppercase leading-tight ${isAiDone ? 'text-rose-300' : 'text-cyan-300/70'}`}>
                  {aiLogs[aiLogs.length - 1] || "WAITING..."}
                </p>
             </div>
           </div>
         </div>
-        <div className="flex gap-1">
-          {[1,2,3].map(i => (
-            <div key={i} className="w-1 h-3 bg-cyan-500/30 rounded-full overflow-hidden">
-              <div 
-                className="w-full bg-cyan-400 animate-bounce" 
-                style={{ animationDelay: `${i * 0.2}s`, height: `${30 + i * 20}%` }}
-              ></div>
-            </div>
-          ))}
+        
+        {/* AI Progress Bar in Header */}
+        <div className="flex flex-col items-end gap-1 w-24">
+           <div className="text-[9px] font-mono text-slate-400 flex items-center gap-1">
+             {isAiDone ? <CheckCircle2 size={10} className="text-rose-500"/> : <Timer size={10} className="animate-spin" />}
+             {Math.floor(aiProgress)}%
+           </div>
+           <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+             <div 
+                className={`h-full transition-all duration-100 ease-linear ${isAiDone ? 'bg-rose-500' : 'bg-cyan-500'}`}
+                style={{ width: `${aiProgress}%` }}
+             ></div>
+           </div>
         </div>
       </div>
 
       {/* 메인 퀴즈 카드 */}
-      <div className="glass-panel p-6 md:p-8 rounded-3xl space-y-6 relative overflow-visible">
+      <div className={`glass-panel p-6 md:p-8 rounded-3xl space-y-6 relative overflow-visible transition-all duration-700 border ${
+        isAiDone 
+          ? 'border-rose-500 shadow-[0_0_30px_rgba(225,29,72,0.2)] bg-rose-950/20' 
+          : 'border-white/10'
+      }`}>
+        {/* AI 완료 표시 오버레이 효과 */}
+        {isAiDone && (
+           <div className="absolute top-0 right-0 p-2 pointer-events-none">
+              <span className="inline-flex items-center gap-1 bg-rose-600 text-white text-[10px] font-black px-2 py-1 rounded-bl-xl rounded-tr-2xl shadow-lg animate-pulse">
+                AI DONE
+              </span>
+           </div>
+        )}
+
         {/* AI 도발 말풍선 */}
         <div className="absolute -top-4 -right-2 md:-right-8 animate-bounce z-20">
           <div className="relative bg-rose-600 text-white text-[10px] md:text-xs font-bold px-4 py-2 rounded-2xl shadow-xl border border-rose-400 max-w-[180px]">
@@ -233,7 +275,6 @@ export const QuizView: React.FC<QuizViewProps> = ({
         </div>
 
         <div className="flex gap-3">
-          {/* Bottom Back Button Removed */}
           <Button 
             onClick={onConfirm} 
             disabled={!selectedOption}
