@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language, QuizSet, UserAnswer } from "../types";
-import { getStaticQuestions } from "../data/staticDatabase";
+import { getStaticQuestions, resolveTopicInfo } from "../data/staticDatabase";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const MODEL_NAME = 'gemini-3-flash-preview';
@@ -160,6 +160,24 @@ export const generateQuestionsBatch = async (
       missingTopics.forEach(topic => {
         if (generatedData[topic]) {
           const qs = generatedData[topic];
+          
+          // --- AUTO-SAVE LOGIC (Dev Only) ---
+          if (import.meta.env.DEV) {
+             const info = resolveTopicInfo(topic, lang);
+             if (info) {
+               const { catId, englishName } = info;
+               const key = `${englishName}_${difficulty}_${lang}`;
+               
+               // Send to Vite middleware to write to file
+               fetch('/__save-question', {
+                 method: 'POST',
+                 headers: {'Content-Type': 'application/json'},
+                 body: JSON.stringify({ categoryId: catId, key, data: qs })
+               }).catch(e => console.warn("Auto-save failed (server may not be running):", e));
+             }
+          }
+          // -----------------------------------
+
           const cacheKey = generateCacheKey(topic, difficulty, lang);
           quizCache[cacheKey] = qs;
           results.push({ topic, questions: qs });

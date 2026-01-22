@@ -26,7 +26,7 @@ const MODULE_MAP: Record<string, () => Promise<any>> = {
  * Helper: Find the English name (Stable ID) and Category for a given localized topic name.
  * This ensures that "양자 역학" maps to "Quantum Physics" so we can look it up in the DB.
  */
-const resolveTopicInfo = (localizedName: string, lang: Language) => {
+export const resolveTopicInfo = (localizedName: string, lang: Language) => {
   // If language is English, we can try to find it directly, but it's safer to traverse to find the category.
   const subtopicsMap = TRANSLATIONS[lang].topics.subtopics;
   

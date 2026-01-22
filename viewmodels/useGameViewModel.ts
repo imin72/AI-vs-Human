@@ -294,7 +294,7 @@ export const useGameViewModel = () => {
         const newSelected: string[] = [];
         
         selectedSubTopics.forEach(topicName => {
-           for (const [catId, list] of Object.entries(currentT.topics.subtopics)) {
+           for (const [catId, list] of Object.entries(currentT.topics.subtopics) as [string, string[]][]) {
               const index = list.indexOf(topicName);
               if (index !== -1) {
                  const nextName = nextT.topics.subtopics[catId]?.[index];
