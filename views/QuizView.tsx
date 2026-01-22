@@ -13,9 +13,7 @@ interface QuizViewProps {
   topicLabel: string;
   onSelectOption: (opt: string) => void;
   onConfirm: () => void;
-  onBack: () => void;
   onHome: () => void;
-  backLabel: string;
   language: Language;
   setLanguage: (lang: Language) => void;
   batchProgress?: { total: number; current: number; topics: string[] };
@@ -28,7 +26,6 @@ export const QuizView: React.FC<QuizViewProps> = ({
   topicLabel, 
   onSelectOption, 
   onConfirm, 
-  onBack,
   onHome,
   language,
   setLanguage,

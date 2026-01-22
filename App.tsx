@@ -27,10 +27,8 @@ export default function App() {
         <IntroView 
           t={t.intro} 
           onStart={actions.startIntro} 
-          onBack={actions.goBack}
           onHome={actions.goHome}
           onResetProfile={actions.resetProfile}
-          backLabel={t.common.btn_back}
           language={language}
           setLanguage={actions.setLanguage}
         />
@@ -44,9 +42,7 @@ export default function App() {
           setLanguage={actions.setLanguage}
           onUpdate={actions.updateProfile}
           onSubmit={actions.submitProfile}
-          onBack={actions.goBack}
           onHome={actions.goHome}
-          backLabel={t.common.btn_back}
         />
       )}
       
@@ -90,9 +86,7 @@ export default function App() {
           topicLabel={state.quizState.questions.length > 0 ? (state.quizState.questions[0] as any).topic || topicState.selectedSubTopics[0] || "Quiz" : "Quiz"}
           onSelectOption={actions.selectOption}
           onConfirm={actions.confirmAnswer}
-          onBack={actions.goBack}
           onHome={actions.goHome}
-          backLabel={t.common.btn_back}
           language={language}
           setLanguage={actions.setLanguage}
           batchProgress={quizState.batchProgress} // Pass batch info

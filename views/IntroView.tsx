@@ -8,10 +8,8 @@ import { Language } from '../types';
 interface IntroViewProps {
   t: any;
   onStart: () => void;
-  onBack: () => void;
   onHome: () => void;
   onResetProfile: () => void;
-  backLabel: string;
   language: Language;
   setLanguage: (lang: Language) => void;
 }

@@ -12,9 +12,7 @@ interface ProfileViewProps {
   setLanguage: (lang: Language) => void;
   onUpdate: (profile: Partial<UserProfile>) => void;
   onSubmit: () => void;
-  onBack: () => void;
   onHome: () => void;
-  backLabel: string;
 }
 
 // ISO 3166-1 alpha-2 code based flag generation
@@ -44,7 +42,7 @@ const COMMON_COUNTRIES = [
   "TR", "UA", "AE", "GB", "US", "UY", "VN"
 ].sort();
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, language, setLanguage, onUpdate, onSubmit, onBack, onHome, backLabel }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, language, setLanguage, onUpdate, onSubmit, onHome }) => {
   const isComplete = userProfile.gender && userProfile.ageGroup && userProfile.nationality;
 
   const regionNames = useMemo(() => {
