@@ -232,6 +232,14 @@ export const useGameViewModel = () => {
         setStage(AppStage.LANGUAGE);
         return true;
       case AppStage.QUIZ:
+        // *** NEW LOGIC: Go back to previous question if possible ***
+        if (currentQuestionIndex > 0) {
+           setCurrentQuestionIndex(prev => prev - 1);
+           setUserAnswers(prev => prev.slice(0, -1)); // Remove the answer for the question we are going back to
+           setSelectedOption(null);
+           return true; // Navigation handled
+        }
+        // Only confirm exit if at the first question of the set
         if (window.confirm(t.common.confirm_exit)) {
           setStage(AppStage.TOPIC_SELECTION);
           setSelectionPhase('CATEGORY');
@@ -252,7 +260,7 @@ export const useGameViewModel = () => {
       default:
         return true;
     }
-  }, [stage, selectionPhase, isPending, t]);
+  }, [stage, selectionPhase, isPending, t, currentQuestionIndex]);
 
   useEffect(() => {
     const handlePopState = (_: PopStateEvent) => {
@@ -353,6 +361,18 @@ export const useGameViewModel = () => {
     
     goBack: () => {
       if (isPending) return;
+      
+      // *** NEW LOGIC: Consistent with performBackNavigation ***
+      if (stage === AppStage.QUIZ) {
+        if (currentQuestionIndex > 0) {
+          setCurrentQuestionIndex(prev => prev - 1);
+          setUserAnswers(prev => prev.slice(0, -1)); 
+          setSelectedOption(null);
+          return;
+        }
+        // Fallthrough to standard confirm exit
+      }
+
       if (stage === AppStage.TOPIC_SELECTION && selectionPhase === 'SUBTOPIC') {
         setSelectionPhase('CATEGORY');
         setSelectedSubTopics([]);

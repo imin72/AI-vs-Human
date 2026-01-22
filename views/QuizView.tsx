@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, Cpu, Terminal, Zap, Lightbulb, Home, Timer, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, Cpu, Terminal, Zap, Lightbulb, Home, Timer, CheckCircle2, ChevronLeft } from 'lucide-react';
 import { Button } from '../components/Button';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { QuizQuestion, Language } from '../types';
@@ -14,6 +14,7 @@ interface QuizViewProps {
   onSelectOption: (opt: string) => void;
   onConfirm: () => void;
   onHome: () => void;
+  onBack?: () => void; // Added onBack prop
   language: Language;
   setLanguage: (lang: Language) => void;
   batchProgress?: { total: number; current: number; topics: string[] };
@@ -27,6 +28,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
   onSelectOption, 
   onConfirm, 
   onHome,
+  onBack,
   language,
   setLanguage,
   batchProgress
@@ -132,7 +134,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
     }
   }, [aiLogs]);
 
-  const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
+  const btnStyle = "w-10 h-10 flex items-center justify-center text-white bg-slate-800/80 backdrop-blur-md rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg p-0";
   const isAiDone = aiProgress >= 100;
 
   const isLastQuestion = currentIndex === questions.length - 1;
@@ -174,7 +176,13 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
          {/* Right Controls */}
          <div className="flex gap-2">
-           <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
+           <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} className={btnStyle} />
+           {/* Show Back button if not first question */}
+           {currentIndex > 0 && onBack && (
+             <button onClick={onBack} className={btnStyle} aria-label="Back">
+               <ChevronLeft size={18} />
+             </button>
+           )}
            <button onClick={onHome} className={btnStyle} aria-label="Home">
              <Home size={18} />
            </button>

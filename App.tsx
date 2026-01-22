@@ -87,6 +87,7 @@ export default function App() {
           onSelectOption={actions.selectOption}
           onConfirm={actions.confirmAnswer}
           onHome={actions.goHome}
+          onBack={actions.goBack} // Pass back action
           language={language}
           setLanguage={actions.setLanguage}
           batchProgress={quizState.batchProgress} // Pass batch info
