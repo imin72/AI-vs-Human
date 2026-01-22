@@ -1,12 +1,12 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language, QuizSet } from "../types";
-import { STATIC_QUESTION_DB } from "../data/staticDatabase";
+import { getStaticQuestions } from "../data/staticDatabase";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const MODEL_NAME = 'gemini-3-flash-preview';
 
-const CACHE_KEY_QUIZ = "cognito_quiz_cache_v2"; // Version bumped for structure change
+const CACHE_KEY_QUIZ = "cognito_quiz_cache_v3"; // Version bumped for static logic change
 
 // 비상용 폴백 퀴즈
 const FALLBACK_QUIZ: QuizQuestion[] = [
@@ -56,10 +56,13 @@ const cleanJson = (text: string | undefined): string => {
 };
 
 /**
- * Helper to generate the key for looking up questions
+ * Helper to generate the unique cache key
+ * Note: LocalStorage cache still uses the localized topic name as the key 
+ * to differentiate between "Quantum Physics" (en) and "양자 역학" (ko) requests 
+ * if they were cached from API responses.
  */
-const generateKey = (topic: string, difficulty: Difficulty, lang: Language) => {
-  return `${topic}_${difficulty}_${lang}`; // Case sensitive to match Object keys exactly
+const generateCacheKey = (topic: string, difficulty: Difficulty, lang: Language) => {
+  return `${topic}_${difficulty}_${lang}`.toLowerCase();
 };
 
 // Batch Generation Function
@@ -74,27 +77,30 @@ export const generateQuestionsBatch = async (
   const missingTopics: string[] = [];
 
   // HYBRID STRATEGY: 
-  // 1. Check LocalStorage Cache
-  // 2. Check Static Database (Pre-generated)
+  // 1. Check LocalStorage Cache (Fastest)
+  // 2. Check Static Database (Async Lazy Load)
   // 3. Fallback to API
 
   for (const topic of topics) {
-    const cacheKey = generateKey(topic, difficulty, lang).toLowerCase(); // LocalStorage uses lowercase keys
-    const staticKey = generateKey(topic, difficulty, lang); // Static DB uses exact keys
+    const cacheKey = generateCacheKey(topic, difficulty, lang);
 
     if (quizCache[cacheKey]) {
       // HIT: Local Cache
       console.log(`[Cache Hit] ${topic}`);
       results.push({ topic, questions: quizCache[cacheKey] });
-    } else if (STATIC_QUESTION_DB[staticKey]) {
-      // HIT: Static DB
+      continue;
+    } 
+
+    // HIT: Check Static DB (Async)
+    const staticQuestions = await getStaticQuestions(topic, difficulty, lang);
+    if (staticQuestions) {
       console.log(`[Static DB Hit] ${topic}`);
-      // Simulate slight network delay for better UX (so it doesn't feel fake)
-      await new Promise(r => setTimeout(r, 400));
-      results.push({ topic, questions: STATIC_QUESTION_DB[staticKey] });
+      // Simulate slight network delay for better UX
+      await new Promise(r => setTimeout(r, 300));
+      results.push({ topic, questions: staticQuestions });
       
-      // Optional: Save static data to local cache to unify access next time
-      quizCache[cacheKey] = STATIC_QUESTION_DB[staticKey];
+      // Save static data to local cache for next time (unified access)
+      quizCache[cacheKey] = staticQuestions;
       saveCache(CACHE_KEY_QUIZ, quizCache);
     } else {
       // MISS: Add to queue for API
@@ -165,7 +171,7 @@ export const generateQuestionsBatch = async (
         if (generatedData[topic]) {
           const qs = generatedData[topic];
           // Save to cache
-          const cacheKey = generateKey(topic, difficulty, lang).toLowerCase();
+          const cacheKey = generateCacheKey(topic, difficulty, lang);
           quizCache[cacheKey] = qs;
           
           results.push({ topic, questions: qs });
@@ -220,7 +226,7 @@ export interface BatchEvaluationInput {
   performance: {id: number, ok: boolean}[];
 }
 
-// New Batch Evaluation Function
+// Batch Evaluation Function
 export const evaluateBatchAnswers = async (
   batches: BatchEvaluationInput[],
   userProfile: UserProfile,
