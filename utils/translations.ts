@@ -12,6 +12,8 @@ export interface TranslationData {
     title: string;
     desc: string;
     btn_start: string;
+    btn_continue: string;
+    btn_reset: string;
   };
   profile: {
     title: string;
@@ -28,11 +30,14 @@ export interface TranslationData {
   topics: {
     title_select: string;
     title_config: string;
+    desc_select: string;
     btn_refresh: string;
+    btn_next_step: string;
     label_custom: string;
     ph_custom: string;
     label_field: string;
     label_difficulty: string;
+    label_topics_selected: string;
     btn_start_sim: string;
     categories: { [key: string]: string };
     subtopics: { [key: string]: string[] };
@@ -129,7 +134,9 @@ const ENGLISH_BASE: TranslationData = {
     ai_label: "AI",
     title: "Challenge the AI!",
     desc: "Select a field of expertise and prove that human intuition still reigns supreme.",
-    btn_start: "Start Test"
+    btn_start: "Start Test",
+    btn_continue: "Continue with Saved Profile",
+    btn_reset: "Reset Profile Data"
   },
   profile: {
     title: "Subject Profile",
@@ -146,11 +153,14 @@ const ENGLISH_BASE: TranslationData = {
   topics: {
     title_select: "Select Domain",
     title_config: "Select Sub-Topic",
+    desc_select: "Select one or more domains to challenge",
     btn_refresh: "Shuffle",
+    btn_next_step: "Select Sub-topics",
     label_custom: "",
     ph_custom: "",
     label_field: "SPECIFIC FIELD",
     label_difficulty: "DIFFICULTY",
+    label_topics_selected: "Topics Selected",
     btn_start_sim: "Start Test",
     categories: {
       [TOPIC_IDS.HISTORY]: "History",
@@ -222,7 +232,9 @@ const KO_TRANSLATIONS: TranslationData = {
     ai_label: "인공지능", 
     title: "AI에 도전하세요!",
     desc: "전문 분야를 선택하고 인간의 직관이 여전히 우위임을 증명하십시오.", 
-    btn_start: "테스트 시작" 
+    btn_start: "테스트 시작",
+    btn_continue: "저장된 프로필로 계속하기",
+    btn_reset: "프로필 초기화"
   },
   profile: {
     title: "대상자 프로필", desc: "사용자의 국가별 문화 특성 및 교육 수준 최적화를 위해 사용됩니다.",
@@ -233,7 +245,11 @@ const KO_TRANSLATIONS: TranslationData = {
   },
   topics: {
     ...ENGLISH_BASE.topics,
-    title_select: "영역 선택", title_config: "세부 분야 선택", btn_refresh: "새로고침", label_custom: "", ph_custom: "", label_field: "세부 분야", label_difficulty: "난이도", btn_start_sim: "테스트 시작",
+    title_select: "영역 선택", title_config: "세부 분야 선택", 
+    desc_select: "도전하고자 하는 영역을 1개 또는 여러 개 고르세요",
+    btn_refresh: "새로고침", 
+    btn_next_step: "세부 분야 선택",
+    label_custom: "", ph_custom: "", label_field: "세부 분야", label_difficulty: "난이도", label_topics_selected: "개 분야 선택됨", btn_start_sim: "테스트 시작",
     categories: {
       [TOPIC_IDS.HISTORY]: "역사", [TOPIC_IDS.SCIENCE]: "과학", [TOPIC_IDS.ARTS]: "예술", [TOPIC_IDS.GENERAL]: "일반 상식", [TOPIC_IDS.GEOGRAPHY]: "지리", [TOPIC_IDS.MOVIES]: "영화", [TOPIC_IDS.MUSIC]: "음악", [TOPIC_IDS.GAMING]: "게임", [TOPIC_IDS.SPORTS]: "스포츠", [TOPIC_IDS.TECH]: "기술", [TOPIC_IDS.MYTHOLOGY]: "신화", [TOPIC_IDS.LITERATURE]: "문학", [TOPIC_IDS.NATURE]: "자연", [TOPIC_IDS.FOOD]: "음식", [TOPIC_IDS.SPACE]: "우주", [TOPIC_IDS.PHILOSOPHY]: "철학"
     },
@@ -286,7 +302,9 @@ const JA_TRANSLATIONS: TranslationData = {
     ai_label: "AI", 
     title: "AIに挑戦せよ！",
     desc: "専門分野を選択し、人間の直感がいまだに優位であることを証明してください。", 
-    btn_start: "テスト開始" 
+    btn_start: "テスト開始",
+    btn_continue: "保存されたプロフィールで続行",
+    btn_reset: "プロフィールを初期化"
   },
   profile: {
     title: "被験者プロフィール", desc: "文化的・教育적背景の最適化に使用されます。",
@@ -297,7 +315,11 @@ const JA_TRANSLATIONS: TranslationData = {
   },
   topics: {
     ...ENGLISH_BASE.topics,
-    title_select: "ドメイン選択", title_config: "詳細分野の選択", btn_refresh: "更新", label_custom: "", ph_custom: "", label_field: "特定分野", label_difficulty: "難易度", btn_start_sim: "テスト開始",
+    title_select: "ドメイン選択", title_config: "詳細分野の選択", 
+    desc_select: "挑戦する領域を1つ以上選択してください",
+    btn_refresh: "更新", 
+    btn_next_step: "詳細分野の選択",
+    label_custom: "", ph_custom: "", label_field: "特定分野", label_difficulty: "難易度", label_topics_selected: "個の分野を選択", btn_start_sim: "テスト開始",
     categories: {
       [TOPIC_IDS.HISTORY]: "歴史", [TOPIC_IDS.SCIENCE]: "科学", [TOPIC_IDS.ARTS]: "芸術", [TOPIC_IDS.GENERAL]: "一般常識", [TOPIC_IDS.GEOGRAPHY]: "地理", [TOPIC_IDS.MOVIES]: "映画", [TOPIC_IDS.MUSIC]: "音楽", [TOPIC_IDS.GAMING]: "ゲーム", [TOPIC_IDS.SPORTS]: "スポーツ", [TOPIC_IDS.TECH]: "テクノロジー", [TOPIC_IDS.MYTHOLOGY]: "神話", [TOPIC_IDS.LITERATURE]: "文学", [TOPIC_IDS.NATURE]: "自然", [TOPIC_IDS.FOOD]: "料理", [TOPIC_IDS.SPACE]: "宇宙", [TOPIC_IDS.PHILOSOPHY]: "哲学"
     },
@@ -350,7 +372,9 @@ const ES_TRANSLATIONS: TranslationData = {
     ai_label: "IA", 
     title: "¡Desafía a la IA!",
     desc: "Selecciona un campo de especialización y demuestra que la intuición humana aún reina.", 
-    btn_start: "Iniciar Prueba" 
+    btn_start: "Iniciar Prueba",
+    btn_continue: "Continuar con perfil guardado",
+    btn_reset: "Reiniciar perfil"
   },
   profile: {
     title: "Perfil del Sujeto", desc: "Utilizado para la optimización del contexto cultural y educativo.",
@@ -361,7 +385,11 @@ const ES_TRANSLATIONS: TranslationData = {
   },
   topics: {
     ...ENGLISH_BASE.topics,
-    title_select: "Seleccionar Dominio", title_config: "Seleccionar Subtema", btn_refresh: "Mezclar", label_custom: "", ph_custom: "", label_field: "CAMPO ESPECÍFICO", label_difficulty: "DIFICULTAD", btn_start_sim: "Iniciar Prueba",
+    title_select: "Seleccionar Dominio", title_config: "Seleccionar Subtema", 
+    desc_select: "Selecciona uno o más dominios para desafiar",
+    btn_refresh: "Mezclar", 
+    btn_next_step: "Seleccionar subtemas",
+    label_custom: "", ph_custom: "", label_field: "CAMPO ESPECÍFICO", label_difficulty: "DIFICULTAD", label_topics_selected: "Temas seleccionados", btn_start_sim: "Iniciar Prueba",
     categories: {
       [TOPIC_IDS.HISTORY]: "Historia", [TOPIC_IDS.SCIENCE]: "Ciencia", [TOPIC_IDS.ARTS]: "Artes", [TOPIC_IDS.GENERAL]: "Cultura General", [TOPIC_IDS.GEOGRAPHY]: "Geografía", [TOPIC_IDS.MOVIES]: "Cine", [TOPIC_IDS.MUSIC]: "Música", [TOPIC_IDS.GAMING]: "Videojuegos", [TOPIC_IDS.SPORTS]: "Deportes", [TOPIC_IDS.TECH]: "Tecnología", [TOPIC_IDS.MYTHOLOGY]: "Mitología", [TOPIC_IDS.LITERATURE]: "Literatura", [TOPIC_IDS.NATURE]: "Naturaleza", [TOPIC_IDS.FOOD]: "Gastronomía", [TOPIC_IDS.SPACE]: "Espacio", [TOPIC_IDS.PHILOSOPHY]: "Filosofía"
     },
@@ -414,7 +442,9 @@ const FR_TRANSLATIONS: TranslationData = {
     ai_label: "IA", 
     title: "Défiez l'IA !",
     desc: "Sélectionnez un domaine d'expertise et prouvez que l'intuition humaine règne toujours.", 
-    btn_start: "Commencer le Test" 
+    btn_start: "Commencer le Test",
+    btn_continue: "Continuer avec le profil enregistré",
+    btn_reset: "Réinitialiser le profil"
   },
   profile: {
     title: "Profil du Sujet", desc: "Utilisé pour l'optimisation du contexte culturel et éducatif.",
@@ -425,7 +455,11 @@ const FR_TRANSLATIONS: TranslationData = {
   },
   topics: {
     ...ENGLISH_BASE.topics,
-    title_select: "Sélectionner Domaine", title_config: "Sélectionner Sous-thème", btn_refresh: "Mélanger", label_custom: "", ph_custom: "", label_field: "DOMAINE SPÉCIFIQUE", label_difficulty: "DIFFICULTÉ", btn_start_sim: "Commencer le Test",
+    title_select: "Sélectionner Domaine", title_config: "Sélectionner Sous-thème", 
+    desc_select: "Sélectionnez un ou plusieurs domaines à défier",
+    btn_refresh: "Mélanger", 
+    btn_next_step: "Sélectionner des sous-thèmes",
+    label_custom: "", ph_custom: "", label_field: "DOMAINE SPÉCIFIQUE", label_difficulty: "DIFFICULTÉ", label_topics_selected: "Sujets sélectionnés", btn_start_sim: "Commencer le Test",
     categories: {
       [TOPIC_IDS.HISTORY]: "Histoire", [TOPIC_IDS.SCIENCE]: "Sciences", [TOPIC_IDS.ARTS]: "Arts", [TOPIC_IDS.GENERAL]: "Culture Générale", [TOPIC_IDS.GEOGRAPHY]: "Géographie", [TOPIC_IDS.MOVIES]: "Cinéma", [TOPIC_IDS.MUSIC]: "Musique", [TOPIC_IDS.GAMING]: "Jeux Vidéo", [TOPIC_IDS.SPORTS]: "Sports", [TOPIC_IDS.TECH]: "Technologie", [TOPIC_IDS.MYTHOLOGY]: "Mythologie", [TOPIC_IDS.LITERATURE]: "Littérature", [TOPIC_IDS.NATURE]: "Nature", [TOPIC_IDS.FOOD]: "Gastronomie", [TOPIC_IDS.SPACE]: "Espace", [TOPIC_IDS.PHILOSOPHY]: "Philosophie"
     },
@@ -478,7 +512,9 @@ const ZH_TRANSLATIONS: TranslationData = {
     ai_label: "人工智能", 
     title: "挑战 AI！",
     desc: "选择一个专业领域，证明人类直觉依然至高无上。", 
-    btn_start: "开始测试" 
+    btn_start: "开始测试",
+    btn_continue: "使用保存的档案继续",
+    btn_reset: "重置档案数据"
   },
   profile: {
     title: "受试者档案", desc: "用于优化文化和教育背景。",
@@ -489,7 +525,11 @@ const ZH_TRANSLATIONS: TranslationData = {
   },
   topics: {
     ...ENGLISH_BASE.topics,
-    title_select: "选择领域", title_config: "选择子主题", btn_refresh: "刷新", label_custom: "", ph_custom: "", label_field: "特定领域", label_difficulty: "难度", btn_start_sim: "开始测试",
+    title_select: "选择领域", title_config: "选择子主题", 
+    desc_select: "选择一个或多个领域进行挑战",
+    btn_refresh: "刷新", 
+    btn_next_step: "选择子主题",
+    label_custom: "", ph_custom: "", label_field: "特定领域", label_difficulty: "难度", label_topics_selected: "个主题已选择", btn_start_sim: "开始测试",
     categories: {
       [TOPIC_IDS.HISTORY]: "历史", [TOPIC_IDS.SCIENCE]: "科学", [TOPIC_IDS.ARTS]: "艺术", [TOPIC_IDS.GENERAL]: "一般常识", [TOPIC_IDS.GEOGRAPHY]: "地理", [TOPIC_IDS.MOVIES]: "电影", [TOPIC_IDS.MUSIC]: "音乐", [TOPIC_IDS.GAMING]: "游戏", [TOPIC_IDS.SPORTS]: "体育", [TOPIC_IDS.TECH]: "科技", [TOPIC_IDS.MYTHOLOGY]: "神话", [TOPIC_IDS.LITERATURE]: "文学", [TOPIC_IDS.NATURE]: "自然", [TOPIC_IDS.FOOD]: "美食", [TOPIC_IDS.SPACE]: "太空", [TOPIC_IDS.PHILOSOPHY]: "哲学"
     },

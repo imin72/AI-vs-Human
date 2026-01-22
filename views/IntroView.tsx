@@ -87,7 +87,7 @@ export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome
         <Button onClick={onStart} fullWidth className="text-lg py-4 group">
           {hasProfile ? (
             <span className="flex items-center gap-2">
-              <UserCheck size={20} /> Continue with Saved Profile
+              <UserCheck size={20} /> {t.btn_continue}
             </span>
           ) : (
             <>
@@ -97,8 +97,8 @@ export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome
         </Button>
         
         {hasProfile && (
-           <p className="mt-4 text-xs text-slate-500 cursor-pointer hover:text-rose-400 transition-colors" onClick={() => { localStorage.removeItem(PROFILE_KEY); window.location.reload(); }}>
-             Reset Profile Data
+           <p className="mt-4 text-sm font-bold text-slate-500 cursor-pointer hover:text-rose-400 transition-colors" onClick={() => { localStorage.removeItem(PROFILE_KEY); window.location.reload(); }}>
+             {t.btn_reset}
            </p>
         )}
       </div>

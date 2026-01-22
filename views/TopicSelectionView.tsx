@@ -140,8 +140,8 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           </h2>
           <p className="text-xs text-slate-400 mt-1 flex items-center justify-center gap-1">
             {isCategoryPhase 
-              ? <span>Select one or more domains to continue</span> 
-              : <span><ListFilter size={12}/> Configure your challenge</span>
+              ? <span>{t.desc_select}</span> 
+              : <span><ListFilter size={12}/> {t.desc_select}</span>
             }
           </p>
         </div>
@@ -196,7 +196,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                 fullWidth 
                 className={`py-4 shadow-xl transition-all ${selectedCategories.length > 0 ? 'animate-pulse' : ''}`}
               >
-                Next Step ({selectedCategories.length}) <ArrowRight size={18} />
+                {t.btn_next_step} ({selectedCategories.length}) <ArrowRight size={18} />
               </Button>
             </div>
           </div>
@@ -251,8 +251,8 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
             {/* Config & Action */}
             <div className="space-y-3 pt-2 border-t border-slate-800">
               <div className="flex items-center justify-between px-1">
-                 <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Difficulty</label>
-                 <span className="text-[10px] text-cyan-500 font-mono">{selectedSubTopics.length} Topics Selected</span>
+                 <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{t.label_difficulty}</label>
+                 <span className="text-[10px] text-cyan-500 font-mono">{selectedSubTopics.length} {t.label_topics_selected}</span>
               </div>
               <div className="flex gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
                 {Object.values(Difficulty).map((diff) => (
