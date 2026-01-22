@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, ChevronLeft, Cpu, Terminal, Zap, Lightbulb, Home, Timer, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/Button';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { QuizQuestion, Language } from '../types';
 import { TRANSLATIONS } from '../utils/translations';
 
@@ -16,6 +17,7 @@ interface QuizViewProps {
   onHome: () => void;
   backLabel: string;
   language: Language;
+  setLanguage: (lang: Language) => void;
   batchProgress?: { total: number; current: number; topics: string[] };
 }
 
@@ -29,6 +31,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
   onBack,
   onHome,
   language,
+  setLanguage,
   batchProgress
 }) => {
   const question = questions[currentIndex];
@@ -124,7 +127,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
     }
   }, [aiLogs]);
 
-  const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
+  const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
   const isAiDone = aiProgress >= 100;
 
   // Button text logic
@@ -144,21 +147,29 @@ export const QuizView: React.FC<QuizViewProps> = ({
   return (
     <div className="flex flex-col gap-4 w-full max-w-2xl animate-fade-in pb-8 relative pt-16">
       {/* Navigation Buttons */}
-      <button 
-        onClick={onBack}
-        className={`${navBtnStyle} left-0 md:-left-12`}
-        aria-label="Back"
-      >
-        <ChevronLeft size={20} />
-      </button>
+      <div className="absolute top-4 left-0 md:-left-12 z-20">
+        <button 
+          onClick={onBack}
+          className={btnStyle}
+          aria-label="Back"
+        >
+          <ChevronLeft size={20} />
+        </button>
+      </div>
 
-      <button 
-        onClick={onHome}
-        className={`${navBtnStyle} right-0 md:-right-12`}
-        aria-label="Home"
-      >
-        <Home size={20} />
-      </button>
+      <div className="absolute top-4 right-0 md:-right-12 z-20 flex gap-2">
+        <LanguageSwitcher 
+          currentLanguage={language} 
+          onLanguageChange={setLanguage} 
+        />
+        <button 
+          onClick={onHome}
+          className={btnStyle}
+          aria-label="Home"
+        >
+          <Home size={20} />
+        </button>
+      </div>
 
       {/* Batch Progress Indicator */}
       {batchProgress && batchProgress.total > 1 && (

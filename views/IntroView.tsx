@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Brain, Cpu, ArrowRight, ChevronLeft, Home, UserCheck } from 'lucide-react';
 import { Button } from '../components/Button';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { Language } from '../types';
 
 interface IntroViewProps {
   t: any;
@@ -9,11 +11,13 @@ interface IntroViewProps {
   onBack: () => void;
   onHome: () => void;
   backLabel: string;
+  language: Language;
+  setLanguage: (lang: Language) => void;
 }
 
 const PROFILE_KEY = 'cognito_user_profile_v1';
 
-export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome, backLabel }) => {
+export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome, backLabel, language, setLanguage }) => {
   const [hasProfile, setHasProfile] = useState(false);
 
   useEffect(() => {
@@ -26,25 +30,33 @@ export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onBack, onHome
     }
   }, []);
 
-  const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
+  const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
 
   return (
     <div className="w-full max-w-2xl relative pt-16 animate-fade-in flex flex-col items-center">
-      <button 
-        onClick={onBack}
-        className={`${navBtnStyle} left-0 md:-left-12`}
-        aria-label={backLabel}
-      >
-        <ChevronLeft size={20} />
-      </button>
+      <div className="absolute top-4 left-0 md:-left-12 z-20">
+        <button 
+          onClick={onBack}
+          className={btnStyle}
+          aria-label={backLabel}
+        >
+          <ChevronLeft size={20} />
+        </button>
+      </div>
 
-      <button 
-        onClick={onHome}
-        className={`${navBtnStyle} right-0 md:-right-12`}
-        aria-label="Home"
-      >
-        <Home size={20} />
-      </button>
+      <div className="absolute top-4 right-0 md:-right-12 z-20 flex gap-2">
+        <LanguageSwitcher 
+          currentLanguage={language} 
+          onLanguageChange={setLanguage} 
+        />
+        <button 
+          onClick={onHome}
+          className={btnStyle}
+          aria-label="Home"
+        >
+          <Home size={20} />
+        </button>
+      </div>
       
       <div className="glass-panel p-8 rounded-3xl text-center w-full flex flex-col items-center">
         <div className="flex justify-center gap-6 mb-8 mt-4">

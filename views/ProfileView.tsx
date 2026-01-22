@@ -2,12 +2,14 @@
 import React, { useMemo } from 'react';
 import { UserCircle2, ChevronRight, ChevronLeft, Flag, Globe, Home } from 'lucide-react';
 import { Button } from '../components/Button';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { UserProfile, Language } from '../types';
 
 interface ProfileViewProps {
   t: any;
   userProfile: UserProfile;
   language: Language;
+  setLanguage: (lang: Language) => void;
   onUpdate: (profile: Partial<UserProfile>) => void;
   onSubmit: () => void;
   onBack: () => void;
@@ -42,7 +44,7 @@ const COMMON_COUNTRIES = [
   "TR", "UA", "AE", "GB", "US", "UY", "VN"
 ].sort();
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, language, onUpdate, onSubmit, onBack, onHome, backLabel }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, language, setLanguage, onUpdate, onSubmit, onBack, onHome, backLabel }) => {
   const isComplete = userProfile.gender && userProfile.ageGroup && userProfile.nationality;
 
   // Use Intl.DisplayNames for automatic translation of country names
@@ -66,25 +68,33 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ t, userProfile, langua
     onUpdate({ nationality: e.target.value });
   };
 
-  const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
+  const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
 
   return (
     <div className="w-full max-w-2xl relative pt-16 animate-fade-in">
-      <button 
-        onClick={onBack}
-        className={`${navBtnStyle} left-0 md:-left-12`}
-        aria-label={backLabel}
-      >
-        <ChevronLeft size={20} />
-      </button>
+      <div className="absolute top-4 left-0 md:-left-12 z-20">
+        <button 
+          onClick={onBack}
+          className={btnStyle}
+          aria-label={backLabel}
+        >
+          <ChevronLeft size={20} />
+        </button>
+      </div>
 
-      <button 
-        onClick={onHome}
-        className={`${navBtnStyle} right-0 md:-right-12`}
-        aria-label="Home"
-      >
-        <Home size={20} />
-      </button>
+      <div className="absolute top-4 right-0 md:-right-12 z-20 flex gap-2">
+        <LanguageSwitcher 
+          currentLanguage={language} 
+          onLanguageChange={setLanguage} 
+        />
+        <button 
+          onClick={onHome}
+          className={btnStyle}
+          aria-label="Home"
+        >
+          <Home size={20} />
+        </button>
+      </div>
 
       <div className="glass-panel p-6 rounded-3xl space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
         <div className="text-center mt-2">

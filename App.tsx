@@ -18,7 +18,7 @@ export default function App() {
   const { stage, language, userProfile, topicState, quizState, resultState } = state;
 
   return (
-    <Layout>
+    <Layout currentLanguage={language} onLanguageChange={actions.setLanguage}>
       {stage === AppStage.LANGUAGE && (
         <LanguageView onSelect={actions.setLanguage} />
       )}
@@ -30,6 +30,8 @@ export default function App() {
           onBack={actions.goBack}
           onHome={actions.goHome}
           backLabel={t.common.btn_back}
+          language={language}
+          setLanguage={actions.setLanguage}
         />
       )}
       
@@ -38,6 +40,7 @@ export default function App() {
           t={t.profile} 
           userProfile={userProfile} 
           language={language}
+          setLanguage={actions.setLanguage}
           onUpdate={actions.updateProfile}
           onSubmit={actions.submitProfile}
           onBack={actions.goBack}
@@ -54,6 +57,7 @@ export default function App() {
             errorMsg: resultState.errorMsg,
             userProfile // Pass profile for badges
           }}
+          language={language}
           actions={{
             goBack: actions.goBack,
             goHome: actions.goHome,
@@ -66,7 +70,8 @@ export default function App() {
             setDifficulty: actions.setDifficulty,
             startQuiz: actions.startQuiz,
             startDebugQuiz: actions.startDebugQuiz,
-            editProfile: actions.editProfile
+            editProfile: actions.editProfile,
+            setLanguage: actions.setLanguage
           }}
         />
       )}
@@ -87,6 +92,7 @@ export default function App() {
           onHome={actions.goHome}
           backLabel={t.common.btn_back}
           language={language}
+          setLanguage={actions.setLanguage}
           batchProgress={quizState.batchProgress} // Pass batch info
         />
       )}
@@ -104,6 +110,7 @@ export default function App() {
           remainingTopics={quizState.remainingTopics}
           nextTopicName={quizState.nextTopicName} // Pass next topic name
           language={language} 
+          setLanguage={actions.setLanguage}
         />
       )}
       

@@ -5,6 +5,7 @@ import { Button } from './Button';
 import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Users, Home, Instagram, X, ArrowRight, Download, Quote } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { toPng } from 'html-to-image';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { TRANSLATIONS } from '../utils/translations';
 
 interface StageResultsProps {
@@ -15,6 +16,7 @@ interface StageResultsProps {
   remainingTopics?: number;
   nextTopicName?: string;
   language: Language;
+  setLanguage: (lang: Language) => void;
 }
 
 const THEMES = [
@@ -23,7 +25,7 @@ const THEMES = [
   { id: 'paper', name: 'Light', bg: 'bg-slate-100 border border-slate-300 shadow-xl', text: 'text-slate-900', accent: 'text-blue-600', chart: '#2563eb', iconColor: 'bg-blue-600' }
 ];
 
-export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onHome, onNextTopic, remainingTopics = 0, nextTopicName, language }) => {
+export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onHome, onNextTopic, remainingTopics = 0, nextTopicName, language, setLanguage }) => {
   const [currentThemeIdx, setCurrentThemeIdx] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSlide, setGeneratedSlide] = useState<string | null>(null);
@@ -109,17 +111,24 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
     { subject: t.chart.intuition, A: 90, fullMark: 100 },
   ];
 
-  const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
+  const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
 
   return (
     <div className="space-y-4 animate-fade-in w-full max-w-2xl pb-10 relative pt-16">
-      <button 
-        onClick={onHome}
-        className={`${navBtnStyle} right-0 md:-right-12`}
-        aria-label="Home"
-      >
-        <Home size={20} />
-      </button>
+      
+      <div className="absolute top-4 right-0 md:-right-12 z-20 flex gap-2">
+        <LanguageSwitcher 
+          currentLanguage={language} 
+          onLanguageChange={setLanguage} 
+        />
+        <button 
+          onClick={onHome}
+          className={btnStyle}
+          aria-label="Home"
+        >
+          <Home size={20} />
+        </button>
+      </div>
 
       {/* Main Results Card */}
       <div className={`p-6 md:p-8 rounded-3xl transition-all duration-500 ${theme.bg} relative overflow-hidden`}>

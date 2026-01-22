@@ -28,7 +28,8 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
-import { Difficulty, TOPIC_IDS, UserProfile } from '../types.ts';
+import { LanguageSwitcher } from '../components/LanguageSwitcher.tsx';
+import { Difficulty, TOPIC_IDS, UserProfile, Language } from '../types.ts';
 
 interface TopicSelectionViewProps {
   t: any;
@@ -42,6 +43,7 @@ interface TopicSelectionViewProps {
     errorMsg: string;
     userProfile?: UserProfile; 
   };
+  language: Language;
   actions: {
     goBack: () => void;
     goHome: () => void;
@@ -55,6 +57,7 @@ interface TopicSelectionViewProps {
     setCustomTopic: (topic: string) => void;
     startDebugQuiz?: () => void;
     editProfile: () => void;
+    setLanguage: (lang: Language) => void;
   };
 }
 
@@ -80,11 +83,11 @@ const getCategoryIcon = (id: string) => {
   }
 };
 
-export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state, actions }) => {
+export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state, actions, language }) => {
   const { selectionPhase = 'CATEGORY', selectedCategories, selectedSubTopics, difficulty, displayedTopics, errorMsg, userProfile } = state;
   const isCategoryPhase = selectionPhase === 'CATEGORY';
 
-  const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
+  const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
 
   // When in Subtopic phase, we need to show subtopics for ALL selected categories
   const groupedSubTopics = !isCategoryPhase ? selectedCategories.map(catId => ({
@@ -95,33 +98,40 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
 
   return (
     <div className="w-full max-w-2xl relative pt-16 animate-fade-in flex flex-col items-center">
-      <div className="absolute top-4 left-0 md:-left-12 flex gap-2 z-20">
+      {/* Left Group: Back Button */}
+      <div className="absolute top-4 left-0 md:-left-12 z-20">
         <button 
           onClick={actions.goBack}
-          className="text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg"
+          className={btnStyle}
           aria-label="Back"
         >
           <ChevronLeft size={20} />
         </button>
-        {/* Profile Edit Button - Only show on category selection screen */}
+      </div>
+      
+      {/* Right Group: Profile -> Language -> Home */}
+      <div className="absolute top-4 right-0 md:-right-12 z-20 flex gap-2">
         {isCategoryPhase && (
           <button 
             onClick={actions.editProfile}
-            className="text-cyan-400 bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 hover:text-white transition-all border border-cyan-500/20 shadow-lg"
+            className={`${btnStyle} text-cyan-400 hover:text-white border-cyan-500/20`}
             aria-label="Edit Profile"
           >
             <UserPen size={20} />
           </button>
         )}
+        <LanguageSwitcher 
+          currentLanguage={language} 
+          onLanguageChange={actions.setLanguage} 
+        />
+        <button 
+          onClick={actions.goHome}
+          className={btnStyle}
+          aria-label="Home"
+        >
+          <Home size={20} />
+        </button>
       </div>
-
-      <button 
-        onClick={actions.goHome}
-        className={`${navBtnStyle} right-0 md:-right-12`}
-        aria-label="Home"
-      >
-        <Home size={20} />
-      </button>
 
       <div className="glass-panel p-6 rounded-3xl space-y-6 w-full flex flex-col" style={{ minWidth: '320px', minHeight: '600px' }}>
         <div className="text-center pt-2">

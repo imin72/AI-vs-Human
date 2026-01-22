@@ -1,7 +1,14 @@
 
 import React from 'react';
+import { Language } from '../types';
 
-export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface LayoutProps {
+  children: React.ReactNode;
+  currentLanguage?: Language;
+  onLanguageChange?: (lang: Language) => void;
+}
+
+export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="relative min-h-screen w-full flex flex-col bg-slate-950 text-slate-100 selection:bg-cyan-500/30">
       {/* Background Layer - Fixed position to prevent layout shifts */}

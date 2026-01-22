@@ -232,7 +232,11 @@ export const useGameViewModel = () => {
   const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { 
       setLanguage(lang); 
-      setStage(AppStage.INTRO); 
+      // Only proceed to INTRO if currently on the initial LANGUAGE selection screen.
+      // This allows the global language switcher to just change text without navigation.
+      if (stage === AppStage.LANGUAGE) {
+         setStage(AppStage.INTRO); 
+      }
     },
     startIntro: () => {
       if (userProfile.gender && userProfile.nationality) {
