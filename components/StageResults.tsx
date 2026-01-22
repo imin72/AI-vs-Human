@@ -68,7 +68,9 @@ export const StageResults: React.FC<StageResultsProps> = ({
   const categoriesT = TRANSLATIONS[language].topics.categories;
 
   // Determine if this is the Final Summary view (batch finished) or single topic
-  const isFinalSummary = remainingTopics === 0 && sessionResults.length > 1;
+  const isFinalSummary = remainingTopics === 0 && sessionResults.length > 0;
+  const resultCount = sessionResults.length;
+  const isThreeItems = resultCount === 3;
 
   useEffect(() => {
     const timer = setTimeout(() => setChartReady(true), 500);
@@ -208,6 +210,18 @@ export const StageResults: React.FC<StageResultsProps> = ({
     return categoriesT[id] || id;
   };
 
+  // Determine grid layout class based on number of items
+  const getGridLayoutClass = () => {
+    if (!isFinalSummary) return 'space-y-3 overflow-y-auto custom-scrollbar';
+    
+    // Dynamic Layout Logic
+    switch (resultCount) {
+      case 1: return 'grid grid-cols-1 grid-rows-1 gap-3';
+      case 2: return 'grid grid-cols-1 grid-rows-2 gap-3'; // Stack vertically
+      default: return 'grid grid-cols-2 grid-rows-2 gap-3'; // 3 or 4 items (2x2 grid)
+    }
+  };
+
   return (
     <div className="w-full h-full relative flex flex-col animate-fade-in">
       
@@ -280,20 +294,23 @@ export const StageResults: React.FC<StageResultsProps> = ({
                  </div>
               </div>
 
-              {/* PAGE 2: DETAILS LIST (GRID LAYOUT) */}
+              {/* PAGE 2: DETAILS LIST (DYNAMIC GRID LAYOUT) */}
               <div ref={detailsRef} className="w-full h-full flex-shrink-0 p-6 md:p-8 bg-[#020617] flex flex-col">
                  
                  {/* Full Height Grid Container */}
-                 <div className={`h-full ${isFinalSummary ? 'grid grid-cols-2 grid-rows-2 gap-3' : 'space-y-3 overflow-y-auto custom-scrollbar'}`}>
+                 <div className={`h-full ${getGridLayoutClass()}`}>
                     {isFinalSummary ? (
                       sessionResults.map((res, idx) => {
                         const g = getGrade(res.totalScore);
                         const categoryLabel = getLocalizedCategory(res.id);
+                        // If 3 items, make the first one span 2 columns
+                        const spanClass = (isThreeItems && idx === 0) ? 'col-span-2' : '';
+                        
                         return (
                           <button 
                             key={idx} 
                             onClick={() => handleItemClick(res)}
-                            className="w-full bg-slate-900/80 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 hover:bg-slate-800 transition-all group text-left shadow-lg hover:shadow-cyan-900/10 relative overflow-hidden"
+                            className={`w-full bg-slate-900/80 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between hover:border-cyan-500/50 hover:bg-slate-800 transition-all group text-left shadow-lg hover:shadow-cyan-900/10 relative overflow-hidden ${spanClass}`}
                           >
                              <div className="absolute top-0 right-0 p-8 opacity-5 bg-gradient-radial from-cyan-500 to-transparent rounded-full pointer-events-none transform translate-x-1/2 -translate-y-1/2"></div>
                              
