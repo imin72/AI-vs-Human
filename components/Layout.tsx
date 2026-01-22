@@ -10,6 +10,10 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
+    /* 
+      h-[100dvh]: Dynamic Viewport Height - Adjusts automatically when browser address bar shows/hides.
+      This ensures the bottom navigation is always visible above the browser UI.
+    */
     <div className="relative h-[100dvh] w-full flex flex-col bg-slate-950 text-slate-100 selection:bg-cyan-500/30 overflow-hidden">
       {/* Background Layer - Fixed position to prevent layout shifts */}
       <div className="fixed inset-0 z-0 pointer-events-none">

@@ -7,16 +7,20 @@
   color-scheme: dark;
 }
 
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden; /* Prevent scrolling on the document level */
+  overscroll-behavior: none; /* Prevent pull-to-refresh and rubber-banding */
+  touch-action: pan-x pan-y; /* Optimize touch actions */
+}
+
 body {
   margin: 0;
   padding: 0;
   background-color: #020617; /* Slate-950 */
-  overflow-x: hidden;
   font-family: 'Inter', sans-serif;
-}
-
-#root {
-  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
 }
 
 .glass-panel {
@@ -37,6 +41,7 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Custom Scrollbar for internal scroll areas */
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
