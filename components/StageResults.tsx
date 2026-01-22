@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { EvaluationResult, Language, TOPIC_IDS } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Home, ArrowRight, Activity, Terminal, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, X } from 'lucide-react';
+import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Home, ArrowRight, Activity, Terminal, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, X, Link as LinkIcon, Download, Twitter, Smartphone } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
+import { toPng } from 'html-to-image';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { TRANSLATIONS } from '../utils/translations';
 
@@ -55,6 +56,12 @@ export const StageResults: React.FC<StageResultsProps> = ({
   const [currentPage, setCurrentPage] = useState(0); 
   const [chartReady, setChartReady] = useState(false);
   const [selectedResultForPopup, setSelectedResultForPopup] = useState<EvaluationResult | null>(null);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  
+  // Refs for capturing individual slides
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const detailsRef = useRef<HTMLDivElement>(null);
+
   const t = TRANSLATIONS[language].results;
   const commonT = TRANSLATIONS[language].common;
   const categoriesT = TRANSLATIONS[language].topics.categories;
@@ -99,21 +106,54 @@ export const StageResults: React.FC<StageResultsProps> = ({
     { subject: t.chart.intuition, A: data.humanPercentile, fullMark: 100 },
   ];
 
-  const handleShare = async () => {
-    const shareText = `Cognito Protocol 🧬\nScore: ${currentScore}/100 [${gradeInfo.label}]\n${isFinalSummary ? 'Aggregate Analysis' : `Topic: ${data.title}`}\n\nProve your humanity:`;
-    const url = window.location.href;
+  // --- Share Functions ---
+  const shareText = `Cognito Protocol 🧬\nScore: ${currentScore}/100 [${gradeInfo.label}]\n${isFinalSummary ? 'Aggregate Analysis' : `Topic: ${data.title}`}\n\nProve your humanity:`;
+  const shareUrl = window.location.href;
+
+  const handleSystemShare = async () => {
     if (navigator.share) {
-      try { await navigator.share({ title: 'Cognito', text: shareText, url }); } catch (err) { console.error(err); }
+      try { await navigator.share({ title: 'Cognito', text: shareText, url: shareUrl }); } catch (err) { console.error(err); }
     } else {
-      try { await navigator.clipboard.writeText(`${shareText}\n${url}`); alert('Copied!'); } catch (err) { alert('Failed'); }
+      handleCopyLink();
     }
+    setShowShareMenu(false);
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(`${shareText}\n${shareUrl}`).then(() => alert('Link copied to clipboard!'));
+    setShowShareMenu(false);
+  };
+
+  const handleTwitterShare = () => {
+    const text = encodeURIComponent(shareText);
+    const url = encodeURIComponent(shareUrl);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const handleSaveImage = async () => {
+    // Capture the visible slide based on currentPage
+    const targetRef = currentPage === 0 ? summaryRef : detailsRef;
+    
+    if (targetRef.current) {
+      try {
+        const dataUrl = await toPng(targetRef.current, { cacheBust: true, backgroundColor: '#020617' });
+        const link = document.createElement('a');
+        link.download = `cognito-result-${currentPage === 0 ? 'summary' : 'details'}-${Date.now()}.png`;
+        link.href = dataUrl;
+        link.click();
+      } catch (err) {
+        console.error('Failed to save image', err);
+        alert('Failed to generate image.');
+      }
+    }
+    setShowShareMenu(false);
   };
 
   const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
 
   // Handle clicking a list item
   const handleItemClick = (itemData: any) => {
-    // When clicking a list item in Summary mode, we open the popup with that item's details
     if (isFinalSummary) {
       setSelectedResultForPopup(itemData);
     } else {
@@ -156,28 +196,36 @@ export const StageResults: React.FC<StageResultsProps> = ({
              style={{ transform: `translateX(-${currentPage * 100}%)` }}
            >
               {/* PAGE 1: SUMMARY CARD */}
-              <div className="w-full h-full flex-shrink-0 p-6 md:p-8 overflow-y-auto custom-scrollbar flex flex-col items-center">
-                 <div className="w-full bg-slate-900/50 rounded-2xl p-6 border border-slate-700 relative overflow-hidden mb-4 flex-grow flex flex-col justify-center">
+              <div ref={summaryRef} className="w-full h-full flex-shrink-0 p-4 md:p-6 overflow-hidden flex flex-col items-center bg-[#020617]"> 
+                 <div className="w-full bg-slate-900/50 rounded-2xl p-2 md:p-4 border border-slate-700 relative overflow-hidden flex-grow flex flex-col">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                       <Brain size={120} />
                     </div>
                     
-                    <div className="relative z-10 flex flex-col items-center justify-center text-center">
-                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-2">{t.label_sync}</div>
-                       <div className={`text-6xl md:text-8xl font-black italic tracking-tighter drop-shadow-2xl mb-4 ${gradeInfo.color}`}>
-                          {gradeInfo.label}
-                       </div>
-                       <div className="text-2xl font-bold text-white mb-8">
-                          {currentScore}<span className="text-sm text-slate-500 font-normal">/100 {t.unit_avg}</span>
+                    <div className="relative z-10 flex flex-col items-center h-full pt-4 md:pt-6">
+                       {/* Header Section: Grade + Details Side-by-Side */}
+                       <div className="flex items-center justify-center gap-4 md:gap-6 mb-2 shrink-0">
+                           <div className={`text-6xl md:text-8xl font-black italic tracking-tighter drop-shadow-2xl ${gradeInfo.color}`}>
+                              {gradeInfo.label}
+                           </div>
+                           <div className="flex flex-col justify-center border-l border-slate-700 pl-4 md:pl-6 py-1">
+                              <div className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">
+                                 {t.label_sync}
+                              </div>
+                              <div className="text-2xl md:text-3xl font-bold text-white leading-none">
+                                 {currentScore}<span className="text-sm text-slate-500 font-normal ml-1">/100</span>
+                              </div>
+                           </div>
                        </div>
 
-                       <div className="w-full h-56 max-w-xs mx-auto">
+                       {/* Chart Section - Expanded */}
+                       <div className="w-full flex-grow min-h-0 relative mt-2 md:mt-4">
                          {chartReady ? (
                            <ResponsiveContainer width="100%" height="100%">
-                              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
+                              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
                                 <PolarGrid stroke="#334155" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
-                                <Radar name="User" dataKey="A" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.4} />
+                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                                <Radar name="User" dataKey="A" stroke="#22d3ee" strokeWidth={3} fill="#22d3ee" fillOpacity={0.4} />
                               </RadarChart>
                            </ResponsiveContainer>
                          ) : <div className="h-full flex items-center justify-center"><Activity className="animate-pulse text-cyan-900"/></div>}
@@ -185,21 +233,20 @@ export const StageResults: React.FC<StageResultsProps> = ({
                     </div>
                  </div>
                  
-                 <div className="text-center text-xs text-slate-500 animate-pulse mt-2">
+                 <div className="text-center text-xs text-slate-500 animate-pulse mt-3 shrink-0">
                    {/* Swipe hint */}
                    Swipe or click below for details
                  </div>
               </div>
 
               {/* PAGE 2: DETAILS LIST */}
-              <div className="w-full h-full flex-shrink-0 p-6 md:p-8 overflow-y-auto custom-scrollbar">
-                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1 mb-4 sticky top-0 bg-slate-950/80 backdrop-blur py-2 z-10">
+              <div ref={detailsRef} className="w-full h-full flex-shrink-0 p-6 md:p-8 overflow-y-auto custom-scrollbar bg-[#020617]">
+                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1 mb-4 sticky top-0 bg-[#020617]/95 backdrop-blur py-2 z-10">
                    {t.header_breakdown}
                  </h3>
                  
-                 <div className="space-y-3">
+                 <div className="space-y-3 pb-2">
                     {isFinalSummary ? (
-                      // SESSION MODE: List of Topics
                       sessionResults.map((res, idx) => {
                         const g = getGrade(res.totalScore);
                         const categoryLabel = getLocalizedCategory(res.id);
@@ -214,15 +261,12 @@ export const StageResults: React.FC<StageResultsProps> = ({
                                   {getTopicIcon(res.id)}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                   {/* Hierarchical Display: Category > Subtopic */}
                                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">
                                       {categoryLabel}
                                    </div>
                                    <div className="font-bold text-white text-sm group-hover:text-cyan-300 transition-colors truncate leading-tight mb-1.5">
                                       {res.title}
                                    </div>
-                                   
-                                   {/* Stats Badges inline */}
                                    <div className="flex flex-wrap gap-1.5">
                                       <span className="text-[10px] font-medium text-cyan-400 bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-500/20 whitespace-nowrap">
                                         {t.level_ai}: {res.totalScore}
@@ -241,11 +285,10 @@ export const StageResults: React.FC<StageResultsProps> = ({
                         );
                       })
                     ) : (
-                       // SINGLE MODE: List of Questions (Clicking opens popup for consistency)
                        data.details.map((item, idx) => (
                          <button 
                            key={idx} 
-                           onClick={() => setSelectedResultForPopup(data)} // Open popup for this result
+                           onClick={() => setSelectedResultForPopup(data)}
                            className={`w-full p-4 rounded-xl border transition-all text-left ${item.isCorrect ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-rose-950/20 border-rose-500/30'} hover:opacity-80`}
                          >
                             <div className="flex gap-3">
@@ -265,9 +308,8 @@ export const StageResults: React.FC<StageResultsProps> = ({
            </div>
         </div>
 
-        {/* Footer Navigation (Slide Toggles) */}
+        {/* Footer Navigation */}
         <div className="p-4 border-t border-slate-800 bg-slate-900/90 backdrop-blur-md shrink-0 flex flex-col gap-3 z-20">
-           {/* Dots / Segmented Control */}
            <div className="flex justify-center mb-1">
               <div className="bg-slate-800 p-1 rounded-full flex gap-1">
                  <button 
@@ -285,7 +327,6 @@ export const StageResults: React.FC<StageResultsProps> = ({
               </div>
            </div>
 
-           {/* Action Buttons */}
            {remainingTopics > 0 ? (
              <Button onClick={onNextTopic} fullWidth className="py-3 text-sm shadow-xl shadow-cyan-500/20 animate-pulse">
                 {t.btn_next_topic} {nextTopicName} <span className="bg-white/20 px-2 py-0.5 rounded text-xs ml-2">{remainingTopics} Left</span> <ArrowRight size={16} />
@@ -295,7 +336,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
                 <Button onClick={onRestart} variant="outline" className="text-sm py-3">
                    <RefreshCw size={16} /> {t.btn_retry}
                 </Button>
-                <Button onClick={handleShare} variant="primary" className="text-sm py-3 shadow-cyan-500/20">
+                <Button onClick={() => setShowShareMenu(true)} variant="primary" className="text-sm py-3 shadow-cyan-500/20">
                    <Share2 size={16} /> {t.btn_share}
                 </Button>
              </div>
@@ -303,12 +344,52 @@ export const StageResults: React.FC<StageResultsProps> = ({
         </div>
       </div>
 
+      {/* SHARE MENU POPUP */}
+      {showShareMenu && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 animate-fade-in bg-slate-950/80 backdrop-blur-sm">
+           <div className="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden p-6 space-y-4">
+              <h3 className="text-lg font-bold text-white text-center mb-4">{t.btn_share}</h3>
+              
+              <div className="grid grid-cols-2 gap-3">
+                 <button onClick={handleSystemShare} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
+                    <Smartphone size={24} className="text-purple-400" />
+                    <span className="text-xs font-bold text-slate-300">System</span>
+                 </button>
+                 
+                 <button onClick={handleTwitterShare} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
+                    <Twitter size={24} className="text-sky-400" />
+                    <span className="text-xs font-bold text-slate-300">X / Twitter</span>
+                 </button>
+
+                 <button onClick={handleCopyLink} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
+                    <LinkIcon size={24} className="text-emerald-400" />
+                    <span className="text-xs font-bold text-slate-300">Copy Link</span>
+                 </button>
+
+                 <button onClick={handleSaveImage} className="flex flex-col items-center justify-center p-4 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors gap-2">
+                    <Download size={24} className="text-rose-400" />
+                    <span className="text-xs font-bold text-slate-300">
+                        Save Image
+                        <span className="block text-[9px] font-normal opacity-60 mt-1">
+                          {currentPage === 0 ? "(Summary)" : "(Details)"}
+                        </span>
+                    </span>
+                 </button>
+              </div>
+
+              <Button onClick={() => setShowShareMenu(false)} fullWidth variant="secondary" className="py-2 text-sm mt-2">
+                 {commonT.close}
+              </Button>
+           </div>
+        </div>
+      )}
+
       {/* DETAIL POPUP MODAL */}
       {selectedResultForPopup && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4 animate-fade-in bg-slate-950/80 backdrop-blur-sm">
            <div className="bg-slate-900 border border-slate-700 w-full max-w-lg max-h-[90%] rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
               
-              {/* Popup Header */}
+              {/* Popup Header - Removed X button */}
               <div className="p-4 border-b border-slate-700 bg-slate-900 flex justify-between items-center shrink-0">
                  <div>
                     <h3 className="font-bold text-white flex items-center gap-2">
@@ -321,7 +402,6 @@ export const StageResults: React.FC<StageResultsProps> = ({
                        </span>
                     </h3>
                     
-                    {/* Level Badges */}
                     <div className="flex gap-2 mt-2">
                       <div className="text-[10px] font-bold px-2 py-1 rounded bg-cyan-900/50 text-cyan-400 border border-cyan-500/30">
                          {t.level_ai}: {selectedResultForPopup.totalScore}/100
@@ -331,15 +411,9 @@ export const StageResults: React.FC<StageResultsProps> = ({
                       </div>
                     </div>
                  </div>
-                 <button 
-                   onClick={() => setSelectedResultForPopup(null)}
-                   className="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
-                 >
-                    <X size={20} />
-                 </button>
               </div>
 
-              {/* Popup Content: Question List */}
+              {/* Popup Content */}
               <div className="overflow-y-auto custom-scrollbar p-4 space-y-4">
                  {selectedResultForPopup.details.map((item, idx) => (
                     <div key={idx} className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
@@ -374,8 +448,9 @@ export const StageResults: React.FC<StageResultsProps> = ({
                  ))}
               </div>
 
+              {/* Reduced Button Height */}
               <div className="p-4 border-t border-slate-700 bg-slate-900 shrink-0">
-                 <Button onClick={() => setSelectedResultForPopup(null)} fullWidth variant="secondary" className="py-2 text-sm">
+                 <Button onClick={() => setSelectedResultForPopup(null)} fullWidth variant="secondary" className="py-1.5 text-sm h-8 md:h-10">
                     {commonT.close}
                  </Button>
               </div>

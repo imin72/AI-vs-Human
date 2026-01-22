@@ -11,11 +11,10 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     /* 
-      h-[100dvh]: Dynamic Viewport Height - Adjusts automatically when browser address bar shows/hides.
-      This ensures the bottom navigation is always visible above the browser UI.
+      h-[100dvh]: Dynamic Viewport Height
     */
     <div className="relative h-[100dvh] w-full flex flex-col bg-slate-950 text-slate-100 selection:bg-cyan-500/30 overflow-hidden">
-      {/* Background Layer - Fixed position to prevent layout shifts */}
+      {/* Background Layer */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 transition-opacity duration-1000"
@@ -28,8 +27,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Content Container */}
       <div className="relative z-10 flex flex-col items-center w-full h-full max-w-2xl mx-auto">
-        {/* Header - Fixed Height with increased top margin */}
-        <header className="shrink-0 w-full flex flex-col items-center pt-14 pb-4 md:pt-20 md:pb-6 select-none z-20">
+        {/* Header - Padding Reduced by ~50% */}
+        <header className="shrink-0 w-full flex flex-col items-center pt-8 pb-2 md:pt-12 md:pb-4 select-none z-20">
             <div className="relative flex items-center justify-center gap-3 md:gap-8 scale-75 md:scale-90 origin-top">
               
               {/* HUMAN */}
@@ -60,8 +59,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
         </header>
           
-        {/* Main - Increased bottom padding for mobile buttons */}
-        <main className="flex-grow w-full relative px-4 pb-12 md:pb-16 flex flex-col overflow-hidden">
+        {/* Main - Bottom Padding Reduced */}
+        <main className="flex-grow w-full relative px-4 pb-6 md:pb-8 flex flex-col overflow-hidden">
           {children}
         </main>
       </div>

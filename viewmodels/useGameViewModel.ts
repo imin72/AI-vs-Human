@@ -373,12 +373,22 @@ export const useGameViewModel = () => {
     },
 
     resetApp: () => {
+      // Clear quiz state
       setUserAnswers([]); 
       setCurrentQuestionIndex(0); 
       setEvaluation(null);
-      // Don't clear session results if just retrying the same specific quiz? 
-      // Actually resetApp usually implies restarting the current quiz logic.
-      setStage(AppStage.QUIZ);
+      setQuizQueue([]);
+      setCurrentQuizSet(null);
+      setBatchProgress({ total: 0, current: 0, topics: [] });
+      setSessionResults([]); 
+
+      // Reset selection state
+      setSelectionPhase('CATEGORY');
+      setSelectedCategories([]);
+      setSelectedSubTopics([]);
+
+      // Navigate to Topic Selection
+      setStage(AppStage.TOPIC_SELECTION);
     },
 
     startQuiz: async () => {
