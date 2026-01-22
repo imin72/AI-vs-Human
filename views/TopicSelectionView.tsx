@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { 
   Play, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, 
   Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Home, Bug, CheckCircle2, 
@@ -69,6 +69,16 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
   // Standardized button style for top right controls: Fixed width/height (w-10 h-10) for perfect alignment
   const btnStyle = "w-10 h-10 flex items-center justify-center text-white bg-slate-800/80 backdrop-blur-md rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg p-0";
 
+  // Ref to reset scroll position
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Reset scroll position when phase changes
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [selectionPhase]);
+
   // When in Subtopic phase, we need to show subtopics for ALL selected categories
   const groupedSubTopics = !isCategoryPhase ? selectedCategories.map(catId => ({
     catId,
@@ -126,7 +136,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
         {isCategoryPhase ? (
           /* STEP 1: CATEGORY SELECTION */
           <>
-            <div className="flex-grow overflow-y-auto custom-scrollbar p-4">
+            <div ref={scrollContainerRef} className="flex-grow overflow-y-auto custom-scrollbar p-4">
                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {displayedTopics.map((topic) => {
                   const isSelected = selectedCategories.includes(topic.id);
@@ -180,7 +190,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
         ) : (
           /* STEP 2: SUBTOPIC SELECTION */
           <>
-            <div className="flex-grow overflow-y-auto custom-scrollbar relative">
+            <div ref={scrollContainerRef} className="flex-grow overflow-y-auto custom-scrollbar relative">
                 {groupedSubTopics.map((group) => (
                   <div key={group.catId}>
                     {/* Sticky Header: Full width, opaque, square corners to sit flush */}
