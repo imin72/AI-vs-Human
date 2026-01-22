@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { EvaluationResult, Language } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Users, Home, ArrowRight, Activity, Terminal, Zap, Award, BarChart3 } from 'lucide-react';
+import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Users, Home, ArrowRight, Activity, Terminal, Award, BarChart3 } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { TRANSLATIONS } from '../utils/translations';
@@ -18,20 +18,18 @@ interface StageResultsProps {
   setLanguage: (lang: Language) => void;
 }
 
-const THEMES = [
-  { id: 'cyber', name: 'System', bg: 'bg-slate-900', accent: 'text-cyan-400', border: 'border-cyan-500/30' },
-  { id: 'bio', name: 'Organic', bg: 'bg-slate-900', accent: 'text-rose-400', border: 'border-rose-500/30' },
-  { id: 'gold', name: 'Prestige', bg: 'bg-slate-900', accent: 'text-amber-400', border: 'border-amber-500/30' }
-];
-
 export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onHome, onNextTopic, remainingTopics = 0, nextTopicName, language, setLanguage }) => {
   const [activeTab, setActiveTab] = useState<'analysis' | 'details'>('analysis');
-  const [mounted, setMounted] = useState(false);
+  const [chartReady, setChartReady] = useState(false);
   const t = TRANSLATIONS[language].results;
 
+  // Delay chart rendering to ensure DOM is ready (Fixes Recharts ESM issues)
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setChartReady(true), 100);
+    return () => clearTimeout(timer);
   }, []);
+
+  if (!data) return null; // Safety check
 
   const getGrade = (score: number) => {
     if (score >= 90) return { label: 'SSS', color: 'text-yellow-400 shadow-yellow-500/50' };
@@ -79,7 +77,7 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
   const btnStyle = "text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg";
 
   return (
-    <div className={`w-full max-w-2xl relative pt-16 pb-12 animate-fade-in ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+    <div className="w-full max-w-2xl relative pt-16 pb-12 animate-fade-in">
       {/* Navbar */}
       <div className="absolute top-4 right-0 md:-right-12 z-20 flex gap-2">
         <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
@@ -146,16 +144,20 @@ export const StageResults: React.FC<StageResultsProps> = ({ data, onRestart, onH
         <div className="relative z-10 p-6 md:p-8 bg-slate-950/30 min-h-[300px]">
            {activeTab === 'analysis' ? (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                {/* Radar Chart */}
-                <div className="h-56 relative flex items-center justify-center">
-                   <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart cx="50%" cy="50%" outerRadius="75%" data={chartData}>
-                        <PolarGrid stroke="#334155" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
-                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                        <Radar name="User" dataKey="A" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.3} />
-                      </RadarChart>
-                   </ResponsiveContainer>
+                {/* Radar Chart - Render only when ready */}
+                <div className="h-56 relative flex items-center justify-center bg-slate-900/50 rounded-xl">
+                   {chartReady ? (
+                     <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="75%" data={chartData}>
+                          <PolarGrid stroke="#334155" />
+                          <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
+                          <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                          <Radar name="User" dataKey="A" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.3} />
+                        </RadarChart>
+                     </ResponsiveContainer>
+                   ) : (
+                     <div className="animate-pulse text-cyan-900"><Activity size={48} /></div>
+                   )}
                 </div>
 
                 {/* Stats Cards */}
