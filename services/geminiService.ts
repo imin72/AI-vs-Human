@@ -83,17 +83,14 @@ export const generateQuestionsBatch = async (
   const seenIds = new Set(userProfile?.seenQuestionIds || []);
 
   // HYBRID STRATEGY: 
-  // 1. Check LocalStorage Cache (Fastest) - *NOTE: Cache doesn't check seen IDs well, clearing cache periodically is advised or implementing deep filtering*
-  // 2. Check Static Database (Async Lazy Load) -> FILTER by seen IDs
+  // 1. Check Static Database (Highest Quality) -> FILTER by seen IDs
+  // 2. Check LocalStorage Cache (Fastest fallback) -> FILTER by seen IDs
   // 3. Fallback to API -> ADAPT by Elo
 
   for (const topic of topics) {
     const cacheKey = generateCacheKey(topic, difficulty, lang);
 
-    // Skip cache if we are in adaptive mode to ensure freshness, or check if cache has unseen questions
-    // For simplicity, we trust cache but if it's mostly seen, we might skip. 
-    // Here we'll just check static DB first for robustness.
-    
+    // 1. Try Static Database first
     const staticQuestions = await getStaticQuestions(topic, difficulty, lang);
     if (staticQuestions) {
       // --- ADAPTIVE FILTERING ---
@@ -107,8 +104,23 @@ export const generateQuestionsBatch = async (
         continue; // Done with this topic
       } else {
         console.log(`[Static DB Depleted] ${topic} - Not enough unseen questions.`);
-        // Fallthrough to API
+        // Fallthrough to Cache/API
       }
+    }
+
+    // 2. Try Local Cache (Previous API generations)
+    if (quizCache[cacheKey]) {
+       const cachedQuestions = quizCache[cacheKey];
+       if (Array.isArray(cachedQuestions)) {
+           // Filter cache for seen IDs too
+           const unseenCache = cachedQuestions.filter((q: QuizQuestion) => !seenIds.has(q.id));
+           if (unseenCache.length >= 5) {
+               const selected = unseenCache.sort(() => 0.5 - Math.random()).slice(0, 5);
+               console.log(`[Cache Hit] ${topic} (Adaptive Filter: ${selected.length})`);
+               results.push({ topic, questions: selected });
+               continue;
+           }
+       }
     }
 
     console.log(`[Cache Miss/Depleted] ${topic} - Requesting API`);
