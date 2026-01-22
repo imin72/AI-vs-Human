@@ -68,7 +68,18 @@ export interface TranslationData {
     btn_retry: string;
     btn_share: string;
     btn_save: string;
-    btn_next_topic: string; 
+    btn_next_topic: string;
+    header_aggregate: string;
+    label_sync: string;
+    header_breakdown: string;
+    label_fact: string;
+    label_missed: string;
+    label_ai_observer: string;
+    unit_avg: string;
+    unit_pts: string;
+    suffix_global: string;
+    tab_analysis: string;
+    tab_details: string;
     chart: {
       accuracy: string;
       speed: string;
@@ -217,7 +228,24 @@ const ENGLISH_BASE: TranslationData = {
   results: {
     badge_complete: "Analysis Complete", label_percentile: "Global Percentile", label_correct: "Correct Answers", label_cohort: "Cohort Analysis", label_template: "Result Template", label_bottom: "Bottom 1%", label_top: "Top", btn_retry: "Retry", btn_share: "Share Result", btn_save: "Save Image",
     btn_next_topic: "Continue to", 
-    chart: { accuracy: "Accuracy", speed: "Speed", cohort: "Cohort", logic: "Logic", intuition: "Intuition" }
+    header_aggregate: "Aggregate Report",
+    label_sync: "Total Synchronization",
+    header_breakdown: "Detailed Breakdown",
+    label_fact: "Fact:",
+    label_missed: "Missed",
+    label_ai_observer: "AI Observer",
+    unit_avg: "AVG",
+    unit_pts: "pts",
+    suffix_global: "Global",
+    tab_analysis: "Analysis",
+    tab_details: "Details",
+    chart: {
+      accuracy: "Accuracy",
+      speed: "Speed",
+      cohort: "Cohort",
+      logic: "Logic",
+      intuition: "Intuition"
+    }
   },
   loading: { gen_vectors: "Generating test vectors...", analyzing: "AI is analyzing performance..." },
   difficulty: { [Difficulty.EASY]: "Novice", [Difficulty.MEDIUM]: "Competent", [Difficulty.HARD]: "Expert" },
@@ -287,6 +315,17 @@ const KO_TRANSLATIONS: TranslationData = {
   results: {
     badge_complete: "분석 완료", label_percentile: "글로벌 백분위", label_correct: "정답 수", label_cohort: "집단 분석", label_template: "결과 템플릿", label_bottom: "하위 1%", label_top: "상위", btn_retry: "재시도", btn_share: "결과 공유", btn_save: "이미지 저장",
     btn_next_topic: "다음 주제:", 
+    header_aggregate: "종합 리포트",
+    label_sync: "전체 동기화율",
+    header_breakdown: "상세 분석",
+    label_fact: "팩트:",
+    label_missed: "오답",
+    label_ai_observer: "AI 관찰자",
+    unit_avg: "평균",
+    unit_pts: "점",
+    suffix_global: "글로벌",
+    tab_analysis: "분석",
+    tab_details: "상세",
     chart: { accuracy: "정확도", speed: "속도", cohort: "집단위치", logic: "논리력", intuition: "직관력" }
   },
   loading: { gen_vectors: "테스트 벡터 생성 중...", analyzing: "AI 성능 분석 중..." },
@@ -343,25 +382,36 @@ const JA_TRANSLATIONS: TranslationData = {
     }
   },
   quiz: { 
-    label_target: "ターゲット", label_info: "情報", 
-    btn_next: "次の問題", 
-    btn_finish: "結果分析",
-    btn_analyze: "中間分析を実行",
+    label_target: "목표", label_info: "정보", 
+    btn_next: "다음 문제", 
+    btn_finish: "결과 분석",
+    btn_analyze: "중간 분석 실행",
     btn_start_next_topic_prefix: "",
-    btn_start_next_topic_suffix: " テスト開始",
+    btn_start_next_topic_suffix: " 분야 테스트 시작",
     ai_status: "AI STATUS",
-    ai_calculating: "計算中...",
-    ai_answer_found: "解答特定",
-    ai_done: "AI完了"
+    ai_calculating: "생각 중...",
+    ai_answer_found: "답변 도출 완료",
+    ai_done: "AI 완료"
   },
   results: {
-    badge_complete: "分析完了", label_percentile: "グローバル偏差値", label_correct: "正解数", label_cohort: "集団分析", label_template: "結果テンプレート", label_bottom: "下位1%", label_top: "上位", btn_retry: "リトライ", btn_share: "結果を共有", btn_save: "画像を保存",
-    btn_next_topic: "次のトピック:", 
-    chart: { accuracy: "正確性", speed: "速度", cohort: "集団位置", logic: "論理", intuition: "直感" }
+    badge_complete: "분석 완료", label_percentile: "글로벌 백분위", label_correct: "정답 수", label_cohort: "집단 분석", label_template: "결과 템플릿", label_bottom: "하위 1%", label_top: "상위", btn_retry: "재시도", btn_share: "결과 공유", btn_save: "이미지 저장",
+    btn_next_topic: "다음 주제:", 
+    header_aggregate: "종합 리포트",
+    label_sync: "전체 동기화율",
+    header_breakdown: "상세 분석",
+    label_fact: "팩트:",
+    label_missed: "오답",
+    label_ai_observer: "AI 관찰자",
+    unit_avg: "평균",
+    unit_pts: "점",
+    suffix_global: "글로벌",
+    tab_analysis: "분석",
+    tab_details: "상세",
+    chart: { accuracy: "정확도", speed: "속도", cohort: "집단위치", logic: "논리력", intuition: "직관력" }
   },
-  loading: { gen_vectors: "テストベクトル生成中...", analyzing: "AIがパフォーマンスを分析中..." },
-  difficulty: { [Difficulty.EASY]: "初級", [Difficulty.MEDIUM]: "中級", [Difficulty.HARD]: "上級" },
-  error: { title: "システムエラー", btn_reset: "リセット" }
+  loading: { gen_vectors: "테스트 벡터 생성 중...", analyzing: "AI 성능 분석 중..." },
+  difficulty: { [Difficulty.EASY]: "초급", [Difficulty.MEDIUM]: "중급", [Difficulty.HARD]: "고급" },
+  error: { title: "시스템 오류", btn_reset: "시스템 재설정" }
 };
 
 const ES_TRANSLATIONS: TranslationData = {
@@ -427,6 +477,17 @@ const ES_TRANSLATIONS: TranslationData = {
   results: {
     badge_complete: "Análisis Completo", label_percentile: "Percentil Global", label_correct: "Aciertos", label_cohort: "Análisis de Cohorte", label_template: "Plantilla de Resultado", label_bottom: "Mínimo 1%", label_top: "Top", btn_retry: "Reintentar", btn_share: "Compartir", btn_save: "Guardar Imagen",
     btn_next_topic: "Continuar a", 
+    header_aggregate: "Informe Agregado",
+    label_sync: "Sincronización Total",
+    header_breakdown: "Desglose Detallado",
+    label_fact: "Hecho:",
+    label_missed: "Fallado",
+    label_ai_observer: "Observador IA",
+    unit_avg: "PROM",
+    unit_pts: "pts",
+    suffix_global: "Global",
+    tab_analysis: "Análisis",
+    tab_details: "Detalles",
     chart: { accuracy: "Precisión", speed: "Velocidad", cohort: "Cohorte", logic: "Lógica", intuition: "Intuición" }
   },
   loading: { gen_vectors: "Generando vectores de prueba...", analyzing: "Análisis de IA en curso..." },
@@ -468,7 +529,7 @@ const FR_TRANSLATIONS: TranslationData = {
       [TOPIC_IDS.SCIENCE]: ["Physique Quantique", "Génétique", "Chimie Organique", "Neuroscience", "Botanique", "Astronomie", "Géologie", "Thermodynamique", "Biologie Marine", "Évolution", "Physique des Particules", "Immunologie", "Paléontologie", "Météorologie", "Robotique", "Écologie"],
       [TOPIC_IDS.ARTS]: ["Impressionnisme", "Art Renaissance", "Cubisme", "Surréalisme", "Barroco", "Modernismo", "Sculpture", "Design Graphique", "Histoire de la Mode", "Photographie", "Théâtre", "Opéra", "Expressionnisme Abstrait", "Poterie", "Calligraphie", "Architecture Gothique"],
       [TOPIC_IDS.GENERAL]: ["Trivia Années 80", "Trivia Années 90", "Inventions", "Capitales Mondiales", "Monnaies", "Prix Nobel", "Phobies", "Logos de Marques", "Cryptomonnaie", "Tendencias Virales", "Jeux de Plateau", "Jeux de Cartes", "Super-héros", "Jouets Classiques", "Cocktails", "Marques de Voitures"],
-      [TOPIC_IDS.GEOGRAPHY]: ["Capitales", "Monuments", "Montagnes", "Rivières", "Déserts", "Îles", "Volcans", "Drapeaux", "Démographie", "Zones Climatiques", "Océans", "États des USA", "Pays Européens", "Villes Asiatiques", "Nations Africaines", "Frontières"],
+      [TOPIC_IDS.GEOGRAPHY]: ["Capitales", "Monuments", "Montagnes", "Rivières", "Déserts", "Îles", "Volcans", "Drapeaux", "Démographie", "Zones Climáticas", "Océans", "États des USA", "Pays Européens", "Villes Asiatiques", "Nations Africaines", "Frontières"],
       [TOPIC_IDS.MOVIES]: ["Oscars", "Science-Fiction", "Horreur", "Univers Cinématographique Marvel", "Star Wars", "Pixar", "Films Années 80", "Films Années 90", "Réalisateurs Célèbres", "Bandes Originales", "Films Cultes", "Films d'Animation", "Cinéma Français", "Cinéma Muet", "Effets Spéciaux", "Méchants de Cinéma"],
       [TOPIC_IDS.MUSIC]: ["Rock & Roll", "Pop", "Jazz", "Classique", "Hip Hop", "K-Pop", "EDM", "Heavy Metal", "Blues", "Country", "Opéra", "Instruments", "Hits Années 90", "Succès Sans Lendemain", "Théorie Musicale", "Woodstock"],
       [TOPIC_IDS.GAMING]: ["Nintendo", "PlayStation", "Xbox", "Jeux PC", "RPG", "FPS", "Classiques Arcade", "Rétrogaming", "Esports", "Minecraft", "Pokemon", "Zelda", "Mario", "Jeux Indés", "Speedrun", "MMO"],
@@ -497,6 +558,17 @@ const FR_TRANSLATIONS: TranslationData = {
   results: {
     badge_complete: "Analyse Terminée", label_percentile: "Percentile Global", label_correct: "Réponses Correctes", label_cohort: "Analyse de Cohorte", label_template: "Modèle de Résultat", label_bottom: "Bas 1%", label_top: "Haut", btn_retry: "Réessayer", btn_share: "Partager", btn_save: "Sauvegarder",
     btn_next_topic: "Continuer vers", 
+    header_aggregate: "Rapport Global",
+    label_sync: "Synchronisation Totale",
+    header_breakdown: "Analyse Détaillée",
+    label_fact: "Fait:",
+    label_missed: "Manqué",
+    label_ai_observer: "Observateur IA",
+    unit_avg: "MOY",
+    unit_pts: "pts",
+    suffix_global: "Global",
+    tab_analysis: "Analyse",
+    tab_details: "Détails",
     chart: { accuracy: "Précision", speed: "Vitesse", cohort: "Cohorte", logic: "Logique", intuition: "Intuition" }
   },
   loading: { gen_vectors: "Génération des vecteurs de test...", analyzing: "Analyse des performances par l'IA..." },
@@ -567,6 +639,17 @@ const ZH_TRANSLATIONS: TranslationData = {
   results: {
     badge_complete: "分析完成", label_percentile: "全球百分位", label_correct: "正确答案", label_cohort: "群体分析", label_template: "结果模板", label_bottom: "后 1%", label_top: "前", btn_retry: "重试", btn_share: "分享结果", btn_save: "保存图片",
     btn_next_topic: "继续", 
+    header_aggregate: "综合报告",
+    label_sync: "完全同步",
+    header_breakdown: "详细细分",
+    label_fact: "事实:",
+    label_missed: "未命中",
+    label_ai_observer: "AI 观察员",
+    unit_avg: "平均",
+    unit_pts: "分",
+    suffix_global: "全球",
+    tab_analysis: "分析",
+    tab_details: "详情",
     chart: { accuracy: "准确度", speed: "速度", cohort: "群体", logic: "逻辑", intuition: "直觉" }
   },
   loading: { gen_vectors: "生成测试向量...", analyzing: "AI 正在分析表现..." },

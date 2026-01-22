@@ -261,6 +261,9 @@ export const useGameViewModel = () => {
   const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { 
       setLanguage(lang); 
+      // Subtopic strings are language-dependent, so we must clear them to prevent invalid states
+      setSelectedSubTopics([]);
+      
       if (stage === AppStage.LANGUAGE) {
          setStage(AppStage.INTRO); 
       }

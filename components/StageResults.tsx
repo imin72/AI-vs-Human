@@ -130,7 +130,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
         <div className="flex justify-between items-center mb-3 shrink-0 z-20 px-4 pt-2">
           <div className="flex items-center gap-2">
              <Terminal size={16} className="text-cyan-400" />
-             <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">Aggregate Report</span>
+             <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">{t.header_aggregate}</span>
           </div>
           <div className="flex gap-2">
             <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
@@ -150,12 +150,12 @@ export const StageResults: React.FC<StageResultsProps> = ({
                  </div>
                  
                  <div className="relative z-10 flex flex-col items-center justify-center text-center">
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-2">Total Synchronization</div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-2">{t.label_sync}</div>
                     <div className={`text-6xl md:text-7xl font-black italic tracking-tighter drop-shadow-2xl mb-2 ${overallGrade.color}`}>
                        {overallGrade.label}
                     </div>
                     <div className="text-2xl font-bold text-white mb-6">
-                       {avgScore}<span className="text-sm text-slate-500 font-normal">/100 AVG</span>
+                       {avgScore}<span className="text-sm text-slate-500 font-normal">/100 {t.unit_avg}</span>
                     </div>
 
                     <div className="w-full h-48 max-w-xs mx-auto">
@@ -174,7 +174,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
 
               {/* Topic Grid */}
               <div className="grid grid-cols-1 gap-3">
-                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Detailed Breakdown</h3>
+                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">{t.header_breakdown}</h3>
                  {sessionResults.map((res, idx) => {
                    const g = getGrade(res.totalScore);
                    return (
@@ -185,12 +185,12 @@ export const StageResults: React.FC<StageResultsProps> = ({
                            </div>
                            <div>
                               <div className="font-bold text-white text-sm">{res.title}</div>
-                              <div className="text-[10px] text-slate-400">Top {100 - res.humanPercentile}% Global</div>
+                              <div className="text-[10px] text-slate-400">{t.label_top} {100 - res.humanPercentile}% {t.suffix_global}</div>
                            </div>
                         </div>
                         <div className="text-right">
                            <div className={`text-xl font-black italic ${g.color}`}>{g.label}</div>
-                           <div className="text-[10px] font-mono text-slate-500">{res.totalScore} pts</div>
+                           <div className="text-[10px] font-mono text-slate-500">{res.totalScore} {t.unit_pts}</div>
                         </div>
                      </div>
                    );
@@ -263,7 +263,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
           <div className="bg-slate-900/60 border-l-4 border-cyan-500 p-4 rounded-r-xl mb-4 backdrop-blur-sm">
              <div className="flex items-center gap-2 mb-1">
                <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
-               <span className="text-[10px] font-bold text-cyan-400 uppercase">AI Observer</span>
+               <span className="text-[10px] font-bold text-cyan-400 uppercase">{t.label_ai_observer}</span>
              </div>
              <p className="text-sm text-slate-200 italic leading-relaxed">"{data.aiComparison}"</p>
           </div>
@@ -275,13 +275,13 @@ export const StageResults: React.FC<StageResultsProps> = ({
              onClick={() => setActiveTab('analysis')}
              className={`pb-3 px-4 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'analysis' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
            >
-             <div className="flex items-center gap-2"><Activity size={14} /> Analysis</div>
+             <div className="flex items-center gap-2"><Activity size={14} /> {t.tab_analysis}</div>
            </button>
            <button 
              onClick={() => setActiveTab('details')}
              className={`pb-3 px-4 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'details' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
            >
-             <div className="flex items-center gap-2"><BarChart3 size={14} /> Details</div>
+             <div className="flex items-center gap-2"><BarChart3 size={14} /> {t.tab_details}</div>
            </button>
         </div>
 
@@ -321,7 +321,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
                          <div className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400"><Users size={18} /></div>
                          <div>
                             <div className="text-[10px] text-slate-400 font-bold uppercase">{t.label_percentile}</div>
-                            <div className="text-lg font-bold text-white">Top {100 - data.humanPercentile}%</div>
+                            <div className="text-lg font-bold text-white">{t.label_top} {100 - data.humanPercentile}%</div>
                          </div>
                       </div>
                       <div className="text-right">
@@ -341,12 +341,12 @@ export const StageResults: React.FC<StageResultsProps> = ({
                         <div className="flex-1 space-y-2">
                            <div className="flex justify-between items-start">
                               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Q{idx + 1} Analysis</span>
-                              {!item.isCorrect && <span className="text-[10px] bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded">Missed</span>}
+                              {!item.isCorrect && <span className="text-[10px] bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded">{t.label_missed}</span>}
                            </div>
                            <p className="text-sm text-slate-200 leading-relaxed">{item.aiComment}</p>
                            {!item.isCorrect && (
                              <div className="text-xs text-slate-400 bg-slate-900/50 p-2 rounded border-l-2 border-slate-600">
-                               <span className="font-bold text-slate-300">Fact:</span> {item.correctFact}
+                               <span className="font-bold text-slate-300">{t.label_fact}</span> {item.correctFact}
                              </div>
                            )}
                         </div>
