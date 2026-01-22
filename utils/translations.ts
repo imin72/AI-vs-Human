@@ -45,8 +45,12 @@ export interface TranslationData {
     btn_next: string;
     btn_finish: string;
     btn_analyze: string; 
-    btn_start_next_topic_prefix: string; // New
-    btn_start_next_topic_suffix: string; // New
+    btn_start_next_topic_prefix: string;
+    btn_start_next_topic_suffix: string;
+    ai_status: string;
+    ai_calculating: string;
+    ai_answer_found: string;
+    ai_done: string;
   };
   results: {
     badge_complete: string;
@@ -194,7 +198,11 @@ const ENGLISH_BASE: TranslationData = {
     btn_finish: "Analyze Results",
     btn_analyze: "Analyze Segment",
     btn_start_next_topic_prefix: "Start ",
-    btn_start_next_topic_suffix: " Test"
+    btn_start_next_topic_suffix: " Test",
+    ai_status: "AI STATUS",
+    ai_calculating: "CALCULATING...",
+    ai_answer_found: "ANSWER FOUND",
+    ai_done: "AI DONE"
   },
   results: {
     badge_complete: "Analysis Complete", label_percentile: "Global Percentile", label_correct: "Correct Answers", label_cohort: "Cohort Analysis", label_template: "Result Template", label_bottom: "Bottom 1%", label_top: "Top", btn_retry: "Retry", btn_share: "Share Result", btn_save: "Save Image",
@@ -254,7 +262,11 @@ const KO_TRANSLATIONS: TranslationData = {
     btn_finish: "결과 분석",
     btn_analyze: "중간 분석 실행",
     btn_start_next_topic_prefix: "",
-    btn_start_next_topic_suffix: " 분야 테스트 시작"
+    btn_start_next_topic_suffix: " 분야 테스트 시작",
+    ai_status: "AI STATUS",
+    ai_calculating: "생각 중...",
+    ai_answer_found: "답변 도출 완료",
+    ai_done: "AI 완료"
   },
   results: {
     badge_complete: "분석 완료", label_percentile: "글로벌 백분위", label_correct: "정답 수", label_cohort: "집단 분석", label_template: "결과 템플릿", label_bottom: "하위 1%", label_top: "상위", btn_retry: "재시도", btn_share: "결과 공유", btn_save: "이미지 저장",
@@ -314,7 +326,11 @@ const JA_TRANSLATIONS: TranslationData = {
     btn_finish: "結果分析",
     btn_analyze: "中間分析を実行",
     btn_start_next_topic_prefix: "",
-    btn_start_next_topic_suffix: " テスト開始"
+    btn_start_next_topic_suffix: " テスト開始",
+    ai_status: "AI STATUS",
+    ai_calculating: "計算中...",
+    ai_answer_found: "解答特定",
+    ai_done: "AI完了"
   },
   results: {
     badge_complete: "分析完了", label_percentile: "グローバル偏差値", label_correct: "正解数", label_cohort: "集団分析", label_template: "結果テンプレート", label_bottom: "下位1%", label_top: "上位", btn_retry: "リトライ", btn_share: "結果を共有", btn_save: "画像を保存",
@@ -354,7 +370,7 @@ const ES_TRANSLATIONS: TranslationData = {
       [TOPIC_IDS.SCIENCE]: ["Física Cuántica", "Genética", "Química Orgánica", "Neurociencia", "Botánica", "Astronomía", "Geología", "Termodinámica", "Biología Marina", "Evolución", "Física de Partículas", "Inmunología", "Paleontología", "Meteorología", "Robótica", "Ecología"],
       [TOPIC_IDS.ARTS]: ["Impresionismo", "Arte del Renacimiento", "Cubismo", "Surrealismo", "Barroco", "Modernismo", "Escultura", "Diseño Gráfico", "Historia de la Moda", "Fotografía", "Teatro", "Ópera", "Expresionismo Abstracto", "Alfarería", "Caligrafía", "Arquitectura Gótica"],
       [TOPIC_IDS.GENERAL]: ["Trivia de los 80", "Trivia de los 90", "Inventos", "Capitales del Mundo", "Monedas", "Premios Nobel", "Fobias", "Logos de Marcas", "Criptomonedas", "Tendencias Virales", "Juegos de Mesa", "Juegos de Cartas", "Superhéroes", "Juguetes Clásicos", "Cócteles", "Marcas de Autos"],
-      [TOPIC_IDS.GEOGRAPHY]: ["Capitales", "Monumentos", "Montañas", "Ríos", "Desiertos", "Islas", "Volcanes", "Banderas", "Demografía", "Zonas Climáticas", "Océanos", "Estados de EE.UU.", "Países Europeos", "Ciudades Asiáticas", "Naciones Africanas", "Fronteras"],
+      [TOPIC_IDS.GEOGRAPHY]: ["Capitales", "Monumentos", "Montañas", "Ríos", "Desiertos", "Islas", "Volcanos", "Banderas", "Demografía", "Zonas Climáticas", "Océanos", "Estados de EE.UU.", "Países Europeos", "Ciudades Asiáticas", "Naciones Africanas", "Fronteras"],
       [TOPIC_IDS.MOVIES]: ["Oscars", "Ciencia Ficción", "Terror", "Universo Cinematográfico de Marvel", "Star Wars", "Pixar", "Cine de los 80", "Cine de los 90", "Directores Famosos", "Bandas Sonoras", "Clásicos de Culto", "Películas de Anime", "Cine Francés", "Era del Cine Mudo", "Efectos Especiales", "Villanos de Cine"],
       [TOPIC_IDS.MUSIC]: ["Rock & Roll", "Pop", "Jazz", "Clásica", "Hip Hop", "K-Pop", "EDM", "Heavy Metal", "Blues", "Country", "Ópera (Música)", "Instrumentos Musicales", "Éxitos de los 90", "One Hit Wonders", "Teoría Musical", "Woodstock"],
       [TOPIC_IDS.GAMING]: ["Nintendo (es)", "PlayStation", "Xbox", "PC Gaming", "RPG", "FPS", "Clásicos de Arcade", "Retro Gaming", "eSports", "Minecraft", "Pokemon", "Zelda", "Mario", "Juegos Indie", "Speedrunning", "MMO"],
@@ -374,7 +390,11 @@ const ES_TRANSLATIONS: TranslationData = {
     btn_finish: "Analizar Resultados",
     btn_analyze: "Analizar Segmento",
     btn_start_next_topic_prefix: "Iniciar Prueba de ",
-    btn_start_next_topic_suffix: ""
+    btn_start_next_topic_suffix: "",
+    ai_status: "AI STATUS",
+    ai_calculating: "CALCULANDO...",
+    ai_answer_found: "RESPUESTA ENCONTRADA",
+    ai_done: "IA LISTA"
   },
   results: {
     badge_complete: "Análisis Completo", label_percentile: "Percentil Global", label_correct: "Aciertos", label_cohort: "Análisis de Cohorte", label_template: "Plantilla de Resultado", label_bottom: "Mínimo 1%", label_top: "Top", btn_retry: "Reintentar", btn_share: "Compartir", btn_save: "Guardar Imagen",
@@ -412,8 +432,8 @@ const FR_TRANSLATIONS: TranslationData = {
     subtopics: {
       [TOPIC_IDS.HISTORY]: ["Égypte Antique", "Empire Romain", "Seconde Guerre Mondiale", "Guerre Froide", "Renaissance", "Révolution Industrielle", "Révolution Française", "Guerre de Sécession", "Japon Féodal", "Vikings", "Empire Aztèque", "Empire Mongol", "Croisades", "Ère Victorienne", "Préhistoire", "Décolonisation"],
       [TOPIC_IDS.SCIENCE]: ["Physique Quantique", "Génétique", "Chimie Organique", "Neuroscience", "Botanique", "Astronomie", "Géologie", "Thermodynamique", "Biologie Marine", "Évolution", "Physique des Particules", "Immunologie", "Paléontologie", "Météorologie", "Robotique", "Écologie"],
-      [TOPIC_IDS.ARTS]: ["Impressionnisme", "Art Renaissance", "Cubisme", "Surréalisme", "Barroco", "Modernisme", "Sculpture", "Design Graphique", "Histoire de la Mode", "Photographie", "Théâtre", "Opéra", "Expressionnisme Abstrait", "Poterie", "Calligraphie", "Architecture Gothique"],
-      [TOPIC_IDS.GENERAL]: ["Trivia Années 80", "Trivia Années 90", "Inventions", "Capitales Mondiales", "Monnaies", "Prix Nobel", "Phobies", "Logos de Marques", "Cryptomonnaie", "Tendances Virales", "Jeux de Plateau", "Jeux de Cartes", "Super-héros", "Jouets Classiques", "Cocktails", "Marques de Voitures"],
+      [TOPIC_IDS.ARTS]: ["Impressionnisme", "Art Renaissance", "Cubisme", "Surréalisme", "Barroco", "Modernismo", "Sculpture", "Design Graphique", "Histoire de la Mode", "Photographie", "Théâtre", "Opéra", "Expressionnisme Abstrait", "Poterie", "Calligraphie", "Architecture Gothique"],
+      [TOPIC_IDS.GENERAL]: ["Trivia Années 80", "Trivia Années 90", "Inventions", "Capitales Mondiales", "Monnaies", "Prix Nobel", "Phobies", "Logos de Marques", "Cryptomonnaie", "Tendencias Virales", "Jeux de Plateau", "Jeux de Cartes", "Super-héros", "Jouets Classiques", "Cocktails", "Marques de Voitures"],
       [TOPIC_IDS.GEOGRAPHY]: ["Capitales", "Monuments", "Montagnes", "Rivières", "Déserts", "Îles", "Volcans", "Drapeaux", "Démographie", "Zones Climatiques", "Océans", "États des USA", "Pays Européens", "Villes Asiatiques", "Nations Africaines", "Frontières"],
       [TOPIC_IDS.MOVIES]: ["Oscars", "Science-Fiction", "Horreur", "Univers Cinématographique Marvel", "Star Wars", "Pixar", "Films Années 80", "Films Années 90", "Réalisateurs Célèbres", "Bandes Originales", "Films Cultes", "Films d'Animation", "Cinéma Français", "Cinéma Muet", "Effets Spéciaux", "Méchants de Cinéma"],
       [TOPIC_IDS.MUSIC]: ["Rock & Roll", "Pop", "Jazz", "Classique", "Hip Hop", "K-Pop", "EDM", "Heavy Metal", "Blues", "Country", "Opéra", "Instruments", "Hits Années 90", "Succès Sans Lendemain", "Théorie Musicale", "Woodstock"],
@@ -434,7 +454,11 @@ const FR_TRANSLATIONS: TranslationData = {
     btn_finish: "Analyser Résultats",
     btn_analyze: "Analyser le Segment",
     btn_start_next_topic_prefix: "Commencer le Test ",
-    btn_start_next_topic_suffix: ""
+    btn_start_next_topic_suffix: "",
+    ai_status: "AI STATUS",
+    ai_calculating: "CALCUL EN COURS...",
+    ai_answer_found: "RÉPONSE TROUVÉE",
+    ai_done: "IA TERMINÉE"
   },
   results: {
     badge_complete: "Analyse Terminée", label_percentile: "Percentile Global", label_correct: "Réponses Correctes", label_cohort: "Analyse de Cohorte", label_template: "Modèle de Résultat", label_bottom: "Bas 1%", label_top: "Haut", btn_retry: "Réessayer", btn_share: "Partager", btn_save: "Sauvegarder",
@@ -494,7 +518,11 @@ const ZH_TRANSLATIONS: TranslationData = {
     btn_finish: "分析结果",
     btn_analyze: "分析片段",
     btn_start_next_topic_prefix: "开始 ",
-    btn_start_next_topic_suffix: " 测试"
+    btn_start_next_topic_suffix: " 测试",
+    ai_status: "AI STATUS",
+    ai_calculating: "计算中...",
+    ai_answer_found: "答案已生成",
+    ai_done: "AI 完成"
   },
   results: {
     badge_complete: "分析完成", label_percentile: "全球百分位", label_correct: "正确答案", label_cohort: "群体分析", label_template: "结果模板", label_bottom: "后 1%", label_top: "前", btn_retry: "重试", btn_share: "分享结果", btn_save: "保存图片",

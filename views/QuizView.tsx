@@ -196,7 +196,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
         {isAiDone && (
            <div className="absolute top-0 right-0 p-2 pointer-events-none z-10">
               <span className="inline-flex items-center gap-1 bg-rose-600 text-white text-[10px] font-black px-2 py-1 rounded-bl-xl rounded-tr-2xl shadow-lg animate-pulse">
-                AI DONE
+                {t.ai_done}
               </span>
            </div>
         )}
@@ -209,11 +209,11 @@ export const QuizView: React.FC<QuizViewProps> = ({
             </span>
           </div>
 
-          {/* AI 도발 말풍선 - 중앙 배치 */}
-          <div className="absolute left-0 right-0 -top-2 flex justify-center pointer-events-none z-20">
-             <div className="bg-rose-600 text-white text-xs md:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-xl border border-rose-400 animate-bounce max-w-[65%] text-center leading-tight relative">
+          {/* AI 도발 말풍선 - 반응형 크기 및 위치 조정 */}
+          <div className="absolute left-0 right-0 -top-5 md:-top-3 flex justify-center pointer-events-none z-20">
+             <div className="bg-rose-600 text-white text-[10px] md:text-sm font-bold px-3 py-1.5 md:px-4 md:py-2.5 rounded-xl md:rounded-2xl shadow-xl border border-rose-400 animate-bounce max-w-[55%] md:max-w-[65%] text-center leading-tight relative">
                 {aiComment}
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-rose-600 rotate-45 border-r border-b border-rose-400"></div>
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 md:w-2.5 md:h-2.5 bg-rose-600 rotate-45 border-r border-b border-rose-400"></div>
              </div>
           </div>
 
@@ -284,8 +284,6 @@ export const QuizView: React.FC<QuizViewProps> = ({
         </Button>
       </div>
 
-      {/* Human Progress Bar Deleted */}
-
       {/* 2. AI Status */}
       <div className="glass-panel p-4 rounded-3xl border-rose-500/20 flex items-center justify-between overflow-hidden shadow-lg backdrop-blur-xl transition-all duration-300">
         <div className="flex items-center gap-4">
@@ -295,7 +293,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
           </div>
           <div className="flex flex-col gap-0.5">
             <span className={`text-[10px] md:text-xs font-black uppercase tracking-tighter transition-colors ${isAiDone ? 'text-rose-500' : 'text-slate-400'}`}>
-              AI STATUS: {isAiDone ? 'ANSWER FOUND' : 'CALCULATING...'}
+              {t.ai_status}: {isAiDone ? t.ai_answer_found : t.ai_calculating}
             </span>
           </div>
         </div>
