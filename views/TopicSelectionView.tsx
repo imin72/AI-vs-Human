@@ -20,7 +20,8 @@ import {
   Orbit, 
   Lightbulb,
   Dices,
-  Home
+  Home,
+  Bug
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
 import { Difficulty, TOPIC_IDS } from '../types.ts';
@@ -47,6 +48,7 @@ interface TopicSelectionViewProps {
     setDifficulty: (diff: Difficulty) => void;
     startQuiz: () => void;
     setCustomTopic: (topic: string) => void;
+    startDebugQuiz?: () => void;
   };
 }
 
@@ -118,7 +120,7 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
   const navBtnStyle = "absolute top-4 text-white bg-slate-800/80 backdrop-blur-md p-2 rounded-full hover:bg-slate-700 transition-all z-20 border border-white/10 shadow-lg";
 
   return (
-    <div className="w-full max-w-2xl relative pt-16 animate-fade-in">
+    <div className="w-full max-w-2xl relative pt-16 animate-fade-in flex flex-col items-center">
       <button 
         onClick={actions.goBack}
         className={`${navBtnStyle} left-0 md:-left-12`}
@@ -242,6 +244,14 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           </div>
         )}
       </div>
+      
+      {/* Debug Button */}
+      <button 
+        onClick={actions.startDebugQuiz}
+        className="mt-6 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900/50 border border-slate-800 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:text-cyan-400 hover:border-cyan-500/50 transition-all opacity-40 hover:opacity-100"
+      >
+        <Bug size={12} /> Debug Layout
+      </button>
     </div>
   );
 };

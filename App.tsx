@@ -62,7 +62,8 @@ export default function App() {
             shuffleSubTopics: actions.shuffleSubTopics,
             selectSubTopic: actions.selectSubTopic,
             setDifficulty: actions.setDifficulty,
-            startQuiz: actions.startQuiz
+            startQuiz: actions.startQuiz,
+            startDebugQuiz: actions.startDebugQuiz
           }}
         />
       )}

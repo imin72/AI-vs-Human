@@ -205,6 +205,35 @@ export const useGameViewModel = () => {
         setIsPending(false);
       }
     },
+    startDebugQuiz: () => {
+      const debugQuestions: QuizQuestion[] = [
+        {
+          id: 1,
+          question: "This is a debug question to test layout constraints. It is intentionally long to see how the UI handles multi-line text and sticky headers. Does the header overlap the text when scrolled?",
+          options: ["Layout looks good", "Header overlaps text", "Text is too small", "Margins are wrong"],
+          correctAnswer: "Layout looks good",
+          context: "Layout Debugging Context"
+        },
+        {
+          id: 2,
+          question: "Short question check.",
+          options: ["A", "B", "C", "D"],
+          correctAnswer: "A",
+          context: "Short Context"
+        },
+        {
+          id: 3,
+          question: "Extreme length test: " + "repeat ".repeat(50) + "end.",
+          options: ["Option 1", "Option 2", "Option 3", "Option 4"],
+          correctAnswer: "Option 1",
+          context: "Scrolling test"
+        }
+      ];
+      setQuestions(debugQuestions);
+      setCurrentQuestionIndex(0);
+      setUserAnswers([]);
+      setStage(AppStage.QUIZ);
+    },
     selectOption: (option: string) => setSelectedOption(option),
     confirmAnswer: () => {
       if (!selectedOption) return;

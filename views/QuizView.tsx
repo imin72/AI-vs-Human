@@ -145,32 +145,32 @@ export const QuizView: React.FC<QuizViewProps> = ({
         <Home size={20} />
       </button>
 
-      {/* 상단 AI 상태창 (Sticky 적용) */}
-      <div className="sticky top-2 z-40 glass-panel p-3 rounded-2xl border-cyan-500/30 flex items-center justify-between overflow-hidden shadow-2xl backdrop-blur-xl">
-        <div className="flex items-center gap-3">
+      {/* 상단 AI 상태창 (Sticky 적용) - 크기 확대 */}
+      <div className="sticky top-2 z-40 glass-panel p-4 md:p-5 rounded-3xl border-cyan-500/30 flex items-center justify-between overflow-hidden shadow-2xl backdrop-blur-xl transition-all duration-300">
+        <div className="flex items-center gap-4">
           <div className="relative">
-            <Cpu size={24} className={`${isAiDone ? 'text-rose-500' : 'text-cyan-400'} animate-pulse transition-colors duration-500`} />
-            <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full animate-ping ${isAiDone ? 'bg-rose-500' : 'bg-green-500'}`}></div>
+            <Cpu size={32} className={`${isAiDone ? 'text-rose-500' : 'text-cyan-400'} animate-pulse transition-colors duration-500`} />
+            <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full animate-ping ${isAiDone ? 'bg-rose-500' : 'bg-green-500'}`}></div>
           </div>
-          <div className="flex flex-col">
-            <span className={`text-[10px] font-black uppercase tracking-tighter transition-colors ${isAiDone ? 'text-rose-500' : 'text-cyan-500'}`}>
+          <div className="flex flex-col gap-0.5">
+            <span className={`text-xs md:text-sm font-black uppercase tracking-tighter transition-colors ${isAiDone ? 'text-rose-500' : 'text-cyan-500'}`}>
               AI STATUS: {isAiDone ? 'ANSWER FOUND' : 'PROCESSING...'}
             </span>
-            <div ref={logContainerRef} className="h-4 overflow-hidden">
-               <p className={`text-[9px] font-mono uppercase leading-tight ${isAiDone ? 'text-rose-300' : 'text-cyan-300/70'}`}>
+            <div ref={logContainerRef} className="h-5 overflow-hidden flex items-center">
+               <p className={`text-[10px] font-mono uppercase leading-tight ${isAiDone ? 'text-rose-300' : 'text-cyan-300/70'}`}>
                  {aiLogs[aiLogs.length - 1] || "WAITING..."}
                </p>
             </div>
           </div>
         </div>
         
-        {/* AI Progress Bar in Header */}
-        <div className="flex flex-col items-end gap-1 w-24">
-           <div className="text-[9px] font-mono text-slate-400 flex items-center gap-1">
-             {isAiDone ? <CheckCircle2 size={10} className="text-rose-500"/> : <Timer size={10} className="animate-spin" />}
+        {/* AI Progress Bar in Header - 크기 확대 */}
+        <div className="flex flex-col items-end gap-1.5 w-32 md:w-40">
+           <div className="text-[10px] md:text-xs font-mono text-slate-400 flex items-center gap-1.5">
+             {isAiDone ? <CheckCircle2 size={12} className="text-rose-500"/> : <Timer size={12} className="animate-spin" />}
              {Math.floor(aiProgress)}%
            </div>
-           <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+           <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
              <div 
                 className={`h-full transition-all duration-100 ease-linear ${isAiDone ? 'bg-rose-500' : 'bg-cyan-500'}`}
                 style={{ width: `${aiProgress}%` }}
@@ -187,26 +187,30 @@ export const QuizView: React.FC<QuizViewProps> = ({
       }`}>
         {/* AI 완료 표시 오버레이 효과 */}
         {isAiDone && (
-           <div className="absolute top-0 right-0 p-2 pointer-events-none">
+           <div className="absolute top-0 right-0 p-2 pointer-events-none z-10">
               <span className="inline-flex items-center gap-1 bg-rose-600 text-white text-[10px] font-black px-2 py-1 rounded-bl-xl rounded-tr-2xl shadow-lg animate-pulse">
                 AI DONE
               </span>
            </div>
         )}
 
-        {/* AI 도발 말풍선 */}
-        <div className="absolute -top-4 -right-2 md:-right-8 animate-bounce z-20">
-          <div className="relative bg-rose-600 text-white text-[10px] md:text-xs font-bold px-4 py-2 rounded-2xl shadow-xl border border-rose-400 max-w-[180px]">
-            {aiComment}
-            <div className="absolute -bottom-1 left-4 w-3 h-3 bg-rose-600 rotate-45 border-r border-b border-rose-400"></div>
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center text-sm text-slate-400 uppercase tracking-wider">
-          <span className="bg-slate-800 px-3 py-1 rounded-full text-[10px] font-bold border border-slate-700 text-cyan-400">
+        {/* Header Row: Topic, Bubble, Counter */}
+        <div className="flex justify-between items-start text-sm text-slate-400 uppercase tracking-wider relative min-h-[44px] mb-2">
+          <span className="bg-slate-800 px-3 py-1 rounded-full text-[10px] font-bold border border-slate-700 text-cyan-400 shrink-0 mt-1">
               {topicLabel}
           </span>
-          <span className="font-mono text-xs">{currentIndex + 1} / {questions.length}</span>
+
+          {/* AI 도발 말풍선 - 중앙 배치 */}
+          <div className="absolute left-0 right-0 -top-2 flex justify-center pointer-events-none z-20">
+             <div className="bg-rose-600 text-white text-xs md:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-xl border border-rose-400 animate-bounce max-w-[65%] text-center leading-tight relative">
+                {aiComment}
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-rose-600 rotate-45 border-r border-b border-rose-400"></div>
+             </div>
+          </div>
+
+          <span className="font-mono text-xs shrink-0 bg-slate-800/50 px-2 py-1 rounded-lg border border-slate-700/50 mt-1">
+             {currentIndex + 1} / {questions.length}
+          </span>
         </div>
 
         <div className="min-h-[100px] flex flex-col justify-center py-4">
