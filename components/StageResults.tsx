@@ -245,7 +245,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
                    {t.header_breakdown}
                  </h3>
                  
-                 <div className="space-y-3 pb-2">
+                 <div className={`pb-2 ${isFinalSummary ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : 'space-y-3'}`}>
                     {isFinalSummary ? (
                       sessionResults.map((res, idx) => {
                         const g = getGrade(res.totalScore);
@@ -254,32 +254,28 @@ export const StageResults: React.FC<StageResultsProps> = ({
                           <button 
                             key={idx} 
                             onClick={() => handleItemClick(res)}
-                            className="w-full bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex items-center justify-between hover:border-cyan-500/50 hover:bg-slate-800 transition-all group text-left"
+                            className="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-800 flex items-center justify-between hover:border-cyan-500/50 hover:bg-slate-800 transition-all group text-left h-full"
                           >
-                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-cyan-400 border border-slate-700 group-hover:border-cyan-500/30 transition-colors shrink-0">
+                             <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-cyan-400 border border-slate-700 group-hover:border-cyan-500/30 transition-colors shrink-0">
                                   {getTopicIcon(res.id)}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                   <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+                                   <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5 truncate">
                                       {categoryLabel}
                                    </div>
-                                   <div className="font-bold text-white text-sm group-hover:text-cyan-300 transition-colors truncate leading-tight mb-1.5">
+                                   <div className="font-bold text-white text-xs group-hover:text-cyan-300 transition-colors truncate leading-tight mb-1">
                                       {res.title}
                                    </div>
-                                   <div className="flex flex-wrap gap-1.5">
-                                      <span className="text-[10px] font-medium text-cyan-400 bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-500/20 whitespace-nowrap">
-                                        {t.level_ai}: {res.totalScore}
-                                      </span>
-                                      <span className="text-[10px] font-medium text-purple-400 bg-purple-950/40 px-1.5 py-0.5 rounded border border-purple-500/20 whitespace-nowrap">
-                                        {t.label_top} {100 - res.humanPercentile}%
+                                   <div className="flex gap-1">
+                                      <span className="text-[9px] font-medium text-cyan-400 bg-cyan-950/40 px-1 py-0.5 rounded border border-cyan-500/20 whitespace-nowrap">
+                                        Score: {res.totalScore}
                                       </span>
                                    </div>
                                 </div>
                              </div>
-                             <div className="text-right pl-2 shrink-0">
-                                <div className={`text-xl font-black italic ${g.color}`}>{g.label}</div>
-                                <div className="text-[10px] font-mono text-slate-500">{res.totalScore} {t.unit_pts}</div>
+                             <div className="text-right pl-2 shrink-0 flex flex-col justify-center">
+                                <div className={`text-lg font-black italic ${g.color}`}>{g.label}</div>
                              </div>
                           </button>
                         );

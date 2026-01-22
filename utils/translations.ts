@@ -175,7 +175,7 @@ const ENGLISH_BASE: TranslationData = {
   topics: {
     title_select: "Select Domain",
     title_config: "Select Sub-Topic",
-    desc_select: "Select one or more domains to challenge",
+    desc_select: "Select 1 to 4 domains to challenge.",
     btn_refresh: "Shuffle",
     btn_next_step: "Select Sub-topics",
     label_custom: "",
@@ -294,7 +294,7 @@ const KO_TRANSLATIONS: TranslationData = {
   topics: {
     ...ENGLISH_BASE.topics,
     title_select: "영역 선택", title_config: "세부 분야 선택", 
-    desc_select: "도전하고자 하는 영역을 1개 또는 여러 개 고르세요",
+    desc_select: "도전하고자 하는 영역을 1개~4개 고르세요. (최대 4개)",
     btn_refresh: "새로고침", 
     btn_next_step: "세부 분야 선택",
     label_custom: "", ph_custom: "", label_field: "세부 분야", label_difficulty: "난이도", label_topics_selected: "개 분야 선택됨", btn_start_sim: "테스트 시작",
@@ -384,7 +384,7 @@ const JA_TRANSLATIONS: TranslationData = {
   topics: {
     ...ENGLISH_BASE.topics,
     title_select: "ドメイン選択", title_config: "詳細分野の選択", 
-    desc_select: "挑戦する領域を1つ以上選択してください",
+    desc_select: "挑戦する領域を1〜4つ選択してください（最大4つ）。",
     btn_refresh: "更新", 
     btn_next_step: "詳細分野の選択",
     label_custom: "", ph_custom: "", label_field: "特定分野", label_difficulty: "難易度", label_topics_selected: "個の分野を選択", btn_start_sim: "テスト開始",
@@ -455,7 +455,10 @@ const JA_TRANSLATIONS: TranslationData = {
 const ES_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
   common: { btn_back: "Volver", confirm_exit: "¿Estás seguro de que quieres salir? Se perderá el progreso.", close: "Cerrar" },
-  // ... (unchanged parts implied, only updating result keys if needed but focusing on JA/KO/EN mainly for this request)
+  topics: {
+    ...ENGLISH_BASE.topics,
+    desc_select: "Selecciona de 1 a 4 dominios para desafiar.",
+  },
   results: {
     ...ENGLISH_BASE.results,
     page_summary: "Resumen",
@@ -473,6 +476,10 @@ const ES_TRANSLATIONS: TranslationData = {
 const FR_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
   common: { btn_back: "Retour", confirm_exit: "Voulez-vous vraiment quitter ? La progression sera perdue.", close: "Fermer" },
+  topics: {
+    ...ENGLISH_BASE.topics,
+    desc_select: "Sélectionnez 1 à 4 domaines à défier.",
+  },
   results: {
     ...ENGLISH_BASE.results,
     page_summary: "Résumé",
@@ -490,6 +497,10 @@ const FR_TRANSLATIONS: TranslationData = {
 const ZH_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
   common: { btn_back: "返回", confirm_exit: "确定要退出测验吗？进度将会丢失。", close: "关闭" },
+  topics: {
+    ...ENGLISH_BASE.topics,
+    desc_select: "选择 1 到 4 个领域进行挑战。",
+  },
   results: {
     ...ENGLISH_BASE.results,
     page_summary: "评估摘要",

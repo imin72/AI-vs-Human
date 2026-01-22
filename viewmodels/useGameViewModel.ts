@@ -316,6 +316,7 @@ export const useGameViewModel = () => {
         if (prev.includes(id)) {
           return prev.filter(cat => cat !== id);
         } else {
+          if (prev.length >= 4) return prev; // Limit to 4
           return [...prev, id];
         }
       });
@@ -330,7 +331,7 @@ export const useGameViewModel = () => {
         if (prev.includes(sub)) {
           return prev.filter(p => p !== sub);
         } else {
-          if (prev.length >= 10) return prev;
+          if (prev.length >= 4) return prev; // Limit to 4
           return [...prev, sub];
         }
       });
@@ -455,7 +456,7 @@ export const useGameViewModel = () => {
        try {
          await new Promise(resolve => setTimeout(resolve, 800));
          
-         const debugTopics = ["Debug Alpha", "Debug Beta", "Debug Gamma"];
+         const debugTopics = ["Debug Alpha", "Debug Beta", "Debug Gamma", "Debug Delta"];
          const debugSets: QuizSet[] = debugTopics.map((topic, index) => ({
            topic: topic,
            questions: DEBUG_QUIZ.map(q => ({
@@ -497,7 +498,12 @@ export const useGameViewModel = () => {
         details: []
       };
       setEvaluation(mockResult);
-      setSessionResults([mockResult, {...mockResult, id:"HISTORY", title:"History", totalScore: 70}, {...mockResult, id:"ARTS", title:"Arts", totalScore: 95}]);
+      setSessionResults([
+          mockResult, 
+          {...mockResult, id:"HISTORY", title:"History", totalScore: 70}, 
+          {...mockResult, id:"ARTS", title:"Arts", totalScore: 95},
+          {...mockResult, id:"TECH", title:"Technology", totalScore: 65}
+      ]);
       setStage(AppStage.RESULTS);
     },
     
