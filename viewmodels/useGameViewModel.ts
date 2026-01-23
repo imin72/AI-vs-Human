@@ -8,7 +8,6 @@ import {
   UserAnswer, 
   EvaluationResult,
   QuizSet,
-  HistoryItem
 } from '../types';
 import { generateQuestionsBatch, evaluateBatchAnswers, BatchEvaluationInput, seedLocalDatabase } from '../services/geminiService';
 import { audioHaptic } from '../services/audioHapticService';
