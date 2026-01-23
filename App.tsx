@@ -26,6 +26,10 @@ export default function App() {
           onResetProfile={actions.resetProfile}
           language={language}
           setLanguage={actions.setLanguage}
+          // Debug Actions connected here
+          onDebugBypass={actions.startDebugQuiz}
+          onDebugPreview={actions.previewResults}
+          onDebugLoading={actions.previewLoading}
         />
       )}
       
@@ -61,8 +65,7 @@ export default function App() {
             selectSubTopic: actions.selectSubTopic,
             setDifficulty: actions.setDifficulty,
             startQuiz: actions.startQuiz,
-            startDebugQuiz: actions.startDebugQuiz,
-            previewResults: actions.previewResults, // Pass preview action
+            // Debug actions removed from here
             editProfile: actions.editProfile,
             setLanguage: actions.setLanguage
           }}

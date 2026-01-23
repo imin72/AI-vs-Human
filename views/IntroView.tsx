@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Brain, Cpu, ArrowRight, UserCheck } from 'lucide-react';
+import { Brain, Cpu, ArrowRight, UserCheck, Bug, Eye, Loader } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Language } from '../types';
 
@@ -11,6 +11,10 @@ interface IntroViewProps {
   onResetProfile: () => void;
   language: Language;
   setLanguage: (lang: Language) => void;
+  // Debug props
+  onDebugBypass?: () => void;
+  onDebugPreview?: () => void;
+  onDebugLoading?: () => void;
 }
 
 const PROFILE_KEY = 'cognito_user_profile_v1';
@@ -24,7 +28,16 @@ const LANGUAGES: { id: Language; flag: string }[] = [
   { id: 'fr', flag: '🇫🇷' },
 ];
 
-export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onResetProfile, language, setLanguage }) => {
+export const IntroView: React.FC<IntroViewProps> = ({ 
+  t, 
+  onStart, 
+  onResetProfile, 
+  language, 
+  setLanguage,
+  onDebugBypass,
+  onDebugPreview,
+  onDebugLoading
+}) => {
   const [hasProfile, setHasProfile] = useState(false);
 
   useEffect(() => {
@@ -106,6 +119,25 @@ export const IntroView: React.FC<IntroViewProps> = ({ t, onStart, onResetProfile
                {t.btn_reset}
              </button>
           )}
+        </div>
+
+        {/* Debug Controls (Hidden by default opacity) */}
+        <div className="mt-8 pt-4 border-t border-slate-800/50 w-full flex justify-center gap-2 opacity-10 hover:opacity-100 transition-opacity duration-300">
+           {onDebugBypass && (
+            <button onClick={onDebugBypass} className="text-[10px] text-slate-500 hover:text-rose-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
+              <Bug size={10} /> BYPASS
+            </button>
+           )}
+           {onDebugPreview && (
+            <button onClick={onDebugPreview} className="text-[10px] text-slate-500 hover:text-cyan-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
+              <Eye size={10} /> PREVIEW
+            </button>
+           )}
+           {onDebugLoading && (
+            <button onClick={onDebugLoading} className="text-[10px] text-slate-500 hover:text-yellow-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
+              <Loader size={10} /> LOADING
+            </button>
+           )}
         </div>
       </div>
     </div>

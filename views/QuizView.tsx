@@ -177,8 +177,8 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
          {/* Right Controls */}
          <div className="flex gap-2">
-           {/* Back button removed to prevent cheating, Home button remains for exit */}
-           <button onClick={onHome} className={btnStyle} aria-label="Home" disabled={isSubmitting}>
+           {/* Enable Home button even during submission so user can abort */}
+           <button onClick={onHome} className={btnStyle} aria-label="Home">
              <Home size={18} />
            </button>
          </div>

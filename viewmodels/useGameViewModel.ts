@@ -415,12 +415,19 @@ export const useGameViewModel = () => {
     },
     
     goHome: () => {
-      if (isPending || isSubmitting) return; // Block home nav during submission
-      audioHaptic.playClick();
-      if (stage === AppStage.QUIZ) {
-        if (!window.confirm(t.common.confirm_exit)) return;
-      }
+      // NOTE: We allow exiting even if pending/submitting, but we ask for confirmation.
+      // if (isPending || isSubmitting) return; 
       
+      audioHaptic.playClick();
+      
+      // GLOBAL CONFIRMATION for going home
+      // Use confirm_home or fallback to confirm_exit
+      if (!window.confirm(t.common.confirm_home || t.common.confirm_exit)) return;
+      
+      // Force reset states in case we were stuck
+      setIsPending(false);
+      setIsSubmitting(false);
+
       setStage(AppStage.INTRO); // Now goes to INTRO instead of checking language/profile
       
       setEvaluation(null);
@@ -576,6 +583,15 @@ export const useGameViewModel = () => {
           {...mockResult, id:"TECH", title:"Technology", totalScore: 65}
       ]);
       setStage(AppStage.RESULTS);
+    },
+
+    previewLoading: () => {
+        audioHaptic.playClick();
+        setStage(AppStage.LOADING_QUIZ);
+        // Automatically go back after 5 seconds
+        setTimeout(() => {
+           setStage(AppStage.INTRO);
+        }, 5000);
     },
     
     selectOption: (option: string) => {

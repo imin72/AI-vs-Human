@@ -5,6 +5,7 @@ export interface TranslationData {
   common: {
     btn_back: string;
     confirm_exit: string;
+    confirm_home: string; // Added new key
     close: string;
   };
   intro: {
@@ -149,6 +150,7 @@ const ENGLISH_BASE: TranslationData = {
   common: {
     btn_back: "Back",
     confirm_exit: "Are you sure you want to exit the quiz? Progress will be lost.",
+    confirm_home: "Return to Home? Current progress will be lost.",
     close: "Close"
   },
   intro: {
@@ -277,7 +279,12 @@ const ENGLISH_BASE: TranslationData = {
 
 const KO_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
-  common: { btn_back: "뒤로", confirm_exit: "퀴즈를 종료하시겠습니까? 진행 상황이 손실됩니다.", close: "닫기" },
+  common: { 
+    btn_back: "뒤로", 
+    confirm_exit: "퀴즈를 종료하시겠습니까? 진행 상황이 손실됩니다.", 
+    confirm_home: "홈 화면으로 이동하시겠습니까? 진행 상황이 초기화됩니다.",
+    close: "닫기" 
+  },
   intro: { 
     human_label: "인간", 
     ai_label: "인공지능", 
@@ -370,7 +377,12 @@ const KO_TRANSLATIONS: TranslationData = {
 
 const JA_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
-  common: { btn_back: "戻る", confirm_exit: "クイズを終了しますか？進行状況は失われます。", close: "閉じる" },
+  common: { 
+    btn_back: "戻る", 
+    confirm_exit: "クイズを終了しますか？進行状況は失われます。", 
+    confirm_home: "ホームに戻りますか？現在の進行状況は失われます。",
+    close: "閉じる" 
+  },
   intro: { 
     human_label: "人間", 
     ai_label: "AI", 
@@ -463,7 +475,12 @@ const JA_TRANSLATIONS: TranslationData = {
 
 const ES_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
-  common: { btn_back: "Volver", confirm_exit: "¿Estás seguro de que quieres salir? Se perderá el progreso.", close: "Cerrar" },
+  common: { 
+    btn_back: "Volver", 
+    confirm_exit: "¿Estás seguro de que quieres salir? Se perderá el progreso.", 
+    confirm_home: "¿Volver al inicio? Se perderá el progreso actual.",
+    close: "Cerrar" 
+  },
   topics: {
     ...ENGLISH_BASE.topics,
     desc_select: "Selecciona los dominios que deseas desafiar.",
@@ -484,7 +501,12 @@ const ES_TRANSLATIONS: TranslationData = {
 
 const FR_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
-  common: { btn_back: "Retour", confirm_exit: "Voulez-vous vraiment quitter ? La progression sera perdue.", close: "Fermer" },
+  common: { 
+    btn_back: "Retour", 
+    confirm_exit: "Voulez-vous vraiment quitter ? La progression sera perdue.", 
+    confirm_home: "Retourner à l'accueil ? La progression actuelle sera perdue.",
+    close: "Fermer" 
+  },
   topics: {
     ...ENGLISH_BASE.topics,
     desc_select: "Sélectionnez les domaines que vous souhaitez défier.",
@@ -505,7 +527,12 @@ const FR_TRANSLATIONS: TranslationData = {
 
 const ZH_TRANSLATIONS: TranslationData = {
   ...ENGLISH_BASE,
-  common: { btn_back: "返回", confirm_exit: "确定要退出测验吗？进度将会丢失。", close: "关闭" },
+  common: { 
+    btn_back: "返回", 
+    confirm_exit: "确定要退出测验吗？进度将会丢失。", 
+    confirm_home: "返回主页？当前进度将丢失。",
+    close: "关闭" 
+  },
   intro: { 
     human_label: "人类", 
     ai_label: "人工智能", 
@@ -548,7 +575,7 @@ const ZH_TRANSLATIONS: TranslationData = {
       [TOPIC_IDS.NATURE]: ["哺乳动物", "鸟类", "昆虫", "海洋生物", "恐龙", "雨林", "沙漠", "天气", "花卉", "树木", "国家公园", "生存技能", "进化论", "濒危物种", "真菌", "宝石与矿物"],
       [TOPIC_IDS.FOOD]: ["意大利美食", "法国美食", "墨西哥美食", "日本料理", "中国美食", "印度美食", "甜点", "葡萄酒", "咖啡", "奶酪", "香料", "街头小吃", "快餐", "烘焙", "素食", "鸡尾酒"],
       [TOPIC_IDS.SPACE]: ["太阳系", "黑洞", "火星", "登月", "星座", "恒星", "星系", "宇航员", "太空竞赛", "望远镜", "系外行星", "重力", "火箭", "搜寻地外文明", "国际空间站", "大爆炸"],
-      [TOPIC_IDS.PHILOSOPHY]: ["伦理学", "逻辑学", "形而上学", "存在主义", "斯多葛学派", "虚无主义", "政治哲学", "东方哲学", "古希腊", "启蒙运动", "功利主义", "美学", "认识论", "心灵哲学", "名言", "悖论"]
+      [TOPIC_IDS.PHILOSOPHY]: ["伦理学", "逻辑学", "形而上学", "实存主义", "斯多葛学派", "虚无主义", "政治哲学", "东方哲学", "古希腊", "启蒙运动", "功利主义", "美学", "认识论", "心灵哲学", "名言", "悖论"]
     }
   },
   quiz: { 

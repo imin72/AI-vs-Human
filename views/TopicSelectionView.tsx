@@ -2,8 +2,8 @@
 import React, { useEffect, useRef } from 'react';
 import { 
   Play, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, 
-  Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Home, Bug, CheckCircle2, 
-  UserPen, Medal, ArrowRight, Eye, RefreshCw, Star, Shield
+  Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Home, CheckCircle2, 
+  UserPen, Medal, ArrowRight, RefreshCw, Star, Shield
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
 import { LanguageSwitcher } from '../components/LanguageSwitcher.tsx';
@@ -34,10 +34,9 @@ interface TopicSelectionViewProps {
     setDifficulty: (diff: Difficulty) => void;
     startQuiz: () => void;
     setCustomTopic: (topic: string) => void;
-    startDebugQuiz?: () => void;
-    previewResults?: () => void;
     editProfile: () => void;
     setLanguage: (lang: Language) => void;
+    // Removed local debug actions from type definition to clean up
   };
 }
 
@@ -313,19 +312,6 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
               >
                 {t.btn_start_sim} <Play size={18} className="fill-white" />
               </Button>
-
-              <div className="flex gap-2 mt-1">
-                 {actions.startDebugQuiz && (
-                  <button onClick={actions.startDebugQuiz} className="flex-1 text-[10px] text-slate-700 bg-slate-900/50 py-2 rounded-lg font-mono hover:text-rose-500 transition-colors uppercase tracking-widest flex items-center justify-center gap-2">
-                    <Bug size={10} /> Bypass
-                  </button>
-                )}
-                {actions.previewResults && (
-                  <button onClick={actions.previewResults} className="flex-1 text-[10px] text-slate-700 bg-slate-900/50 py-2 rounded-lg font-mono hover:text-cyan-500 transition-colors uppercase tracking-widest flex items-center justify-center gap-2">
-                    <Eye size={10} /> Preview
-                  </button>
-                )}
-              </div>
             </div>
           </>
         )}
