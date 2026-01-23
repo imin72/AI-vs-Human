@@ -10,7 +10,7 @@ import {
   EvaluationResult,
   QuizSet
 } from '../types';
-import { generateQuestionsBatch, evaluateBatchAnswers, BatchEvaluationInput } from '../services/geminiService';
+import { generateQuestionsBatch, evaluateBatchAnswers, BatchEvaluationInput, seedLocalDatabase } from '../services/geminiService';
 import { audioHaptic } from '../services/audioHapticService';
 import { TRANSLATIONS } from '../utils/translations';
 
@@ -558,6 +558,24 @@ export const useGameViewModel = () => {
        } catch (e: any) {
          setErrorMsg("Debug Init Failed: " + e.message);
          setStage(AppStage.ERROR);
+       } finally {
+         setIsPending(false);
+       }
+    },
+
+    triggerSeeding: async () => {
+       if (isPending) return;
+       audioHaptic.playClick('hard');
+       setIsPending(true);
+       
+       // Note: We don't change stage, we just show alerts or logs for now, or maybe a dedicated loading stage
+       try {
+         await seedLocalDatabase((msg) => {
+            console.log(msg);
+         });
+         alert("Seeding Complete! Check console for details.");
+       } catch (e: any) {
+         alert("Seeding Failed: " + e.message);
        } finally {
          setIsPending(false);
        }

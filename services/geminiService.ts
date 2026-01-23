@@ -70,6 +70,83 @@ const getAdaptiveLevel = (elo: number): string => {
   return "Expert/PhD Level";
 };
 
+// --- CLIENT-SIDE SEEDING FUNCTION ---
+// Allows generating master data from the browser without CLI
+export const seedLocalDatabase = async (onProgress: (msg: string) => void) => {
+  if (!import.meta.env.DEV) {
+    console.warn("Seeding only allowed in DEV mode");
+    return;
+  }
+
+  // Define core topics to seed (English Master Data)
+  const SEED_TARGETS = [
+    { cat: "Science", topics: ["Quantum Physics", "Neuroscience", "Astronomy"] },
+    { cat: "History", topics: ["World War II", "Ancient Egypt", "Cold War"] },
+    { cat: "Tech", topics: ["Artificial Intelligence", "Coding", "Blockchain"] },
+    { cat: "Philosophy", topics: ["Stoicism", "Existentialism"] }
+  ];
+
+  onProgress("Initializing Seeding Protocol...");
+
+  for (const group of SEED_TARGETS) {
+    for (const topic of group.topics) {
+      const difficulty = Difficulty.HARD;
+      const lang = 'en';
+      const key = `${topic}_${difficulty}_${lang}`;
+      
+      onProgress(`Generating Master Data for: ${topic}...`);
+      
+      try {
+        // Check if exists first
+        const existing = await getStaticQuestions(topic, difficulty, lang);
+        if (existing) {
+          console.log(`[Seed] Skipping ${topic} (Already exists)`);
+          continue;
+        }
+
+        const prompt = `
+          Generate 5 challenging, high-quality multiple-choice questions about "${topic}".
+          Language: English. Difficulty: Hard.
+          Format: JSON Array with keys: id, question, options, correctAnswer, context.
+          Context should be an interesting fact.
+        `;
+
+        const response = await ai.models.generateContent({
+          model: MODEL_NAME,
+          contents: [{ parts: [{ text: prompt }] }],
+          config: { responseMimeType: "application/json" }
+        });
+
+        const questions = JSON.parse(cleanJson(response.text));
+        
+        // Save via Middleware
+        await fetch('/__save-question', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ 
+              categoryId: group.cat, 
+              key: key, 
+              data: questions 
+            })
+        });
+
+        // Also update cache so we can use it immediately
+        const quizCache = loadCache(CACHE_KEY_QUIZ);
+        quizCache[generateCacheKey(topic, difficulty, lang)] = questions;
+        saveCache(CACHE_KEY_QUIZ, quizCache);
+        
+        // Small delay to prevent rate limits
+        await new Promise(r => setTimeout(r, 1000));
+
+      } catch (e) {
+        console.error(`[Seed] Failed for ${topic}`, e);
+        onProgress(`Error seeding ${topic}`);
+      }
+    }
+  }
+  onProgress("Seeding Complete! Master Data Updated.");
+};
+
 // --- BACKGROUND TASK: Mirror Translation ---
 const triggerBackgroundTranslation = async (
   topicId: string,

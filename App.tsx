@@ -30,6 +30,7 @@ export default function App() {
           onDebugBypass={actions.startDebugQuiz}
           onDebugPreview={actions.previewResults}
           onDebugLoading={actions.previewLoading}
+          onDebugSeed={actions.triggerSeeding}
         />
       )}
       

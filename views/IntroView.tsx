@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Brain, Cpu, ArrowRight, UserCheck, Bug, Eye, Loader } from 'lucide-react';
+import { Brain, Cpu, ArrowRight, UserCheck, Bug, Eye, Loader, Database } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Language } from '../types';
 
@@ -15,6 +15,7 @@ interface IntroViewProps {
   onDebugBypass?: () => void;
   onDebugPreview?: () => void;
   onDebugLoading?: () => void;
+  onDebugSeed?: () => void;
 }
 
 const PROFILE_KEY = 'cognito_user_profile_v1';
@@ -36,7 +37,8 @@ export const IntroView: React.FC<IntroViewProps> = ({
   setLanguage,
   onDebugBypass,
   onDebugPreview,
-  onDebugLoading
+  onDebugLoading,
+  onDebugSeed
 }) => {
   const [hasProfile, setHasProfile] = useState(false);
 
@@ -122,7 +124,7 @@ export const IntroView: React.FC<IntroViewProps> = ({
         </div>
 
         {/* Debug Controls (Hidden by default opacity) */}
-        <div className="mt-8 pt-4 border-t border-slate-800/50 w-full flex justify-center gap-2 opacity-10 hover:opacity-100 transition-opacity duration-300">
+        <div className="mt-8 pt-4 border-t border-slate-800/50 w-full flex justify-center gap-2 opacity-10 hover:opacity-100 transition-opacity duration-300 flex-wrap">
            {onDebugBypass && (
             <button onClick={onDebugBypass} className="text-[10px] text-slate-500 hover:text-rose-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
               <Bug size={10} /> BYPASS
@@ -136,6 +138,11 @@ export const IntroView: React.FC<IntroViewProps> = ({
            {onDebugLoading && (
             <button onClick={onDebugLoading} className="text-[10px] text-slate-500 hover:text-yellow-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
               <Loader size={10} /> LOADING
+            </button>
+           )}
+           {onDebugSeed && import.meta.env.DEV && (
+            <button onClick={onDebugSeed} className="text-[10px] text-slate-500 hover:text-green-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded border border-green-900/30">
+              <Database size={10} /> SEED DB
             </button>
            )}
         </div>
