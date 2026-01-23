@@ -159,7 +159,15 @@ export const useGameViewModel = () => {
   };
 
   const shuffleSubTopics = () => {};
-  const setCustomTopic = (topic: string) => {};
+  const setCustomTopic = (_topic: string) => {};
+
+  const setupQuizStep = (set: QuizSet) => {
+    setQuestions(set.questions);
+    setCurrentQuestionIndex(0);
+    setSelectedOption(null);
+    setAnswers([]);
+    setIsSubmitting(false);
+  };
 
   const startQuiz = async () => {
     setStage(AppStage.LOADING_QUIZ);
@@ -182,14 +190,6 @@ export const useGameViewModel = () => {
     } finally {
       setIsTopicLoading(false);
     }
-  };
-
-  const setupQuizStep = (set: QuizSet) => {
-    setQuestions(set.questions);
-    setCurrentQuestionIndex(0);
-    setSelectedOption(null);
-    setAnswers([]);
-    setIsSubmitting(false);
   };
 
   const selectOption = (opt: string) => {
