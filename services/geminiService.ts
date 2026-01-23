@@ -6,9 +6,28 @@ import { getStaticQuestions, resolveTopicInfo } from "../data/staticDatabase";
 const MODEL_NAME = 'gemini-3-flash-preview';
 const CACHE_KEY_QUIZ = "cognito_quiz_cache_v3"; 
 
+// --- Safe Environment Helpers ---
+const isDev = () => {
+  try {
+    // @ts-ignore
+    return typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
+  } catch {
+    return false;
+  }
+};
+
+const getApiKey = () => {
+  try {
+    return process.env.API_KEY || "";
+  } catch {
+    console.warn("API Key environment variable not accessible.");
+    return "";
+  }
+};
+
 // Lazy Initialization Wrapper
 const getAiClient = () => {
-  const apiKey = process.env.API_KEY || ""; 
+  const apiKey = getApiKey();
   // Allow initialization even if empty to prevent app crash, API calls will fail gracefully later
   return new GoogleGenAI({ apiKey });
 };
@@ -78,11 +97,10 @@ const getAdaptiveLevel = (elo: number): string => {
 // --- CLIENT-SIDE SEEDING FUNCTION ---
 // Allows generating master data from the browser without CLI
 export const seedLocalDatabase = async (onProgress: (msg: string) => void) => {
-  // Removed strict DEV check to allow button visibility in deployment, 
-  // but warn that file saving won't work without dev server.
-  if (!import.meta.env.DEV) {
+  // Check environment for logging
+  if (!isDev()) {
     console.warn("NOTE: Seeding in production will generate data but cannot save to file system.");
-    onProgress("Warning: File saving requires Dev Server. Data will be cached in memory only.");
+    onProgress("Warning: File saving requires Dev Server. Data will be cached in memory only. Check Console for JSON.");
   }
 
   // Define core topics to seed (English Master Data)
@@ -128,6 +146,11 @@ export const seedLocalDatabase = async (onProgress: (msg: string) => void) => {
 
         const questions = JSON.parse(cleanJson(response.text));
         
+        // Log to console for manual copying in Preview environments
+        console.group(`📦 [SEED DATA] ${topic}`);
+        console.log(JSON.stringify(questions, null, 2));
+        console.groupEnd();
+
         // Save via Middleware (Will fail silently on Prod)
         try {
           await fetch('/__save-question', {
@@ -140,7 +163,7 @@ export const seedLocalDatabase = async (onProgress: (msg: string) => void) => {
               })
           });
         } catch (err) {
-          console.warn("[Seed] Could not save to file (Expected in Prod)", err);
+          // Expected failure in preview
         }
 
         // Also update cache so we can use it immediately
@@ -157,7 +180,7 @@ export const seedLocalDatabase = async (onProgress: (msg: string) => void) => {
       }
     }
   }
-  onProgress("Seeding Complete! Master Data Updated.");
+  onProgress("Seeding Complete! Check Browser Console for JSON Data.");
 };
 
 // --- BACKGROUND TASK: Mirror Translation ---
@@ -168,7 +191,7 @@ const triggerBackgroundTranslation = async (
   sourceLang: Language,
   sourceQuestions: QuizQuestion[]
 ) => {
-  if (!import.meta.env.DEV) return;
+  if (!isDev()) return;
 
   const ALL_LANGUAGES: Language[] = ['en', 'ko', 'ja', 'es', 'fr', 'zh'];
   const targetLangs = ALL_LANGUAGES.filter(l => l !== sourceLang);
@@ -356,7 +379,7 @@ export const generateQuestionsBatch = async (
         quizCache[cacheKey] = translatedQs;
         saveCache(CACHE_KEY_QUIZ, quizCache);
 
-        if (import.meta.env.DEV) {
+        if (isDev()) {
            fetch('/__save-question', {
                method: 'POST',
                headers: {'Content-Type': 'application/json'},
@@ -444,7 +467,7 @@ export const generateQuestionsBatch = async (
           
           quizCache[cacheKey] = formattedQuestions;
           
-          if (import.meta.env.DEV) {
+          if (isDev()) {
              fetch('/__save-question', {
                  method: 'POST',
                  headers: {'Content-Type': 'application/json'},

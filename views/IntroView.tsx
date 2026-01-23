@@ -29,6 +29,16 @@ const LANGUAGES: { id: Language; flag: string }[] = [
   { id: 'fr', flag: '🇫🇷' },
 ];
 
+// Helper to safely check dev mode in component
+const isDev = () => {
+  try {
+    // @ts-ignore
+    return typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
+  } catch {
+    return false;
+  }
+};
+
 export const IntroView: React.FC<IntroViewProps> = ({ 
   t, 
   onStart, 
@@ -41,6 +51,7 @@ export const IntroView: React.FC<IntroViewProps> = ({
   onDebugSeed
 }) => {
   const [hasProfile, setHasProfile] = useState(false);
+  const showDebug = isDev();
 
   useEffect(() => {
     const saved = localStorage.getItem(PROFILE_KEY);
@@ -123,29 +134,31 @@ export const IntroView: React.FC<IntroViewProps> = ({
           )}
         </div>
 
-        {/* Debug Controls (Hidden by default opacity) */}
-        <div className="mt-8 pt-4 border-t border-slate-800/50 w-full flex justify-center gap-2 opacity-10 hover:opacity-100 transition-opacity duration-300 flex-wrap">
-           {onDebugBypass && (
-            <button onClick={onDebugBypass} className="text-[10px] text-slate-500 hover:text-rose-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
-              <Bug size={10} /> BYPASS
-            </button>
-           )}
-           {onDebugPreview && (
-            <button onClick={onDebugPreview} className="text-[10px] text-slate-500 hover:text-cyan-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
-              <Eye size={10} /> PREVIEW
-            </button>
-           )}
-           {onDebugLoading && (
-            <button onClick={onDebugLoading} className="text-[10px] text-slate-500 hover:text-yellow-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
-              <Loader size={10} /> LOADING
-            </button>
-           )}
-           {onDebugSeed && (
-            <button onClick={onDebugSeed} className="text-[10px] text-slate-500 hover:text-green-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded border border-green-900/30">
-              <Database size={10} /> SEED DB
-            </button>
-           )}
-        </div>
+        {/* Debug Controls (Visible only in DEV environment) */}
+        {showDebug && (
+          <div className="mt-8 pt-4 border-t border-slate-800/50 w-full flex justify-center gap-2 opacity-50 hover:opacity-100 transition-opacity duration-300 flex-wrap">
+             {onDebugBypass && (
+              <button onClick={onDebugBypass} className="text-[10px] text-slate-500 hover:text-rose-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
+                <Bug size={10} /> BYPASS
+              </button>
+             )}
+             {onDebugPreview && (
+              <button onClick={onDebugPreview} className="text-[10px] text-slate-500 hover:text-cyan-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
+                <Eye size={10} /> PREVIEW
+              </button>
+             )}
+             {onDebugLoading && (
+              <button onClick={onDebugLoading} className="text-[10px] text-slate-500 hover:text-yellow-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
+                <Loader size={10} /> LOADING
+              </button>
+             )}
+             {onDebugSeed && (
+              <button onClick={onDebugSeed} className="text-[10px] text-slate-500 hover:text-green-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded border border-green-900/30">
+                <Database size={10} /> SEED DB
+              </button>
+             )}
+          </div>
+        )}
       </div>
     </div>
   );
