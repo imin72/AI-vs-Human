@@ -6,6 +6,7 @@ export interface TranslationData {
     btn_back: string;
     confirm_exit: string;
     confirm_home: string;
+    confirm_exit_app: string; // New key
     close: string;
   };
   intro: {
@@ -161,6 +162,7 @@ const ENGLISH_BASE: TranslationData = {
     btn_back: "Back",
     confirm_exit: "Are you sure you want to exit the quiz? Progress will be lost.",
     confirm_home: "Return to Home? Current progress will be lost.",
+    confirm_exit_app: "Do you want to exit the application?",
     close: "Close"
   },
   intro: {
@@ -312,6 +314,7 @@ const KO_TRANSLATIONS: TranslationData = {
     btn_back: "뒤로", 
     confirm_exit: "퀴즈를 종료하시겠습니까? 진행 상황이 손실됩니다.", 
     confirm_home: "홈 화면으로 이동하시겠습니까? 진행 상황이 초기화됩니다.",
+    confirm_exit_app: "앱을 종료하시겠습니까?",
     close: "닫기" 
   },
   intro: { 
@@ -429,6 +432,7 @@ const JA_TRANSLATIONS: TranslationData = {
     btn_back: "戻る", 
     confirm_exit: "クイズを終了しますか？進行状況は失われます。", 
     confirm_home: "ホームに戻りますか？現在の進行状況は失われます。",
+    confirm_exit_app: "アプリを終了しますか？",
     close: "閉じる" 
   },
   intro: { 
@@ -546,6 +550,7 @@ const ES_TRANSLATIONS: TranslationData = {
     btn_back: "Volver", 
     confirm_exit: "¿Estás seguro de que quieres salir? Se perderá el progreso.", 
     confirm_home: "¿Volver al inicio? Se perderá el progreso actual.",
+    confirm_exit_app: "¿Quieres salir de la aplicación?",
     close: "Cerrar" 
   },
   topics: {
@@ -595,6 +600,7 @@ const FR_TRANSLATIONS: TranslationData = {
     btn_back: "Retour", 
     confirm_exit: "Voulez-vous vraiment quitter ? La progression sera perdue.", 
     confirm_home: "Retourner à l'accueil ? La progression actuelle sera perdue.",
+    confirm_exit_app: "Voulez-vous quitter l'application ?",
     close: "Fermer" 
   },
   topics: {
@@ -644,6 +650,7 @@ const ZH_TRANSLATIONS: TranslationData = {
     btn_back: "返回", 
     confirm_exit: "确定要退出测验吗？进度将会丢失。", 
     confirm_home: "返回主页？当前进度将丢失。",
+    confirm_exit_app: "您要退出应用程序吗？",
     close: "关闭" 
   },
   intro: { 

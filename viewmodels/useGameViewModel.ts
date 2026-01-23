@@ -294,8 +294,11 @@ export const useGameViewModel = () => {
         setStage(AppStage.INTRO);
         return true;
       case AppStage.INTRO:
-        // Already at home, allow browser to exit or stay
-        return false;
+        // Ask for confirmation before exit
+        if (window.confirm(t.common.confirm_exit_app)) {
+          return true; // Let browser pop (exit or previous page)
+        }
+        return false; // Stay
       case AppStage.QUIZ:
         // PREVENT CHEATING: Do not allow going back to previous questions.
         // Always confirm exit if back is pressed during quiz.
@@ -323,17 +326,11 @@ export const useGameViewModel = () => {
 
   useEffect(() => {
     const handlePopState = (_: PopStateEvent) => {
-      // If at root (INTRO), default browser behavior usually handles it,
-      // but we can enforce logic here if needed.
-      if (stage === AppStage.INTRO) return;
-
       isNavigatingBackRef.current = true;
       const success = performBackNavigation();
       
       if (!success) {
-        // If we didn't handle the nav internally (e.g. refused to exit quiz), 
-        // we might need to push the state back to keep the user on the page 
-        // if the browser popped it.
+        // If we stayed (returned false), restore the state
         window.history.pushState({ stage }, '');
       }
     };

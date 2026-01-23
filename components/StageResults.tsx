@@ -66,6 +66,8 @@ export const StageResults: React.FC<StageResultsProps> = ({
   const t = TRANSLATIONS[language].results;
   const commonT = TRANSLATIONS[language].common;
   const categoriesT = TRANSLATIONS[language].topics.categories;
+  // Intro translations needed for Human/AI labels in charts
+  const introT = TRANSLATIONS[language].intro;
 
   // Determine if this is the Final Summary view (batch finished) or single topic
   const isFinalSummary = remainingTopics === 0 && sessionResults.length > 0;
@@ -318,7 +320,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
                               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                                 <PolarGrid stroke="#334155" />
                                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
-                                <Radar name="User" dataKey="A" stroke="#22d3ee" strokeWidth={3} fill="#22d3ee" fillOpacity={0.4} />
+                                <Radar name={introT.human_label} dataKey="A" stroke="#22d3ee" strokeWidth={3} fill="#22d3ee" fillOpacity={0.4} />
                               </RadarChart>
                            </ResponsiveContainer>
                          ) : <div className="h-full flex items-center justify-center"><Activity className="animate-pulse text-cyan-900"/></div>}
@@ -364,7 +366,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
 
                              <div className="grid grid-cols-1 gap-1 w-full mt-auto">
                                 <div className="bg-slate-950/60 rounded p-1 border border-slate-800 flex justify-between items-center px-2">
-                                   <span className="text-[8px] text-slate-500 font-bold uppercase">AI</span>
+                                   <span className="text-[8px] text-slate-500 font-bold uppercase">{introT.ai_label}</span>
                                    <span className="text-[10px] font-mono font-bold text-cyan-400">{res.totalScore}</span>
                                 </div>
                                 <div className="bg-slate-950/60 rounded p-1 border border-slate-800 flex justify-between items-center px-2">
@@ -410,7 +412,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
                     {growthData.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={growthData}>
-                          <Line type="monotone" dataKey="score" stroke="#22d3ee" strokeWidth={2} dot={{r: 2}} />
+                          <Line type="monotone" name={introT.human_label} dataKey="score" stroke="#22d3ee" strokeWidth={2} dot={{r: 2}} />
                           <Tooltip 
                             contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '10px' }} 
                             itemStyle={{ color: '#22d3ee' }}
@@ -443,8 +445,8 @@ export const StageResults: React.FC<StageResultsProps> = ({
                               </linearGradient>
                            </defs>
                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', fontSize: '10px' }} />
-                           <Area type="monotone" dataKey="ai" stroke="#f43f5e" fillOpacity={1} fill="url(#colorAi)" />
-                           <Area type="monotone" dataKey="score" stroke="#22d3ee" fillOpacity={0} />
+                           <Area type="monotone" name={introT.ai_label} dataKey="ai" stroke="#f43f5e" fillOpacity={1} fill="url(#colorAi)" />
+                           <Area type="monotone" name={introT.human_label} dataKey="score" stroke="#22d3ee" fillOpacity={0} />
                         </AreaChart>
                       </ResponsiveContainer>
                     ) : (
