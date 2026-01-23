@@ -5,7 +5,6 @@ import { AppStage } from './types.ts';
 import { useGameViewModel } from './viewmodels/useGameViewModel.ts';
 
 // Views
-import { LanguageView } from './views/LanguageView.tsx';
 import { IntroView } from './views/IntroView.tsx';
 import { ProfileView } from './views/ProfileView.tsx';
 import { TopicSelectionView } from './views/TopicSelectionView.tsx';
@@ -19,10 +18,6 @@ export default function App() {
 
   return (
     <Layout currentLanguage={language} onLanguageChange={actions.setLanguage} onHome={actions.goHome}>
-      {stage === AppStage.LANGUAGE && (
-        <LanguageView onSelect={actions.setLanguage} />
-      )}
-      
       {stage === AppStage.INTRO && (
         <IntroView 
           t={t.intro} 

@@ -144,9 +144,9 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           <div className="mx-4 mt-3 mb-1 p-3 bg-slate-950/60 rounded-2xl border border-slate-800 flex items-center gap-4 relative overflow-hidden group">
             <div className={`absolute left-0 top-0 bottom-0 w-1 ${rankInfo.bg}`}></div>
             
-            {/* Hexagon Rank Icon Placeholder */}
-            <div className={`w-10 h-10 rounded-lg ${rankInfo.bg} bg-opacity-20 border ${rankInfo.border} flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(0,0,0,0.5)]`}>
-               <Shield size={20} className={rankInfo.color} />
+            {/* Rank Icon - No Box */}
+            <div className="shrink-0 flex items-center justify-center pl-1">
+               <Shield size={26} className={`${rankInfo.color} drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]`} />
             </div>
 
             <div className="flex-grow min-w-0">

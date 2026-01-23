@@ -1,6 +1,5 @@
 
 export enum AppStage {
-  LANGUAGE = 'LANGUAGE',
   INTRO = 'INTRO',
   PROFILE = 'PROFILE',
   TOPIC_SELECTION = 'TOPIC_SELECTION',

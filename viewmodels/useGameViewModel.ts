@@ -50,6 +50,14 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return newArr;
 };
 
+// Helper to detect browser language
+const getBrowserLanguage = (): Language => {
+  if (typeof navigator === 'undefined') return 'en';
+  const lang = navigator.language.split('-')[0];
+  const supported: Language[] = ['en', 'ko', 'ja', 'zh', 'es', 'fr'];
+  return supported.includes(lang as Language) ? (lang as Language) : 'en';
+};
+
 interface AccumulatedBatchData {
   topicLabel: string;
   topicId: string;
@@ -57,8 +65,8 @@ interface AccumulatedBatchData {
 }
 
 export const useGameViewModel = () => {
-  const [stage, setStage] = useState<AppStage>(AppStage.LANGUAGE);
-  const [language, setLanguage] = useState<Language>('en');
+  const [stage, setStage] = useState<AppStage>(AppStage.INTRO);
+  const [language, setLanguage] = useState<Language>(getBrowserLanguage());
   const [userProfile, setUserProfile] = useState<UserProfile>({ 
     gender: '', 
     ageGroup: '', 
@@ -260,7 +268,8 @@ export const useGameViewModel = () => {
       isNavigatingBackRef.current = false;
       return;
     }
-    if (stage !== AppStage.LANGUAGE) {
+    // Only push state if we are NOT at the root (INTRO)
+    if (stage !== AppStage.INTRO) {
       window.history.pushState({ stage }, '');
     }
   }, [stage]);
@@ -282,15 +291,11 @@ export const useGameViewModel = () => {
         setStage(AppStage.INTRO);
         return true;
       case AppStage.INTRO:
-        setStage(AppStage.LANGUAGE);
-        return true;
+        // Already at home, allow browser to exit or stay
+        return false;
       case AppStage.QUIZ:
-        if (currentQuestionIndex > 0) {
-           setCurrentQuestionIndex(prev => prev - 1);
-           setUserAnswers(prev => prev.slice(0, -1)); 
-           setSelectedOption(null);
-           return true; 
-        }
+        // PREVENT CHEATING: Do not allow going back to previous questions.
+        // Always confirm exit if back is pressed during quiz.
         if (window.confirm(t.common.confirm_exit)) {
           setStage(AppStage.TOPIC_SELECTION);
           setSelectionPhase('CATEGORY');
@@ -311,16 +316,21 @@ export const useGameViewModel = () => {
       default:
         return true;
     }
-  }, [stage, selectionPhase, isPending, isSubmitting, t, currentQuestionIndex]);
+  }, [stage, selectionPhase, isPending, isSubmitting, t]);
 
   useEffect(() => {
     const handlePopState = (_: PopStateEvent) => {
-      if (stage === AppStage.LANGUAGE) return; 
+      // If at root (INTRO), default browser behavior usually handles it,
+      // but we can enforce logic here if needed.
+      if (stage === AppStage.INTRO) return;
 
       isNavigatingBackRef.current = true;
       const success = performBackNavigation();
       
       if (!success) {
+        // If we didn't handle the nav internally (e.g. refused to exit quiz), 
+        // we might need to push the state back to keep the user on the page 
+        // if the browser popped it.
         window.history.pushState({ stage }, '');
       }
     };
@@ -337,12 +347,7 @@ export const useGameViewModel = () => {
       setSelectedCategories([]);
       setSelectedSubTopics([]);
       setSelectionPhase('CATEGORY');
-
       setLanguage(lang); 
-      
-      if (stage === AppStage.LANGUAGE) {
-         setStage(AppStage.INTRO); 
-      }
     },
     startIntro: () => {
       audioHaptic.playClick('hard');
@@ -407,22 +412,15 @@ export const useGameViewModel = () => {
     goBack: () => {
       if (isPending || isSubmitting) return; // Block back nav during submission
       audioHaptic.playClick();
-      
-      if (stage === AppStage.QUIZ) {
-        if (currentQuestionIndex > 0) {
-          setCurrentQuestionIndex(prev => prev - 1);
-          setUserAnswers(prev => prev.slice(0, -1)); 
-          setSelectedOption(null);
-          return;
-        }
-      }
 
       if (stage === AppStage.TOPIC_SELECTION && selectionPhase === 'SUBTOPIC') {
         setSelectionPhase('CATEGORY');
         setSelectedSubTopics([]);
         return;
       }
-      if (stage === AppStage.LANGUAGE) return;
+      if (stage === AppStage.INTRO) return; // Nowhere to go back from root
+      
+      // Allow standard browser back behavior to trigger handlePopState
       window.history.back();
     },
     
@@ -433,12 +431,7 @@ export const useGameViewModel = () => {
         if (!window.confirm(t.common.confirm_exit)) return;
       }
       
-      if (userProfile.nationality) {
-        setStage(AppStage.TOPIC_SELECTION);
-        setSelectionPhase('CATEGORY');
-      } else {
-        setStage(AppStage.LANGUAGE);
-      }
+      setStage(AppStage.INTRO); // Now goes to INTRO instead of checking language/profile
       
       setEvaluation(null);
       setUserAnswers([]);
@@ -450,6 +443,9 @@ export const useGameViewModel = () => {
       setBatchProgress({ total: 0, current: 0, topics: [] });
       setSessionResults([]); 
       setCompletedBatches([]);
+      
+      // CRITICAL FIX: Reset selection phase to CATEGORY so user doesn't get stuck in empty SUBTOPIC view
+      setSelectionPhase('CATEGORY');
     },
 
     resetApp: () => {

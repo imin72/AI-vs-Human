@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, Cpu, Terminal, Zap, Lightbulb, Home, Timer, CheckCircle2, ChevronLeft } from 'lucide-react';
+import { ChevronRight, Cpu, Terminal, Zap, Lightbulb, Home, Timer, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { QuizQuestion, Language } from '../types';
 import { TRANSLATIONS } from '../utils/translations';
@@ -28,7 +28,6 @@ export const QuizView: React.FC<QuizViewProps> = ({
   onSelectOption, 
   onConfirm, 
   onHome,
-  onBack,
   language,
   batchProgress,
   isSubmitting = false
@@ -178,12 +177,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
          {/* Right Controls */}
          <div className="flex gap-2">
-           {/* Show Back button if not first question */}
-           {currentIndex > 0 && onBack && (
-             <button onClick={onBack} className={btnStyle} aria-label="Back" disabled={isSubmitting}>
-               <ChevronLeft size={18} />
-             </button>
-           )}
+           {/* Back button removed to prevent cheating, Home button remains for exit */}
            <button onClick={onHome} className={btnStyle} aria-label="Home" disabled={isSubmitting}>
              <Home size={18} />
            </button>
