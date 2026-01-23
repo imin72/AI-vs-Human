@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { EvaluationResult, Language, TOPIC_IDS, UserProfile, HistoryItem } from '../types';
+import { EvaluationResult, Language, TOPIC_IDS, UserProfile } from '../types';
 import { Button } from './Button';
 import { Share2, RefreshCw, Brain, CheckCircle, CheckCircle2, XCircle, Home, ArrowRight, Activity, Terminal, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Link as LinkIcon, Download, Twitter, Smartphone, Instagram, TrendingUp, AlertTriangle } from 'lucide-react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, AreaChart, Area, CartesianGrid } from 'recharts';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, LineChart, Line, Tooltip, AreaChart, Area } from 'recharts';
 import { toPng } from 'html-to-image';
 import { TRANSLATIONS } from '../utils/translations';
 
