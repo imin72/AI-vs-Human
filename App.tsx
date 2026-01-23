@@ -109,6 +109,7 @@ export default function App() {
         <StageResults 
           data={resultState.evaluation}
           sessionResults={resultState.sessionResults}
+          userProfile={userProfile}
           onRestart={actions.resetApp} 
           onHome={actions.goHome}
           onNextTopic={actions.nextTopicInQueue}

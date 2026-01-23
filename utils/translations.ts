@@ -82,8 +82,10 @@ export interface TranslationData {
     suffix_global: string;
     tab_analysis: string;
     tab_details: string;
+    tab_trends: string;
     page_summary: string;
     page_details: string;
+    page_trends: string;
     click_for_details: string;
     popup_question: string;
     popup_your_answer: string;
@@ -91,6 +93,12 @@ export interface TranslationData {
     popup_ai_comment: string;
     level_ai: string;
     level_global: string;
+    section_growth: string;
+    section_gap: string;
+    section_weakness: string;
+    label_gap_avg: string;
+    msg_weakness: string;
+    msg_advice: string;
     chart: {
       accuracy: string;
       speed: string;
@@ -254,8 +262,10 @@ const ENGLISH_BASE: TranslationData = {
     suffix_global: "Global",
     tab_analysis: "Analysis",
     tab_details: "Details",
+    tab_trends: "Trends",
     page_summary: "SUMMARY",
     page_details: "DETAILS",
+    page_trends: "TRENDS",
     click_for_details: "Click for Details",
     popup_question: "Question",
     popup_your_answer: "Your Answer",
@@ -263,6 +273,12 @@ const ENGLISH_BASE: TranslationData = {
     popup_ai_comment: "AI Analysis",
     level_ai: "AI Level",
     level_global: "Global Level",
+    section_growth: "Growth Trajectory",
+    section_gap: "Human vs AI Gap",
+    section_weakness: "Weakness Analysis",
+    label_gap_avg: "Avg Gap",
+    msg_weakness: "Identified weakest domain:",
+    msg_advice: "Focus on fundamental principles to improve your rating.",
     chart: {
       accuracy: "Accuracy",
       speed: "Speed",
@@ -369,8 +385,10 @@ const KO_TRANSLATIONS: TranslationData = {
     suffix_global: "글로벌",
     tab_analysis: "분석",
     tab_details: "상세",
+    tab_trends: "트렌드",
     page_summary: "평가 요약",
     page_details: "상세 분석",
+    page_trends: "성장 트렌드",
     click_for_details: "상세 보기",
     popup_question: "문제",
     popup_your_answer: "나의 답변",
@@ -378,6 +396,12 @@ const KO_TRANSLATIONS: TranslationData = {
     popup_ai_comment: "AI 분석 코멘트",
     level_ai: "AI 대비 수준",
     level_global: "글로벌 수준",
+    section_growth: "성장 그래프",
+    section_gap: "AI 실력 격차",
+    section_weakness: "약점 분석",
+    label_gap_avg: "평균 격차",
+    msg_weakness: "취약 분야:",
+    msg_advice: "기초 원리에 집중하여 등급을 올리십시오.",
     chart: { accuracy: "정확도", speed: "속도", cohort: "집단위치", logic: "논리력", intuition: "직관력" }
   },
   loading: { 
@@ -478,8 +502,10 @@ const JA_TRANSLATIONS: TranslationData = {
     suffix_global: "位",
     tab_analysis: "分析",
     tab_details: "詳細",
+    tab_trends: "傾向",
     page_summary: "評価概要",
     page_details: "詳細分析",
+    page_trends: "成長記録",
     click_for_details: "詳細を見る",
     popup_question: "問題",
     popup_your_answer: "あなたの回答",
@@ -487,6 +513,12 @@ const JA_TRANSLATIONS: TranslationData = {
     popup_ai_comment: "AI分析コメント",
     level_ai: "AI対比レベル",
     level_global: "グローバルレベル",
+    section_growth: "成長グラフ",
+    section_gap: "対AIスコア差",
+    section_weakness: "弱点分析",
+    label_gap_avg: "平均差",
+    msg_weakness: "最弱分野:",
+    msg_advice: "基礎原理に集中して評価を上げてください。",
     chart: { accuracy: "正確性", speed: "速度", cohort: "集団位置", logic: "論理力", intuition: "直感力" }
   },
   loading: { 
@@ -524,6 +556,8 @@ const ES_TRANSLATIONS: TranslationData = {
     ...ENGLISH_BASE.results,
     page_summary: "Resumen",
     page_details: "Detalles",
+    page_trends: "Tendencias",
+    tab_trends: "Tendencias",
     click_for_details: "Ver detalles",
     popup_question: "Pregunta",
     popup_your_answer: "Tu Respuesta",
@@ -531,6 +565,12 @@ const ES_TRANSLATIONS: TranslationData = {
     popup_ai_comment: "Análisis de IA",
     level_ai: "Nivel IA",
     level_global: "Nivel Global",
+    section_growth: "Trayectoria",
+    section_gap: "Brecha Humano vs IA",
+    section_weakness: "Análisis de Debilidad",
+    label_gap_avg: "Brecha Media",
+    msg_weakness: "Área más débil:",
+    msg_advice: "Concéntrate en los principios básicos.",
   },
   loading: {
     gen_vectors: "PREPARANDO BATALLA CONTRA IA...",
@@ -565,6 +605,8 @@ const FR_TRANSLATIONS: TranslationData = {
     ...ENGLISH_BASE.results,
     page_summary: "Résumé",
     page_details: "Détails",
+    page_trends: "Tendances",
+    tab_trends: "Tendances",
     click_for_details: "Voir détails",
     popup_question: "Question",
     popup_your_answer: "Votre Réponse",
@@ -572,6 +614,12 @@ const FR_TRANSLATIONS: TranslationData = {
     popup_ai_comment: "Analyse IA",
     level_ai: "Niveau IA",
     level_global: "Niveau Global",
+    section_growth: "Trajectoire",
+    section_gap: "Écart Humain vs IA",
+    section_weakness: "Analyse des Faiblesses",
+    label_gap_avg: "Écart Moyen",
+    msg_weakness: "Domaine le plus faible:",
+    msg_advice: "Concentrez-vous sur les principes fondamentaux.",
   },
   loading: {
     gen_vectors: "PRÉPARATION DU COMBAT CONTRE L'IA...",
@@ -669,8 +717,10 @@ const ZH_TRANSLATIONS: TranslationData = {
     suffix_global: "全球",
     tab_analysis: "分析",
     tab_details: "详情",
+    tab_trends: "趋势",
     page_summary: "评估摘要",
     page_details: "详细分析",
+    page_trends: "成长轨迹",
     click_for_details: "点击查看详情",
     popup_question: "问题",
     popup_your_answer: "你的答案",
@@ -678,6 +728,12 @@ const ZH_TRANSLATIONS: TranslationData = {
     popup_ai_comment: "AI 分析评论",
     level_ai: "AI 对比水平",
     level_global: "全球水平",
+    section_growth: "成长曲线",
+    section_gap: "人机差距",
+    section_weakness: "弱点分析",
+    label_gap_avg: "平均差距",
+    msg_weakness: "最弱领域:",
+    msg_advice: "专注于基础原则以提高评分。",
     chart: { accuracy: "准确性", speed: "速度", cohort: "群体定位", logic: "逻辑力", intuition: "直觉力" }
   },
   loading: { 

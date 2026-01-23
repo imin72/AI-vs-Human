@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { EvaluationResult, Language, TOPIC_IDS } from '../types';
+import { EvaluationResult, Language, TOPIC_IDS, UserProfile, HistoryItem } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, CheckCircle, CheckCircle2, XCircle, Home, ArrowRight, Activity, Terminal, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Link as LinkIcon, Download, Twitter, Smartphone, Instagram } from 'lucide-react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
+import { Share2, RefreshCw, Brain, CheckCircle, CheckCircle2, XCircle, Home, ArrowRight, Activity, Terminal, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Link as LinkIcon, Download, Twitter, Smartphone, Instagram, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, AreaChart, Area, CartesianGrid } from 'recharts';
 import { toPng } from 'html-to-image';
 import { TRANSLATIONS } from '../utils/translations';
 
 interface StageResultsProps {
   data: EvaluationResult;
   sessionResults?: EvaluationResult[];
+  userProfile?: UserProfile;
   onRestart: () => void;
   onHome: () => void;
   onNextTopic?: () => void;
@@ -42,6 +43,7 @@ const getTopicIcon = (id: string | undefined) => {
 export const StageResults: React.FC<StageResultsProps> = ({ 
   data, 
   sessionResults = [], 
+  userProfile,
   onRestart, 
   onHome, 
   onNextTopic, 
@@ -49,7 +51,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
   nextTopicName, 
   language 
 }) => {
-  // Page 0: Summary, Page 1: Details
+  // Page 0: Summary, Page 1: Details, Page 2: Trends
   const [currentPage, setCurrentPage] = useState(0); 
   const [chartReady, setChartReady] = useState(false);
   const [selectedResultForPopup, setSelectedResultForPopup] = useState<EvaluationResult | null>(null);
@@ -59,6 +61,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
   // Refs for capturing individual slides
   const summaryRef = useRef<HTMLDivElement>(null);
   const detailsRef = useRef<HTMLDivElement>(null);
+  const trendsRef = useRef<HTMLDivElement>(null);
 
   const t = TRANSLATIONS[language].results;
   const commonT = TRANSLATIONS[language].common;
@@ -91,8 +94,8 @@ export const StageResults: React.FC<StageResultsProps> = ({
   
   const gradeInfo = getGrade(currentScore);
 
-  // Chart Data Preparation
-  const chartData = isFinalSummary ? [
+  // Chart Data Preparation (Radar)
+  const radarData = isFinalSummary ? [
       { subject: t.chart.logic, A: currentScore > 60 ? currentScore + 10 : currentScore, fullMark: 100 },
       { subject: t.chart.intuition, A: sessionResults.reduce((a, b) => a + b.humanPercentile, 0) / sessionResults.length, fullMark: 100 },
       { subject: t.chart.speed, A: Math.min(100, currentScore + 15), fullMark: 100 },
@@ -106,6 +109,40 @@ export const StageResults: React.FC<StageResultsProps> = ({
     { subject: t.chart.intuition, A: data.humanPercentile, fullMark: 100 },
   ];
 
+  // --- Trends Data Preparation ---
+  const history = userProfile?.history || [];
+  
+  // 1. Growth Data (Line Chart) - Last 10 attempts
+  const growthData = history.slice(-10).map((h, i) => ({
+    name: i + 1, // Attempt number
+    score: h.score,
+    ai: h.aiScore
+  }));
+
+  // 2. Gap Calculation
+  const avgUserScore = history.length > 0 
+    ? Math.round(history.reduce((acc, h) => acc + h.score, 0) / history.length) 
+    : 0;
+  const avgAiScore = history.length > 0 
+    ? Math.round(history.reduce((acc, h) => acc + h.aiScore, 0) / history.length) 
+    : 0;
+  const gap = avgAiScore - avgUserScore;
+
+  // 3. Weakness Analysis (Find lowest Elo)
+  const eloRatings = userProfile?.eloRatings || {};
+  let weakestTopicId = "";
+  let lowestElo = 2000;
+  Object.entries(eloRatings).forEach(([id, rating]) => {
+     if (rating < lowestElo) {
+       lowestElo = rating;
+       weakestTopicId = id;
+     }
+  });
+  
+  // Only show weakness if we have data
+  const hasEnoughData = history.length >= 3;
+  const weaknessLabel = weakestTopicId ? (categoriesT[weakestTopicId] || weakestTopicId) : "N/A";
+
   // --- Share Functions ---
   const shareText = `Cognito Protocol 🧬\nScore: ${currentScore}/100 [${gradeInfo.label}]\n${isFinalSummary ? 'Aggregate Analysis' : `Topic: ${data.title}`}\n\nProve your humanity:`;
   const hashtags = "HumanVsAI,Cognito";
@@ -114,7 +151,9 @@ export const StageResults: React.FC<StageResultsProps> = ({
   // Generic function to generate blob and try native sharing
   const performNativeShare = async (platform?: 'twitter' | 'instagram' | 'system') => {
     setIsGeneratingShare(true);
-    const targetRef = currentPage === 0 ? summaryRef : detailsRef;
+    let targetRef = summaryRef;
+    if (currentPage === 1) targetRef = detailsRef;
+    if (currentPage === 2) targetRef = trendsRef;
     
     try {
       if (targetRef.current) {
@@ -174,12 +213,15 @@ export const StageResults: React.FC<StageResultsProps> = ({
   };
 
   const handleSaveImage = async () => {
-    const targetRef = currentPage === 0 ? summaryRef : detailsRef;
+    let targetRef = summaryRef;
+    if (currentPage === 1) targetRef = detailsRef;
+    if (currentPage === 2) targetRef = trendsRef;
+
     if (targetRef.current) {
       try {
         const dataUrl = await toPng(targetRef.current, { cacheBust: true, backgroundColor: '#020617' });
         const link = document.createElement('a');
-        link.download = `cognito-result-${currentPage === 0 ? 'summary' : 'details'}-${Date.now()}.png`;
+        link.download = `cognito-result-${currentPage === 0 ? 'summary' : currentPage === 1 ? 'details' : 'trends'}-${Date.now()}.png`;
         link.href = dataUrl;
         link.click();
       } catch (err) {
@@ -273,7 +315,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
                        <div className="w-full flex-grow min-h-0 relative mt-2 md:mt-4">
                          {chartReady ? (
                            <ResponsiveContainer width="100%" height="100%">
-                              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
+                              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                                 <PolarGrid stroke="#334155" />
                                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
                                 <Radar name="User" dataKey="A" stroke="#22d3ee" strokeWidth={3} fill="#22d3ee" fillOpacity={0.4} />
@@ -285,21 +327,17 @@ export const StageResults: React.FC<StageResultsProps> = ({
                  </div>
                  
                  <div className="text-center text-xs text-slate-500 animate-pulse mt-3 shrink-0">
-                   {/* Swipe hint */}
                    Swipe or click below for details
                  </div>
               </div>
 
-              {/* PAGE 2: DETAILS LIST (DYNAMIC GRID LAYOUT) */}
+              {/* PAGE 2: DETAILS LIST */}
               <div ref={detailsRef} className="w-full h-full flex-shrink-0 p-6 md:p-8 bg-[#020617] flex flex-col">
-                 
-                 {/* Full Height Grid Container */}
                  <div className={`h-full ${getGridLayoutClass()}`}>
                     {isFinalSummary ? (
                       sessionResults.map((res, idx) => {
                         const g = getGrade(res.totalScore);
                         const categoryLabel = getLocalizedCategory(res.id);
-                        // If 3 items, make the first one span 2 columns
                         const spanClass = (isThreeItems && idx === 0) ? 'col-span-2' : '';
                         
                         return (
@@ -310,7 +348,6 @@ export const StageResults: React.FC<StageResultsProps> = ({
                           >
                              <div className="absolute top-0 right-0 p-8 opacity-5 bg-gradient-radial from-cyan-500 to-transparent rounded-full pointer-events-none transform translate-x-1/2 -translate-y-1/2"></div>
                              
-                             {/* Top Row: Icon/Category + Grade */}
                              <div className="flex justify-between items-start w-full relative z-10">
                                 <div className="flex flex-col gap-1">
                                    <div className="text-cyan-400 bg-slate-950/50 p-1.5 rounded-lg border border-slate-700/50 w-fit">
@@ -321,12 +358,10 @@ export const StageResults: React.FC<StageResultsProps> = ({
                                 <div className={`text-3xl font-black italic leading-none ${g.color} drop-shadow-lg`}>{g.label}</div>
                              </div>
 
-                             {/* Middle: Title */}
                              <div className="text-xs font-bold text-white leading-tight group-hover:text-cyan-300 transition-colors line-clamp-2 my-1">
                                 {res.title}
                              </div>
 
-                             {/* Bottom: Compact Stats */}
                              <div className="grid grid-cols-1 gap-1 w-full mt-auto">
                                 <div className="bg-slate-950/60 rounded p-1 border border-slate-800 flex justify-between items-center px-2">
                                    <span className="text-[8px] text-slate-500 font-bold uppercase">AI</span>
@@ -361,6 +396,96 @@ export const StageResults: React.FC<StageResultsProps> = ({
                     )}
                  </div>
               </div>
+
+              {/* PAGE 3: TRENDS & ANALYTICS (NEW) */}
+              <div ref={trendsRef} className="w-full h-full flex-shrink-0 p-6 md:p-8 bg-[#020617] flex flex-col overflow-y-auto custom-scrollbar">
+                
+                {/* 1. Growth Graph */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp size={16} className="text-cyan-400" />
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t.section_growth}</h3>
+                  </div>
+                  <div className="w-full h-32 bg-slate-900/50 rounded-xl border border-slate-800 p-2">
+                    {growthData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={growthData}>
+                          <Line type="monotone" dataKey="score" stroke="#22d3ee" strokeWidth={2} dot={{r: 2}} />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '10px' }} 
+                            itemStyle={{ color: '#22d3ee' }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-xs text-slate-600">Not enough data</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Gap Analysis (Area Chart) */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Activity size={16} className="text-rose-400" />
+                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t.section_gap}</h3>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-500">{t.label_gap_avg}: <span className="text-white">{gap}</span> pts</span>
+                  </div>
+                  <div className="w-full h-32 bg-slate-900/50 rounded-xl border border-slate-800 p-2">
+                    {growthData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={growthData}>
+                           <defs>
+                              <linearGradient id="colorAi" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                              </linearGradient>
+                           </defs>
+                           <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', fontSize: '10px' }} />
+                           <Area type="monotone" dataKey="ai" stroke="#f43f5e" fillOpacity={1} fill="url(#colorAi)" />
+                           <Area type="monotone" dataKey="score" stroke="#22d3ee" fillOpacity={0} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-xs text-slate-600">Not enough data</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Weakness Analysis */}
+                <div className="mt-auto">
+                   <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle size={16} className="text-amber-400" />
+                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t.section_weakness}</h3>
+                   </div>
+                   <div className="bg-slate-900/80 border border-slate-700 p-4 rounded-xl relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-8 opacity-5 bg-amber-500 blur-2xl rounded-full"></div>
+                      
+                      <div className="relative z-10 flex gap-4 items-start">
+                         <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-amber-500 shrink-0">
+                            {hasEnoughData ? getTopicIcon(weakestTopicId) : <Brain size={20} />}
+                         </div>
+                         <div>
+                            {hasEnoughData ? (
+                              <>
+                                <div className="text-xs font-bold text-slate-500 uppercase mb-1">{t.msg_weakness}</div>
+                                <div className="text-lg font-black text-white mb-2">{weaknessLabel}</div>
+                                <p className="text-xs text-slate-400 leading-relaxed italic border-t border-slate-800 pt-2">
+                                  "{t.msg_advice}"
+                                </p>
+                              </>
+                            ) : (
+                              <div className="flex h-full items-center text-xs text-slate-500">
+                                 Play more rounds to unlock personalized weakness analysis.
+                              </div>
+                            )}
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+              </div>
            </div>
         </div>
 
@@ -379,6 +504,12 @@ export const StageResults: React.FC<StageResultsProps> = ({
                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${currentPage === 1 ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                  >
                    {t.page_details}
+                 </button>
+                 <button 
+                   onClick={() => setCurrentPage(2)}
+                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${currentPage === 2 ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                 >
+                   {t.page_trends}
                  </button>
               </div>
            </div>
@@ -400,7 +531,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
         </div>
       </div>
 
-      {/* SHARE MENU POPUP */}
+      {/* SHARE MENU POPUP - (Existing code for share menu) */}
       {showShareMenu && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4 animate-fade-in bg-slate-950/80 backdrop-blur-sm">
            <div className="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden p-6 space-y-4">
@@ -456,7 +587,6 @@ export const StageResults: React.FC<StageResultsProps> = ({
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4 animate-fade-in bg-slate-950/80 backdrop-blur-sm">
            <div className="bg-slate-900 border border-slate-700 w-full max-w-lg max-h-[90%] rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
               
-              {/* Popup Header - Removed X button */}
               <div className="p-4 border-b border-slate-700 bg-slate-900 flex justify-between items-center shrink-0">
                  <div>
                     <h3 className="font-bold text-white flex items-center gap-2">
@@ -479,7 +609,6 @@ export const StageResults: React.FC<StageResultsProps> = ({
                  </div>
               </div>
 
-              {/* Popup Content */}
               <div className="overflow-y-auto custom-scrollbar p-4 space-y-4">
                  {selectedResultForPopup.details.map((item, idx) => (
                     <div key={idx} className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
@@ -497,13 +626,11 @@ export const StageResults: React.FC<StageResultsProps> = ({
                        </h4>
 
                        <div className="grid grid-cols-1 gap-2 mb-3">
-                           {/* User Answer */}
                            <div className={`text-xs p-2 rounded border ${item.isCorrect ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300' : 'bg-rose-950/30 border-rose-500/30 text-rose-300'}`}>
                               <span className="font-bold block opacity-70 mb-0.5">{t.popup_your_answer}:</span>
                               {item.selectedOption || "N/A"}
                            </div>
 
-                           {/* Correct Answer (only if wrong) */}
                            {!item.isCorrect && (
                               <div className="text-xs p-2 rounded border bg-cyan-950/30 border-cyan-500/30 text-cyan-300">
                                  <span className="font-bold block opacity-70 mb-0.5">{t.popup_correct_answer}:</span>
@@ -520,7 +647,6 @@ export const StageResults: React.FC<StageResultsProps> = ({
                  ))}
               </div>
 
-              {/* Reduced Button Height */}
               <div className="p-4 border-t border-slate-700 bg-slate-900 shrink-0">
                  <Button onClick={() => setSelectedResultForPopup(null)} fullWidth variant="secondary" className="py-1.5 text-sm h-8 md:h-10">
                     {commonT.close}

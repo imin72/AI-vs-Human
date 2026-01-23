@@ -8,7 +8,8 @@ import {
   QuizQuestion, 
   UserAnswer, 
   EvaluationResult,
-  QuizSet
+  QuizSet,
+  HistoryItem
 } from '../types';
 import { generateQuestionsBatch, evaluateBatchAnswers, BatchEvaluationInput, seedLocalDatabase } from '../services/geminiService';
 import { audioHaptic } from '../services/audioHapticService';
@@ -72,7 +73,8 @@ export const useGameViewModel = () => {
     ageGroup: '', 
     nationality: '',
     eloRatings: {},
-    seenQuestionIds: []
+    seenQuestionIds: [],
+    history: []
   });
   
   // Selection State
@@ -114,7 +116,8 @@ export const useGameViewModel = () => {
         setUserProfile({
           ...parsed,
           eloRatings: parsed.eloRatings || {},
-          seenQuestionIds: parsed.seenQuestionIds || []
+          seenQuestionIds: parsed.seenQuestionIds || [],
+          history: parsed.history || []
         });
       }
     } catch (e) {
@@ -144,6 +147,7 @@ export const useGameViewModel = () => {
       const currentScores = { ...(profile.scores || {}) };
       const currentElos = { ...(profile.eloRatings || {}) };
       const seenIds = new Set(profile.seenQuestionIds || []);
+      const currentHistory = [...(profile.history || [])];
 
       allBatches.forEach(batch => {
         const correctCount = batch.answers.filter(a => a.isCorrect).length;
@@ -173,10 +177,18 @@ export const useGameViewModel = () => {
         const newElo = Math.max(0, currentElo + eloChange);
         currentElos[batch.topicId] = newElo;
 
-        if (newElo > currentElo) {
-          // Play level up sound if improved significantly (later in UI)
-        }
-        // -------------------------------
+        // 3. Track History
+        // Use a static AI Score "ceiling" for now (e.g. 95-100) to represent the AI benchmark
+        const aiBenchmark = difficulty === Difficulty.HARD ? 98 : difficulty === Difficulty.MEDIUM ? 95 : 92;
+        
+        const historyItem: HistoryItem = {
+          timestamp: Date.now(),
+          topicId: batch.topicId,
+          score: score,
+          aiScore: aiBenchmark,
+          difficulty: difficulty
+        };
+        currentHistory.push(historyItem);
 
         batchInputs.push({
           topic: batch.topicLabel,
@@ -189,6 +201,7 @@ export const useGameViewModel = () => {
       updatedProfile.scores = currentScores;
       updatedProfile.eloRatings = currentElos;
       updatedProfile.seenQuestionIds = Array.from(seenIds);
+      updatedProfile.history = currentHistory;
       
       setUserProfile(updatedProfile);
       localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));

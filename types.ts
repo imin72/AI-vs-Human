@@ -28,6 +28,14 @@ export enum Tier {
   MASTER = "MASTER"
 }
 
+export interface HistoryItem {
+  timestamp: number;
+  topicId: string;
+  score: number;
+  aiScore: number;
+  difficulty: Difficulty;
+}
+
 export interface UserProfile {
   gender: string;
   ageGroup: string;
@@ -37,6 +45,7 @@ export interface UserProfile {
   // --- New Adaptive Learning Fields ---
   eloRatings?: Record<string, number>; // Topic ID -> Elo Score (Default: 1000)
   seenQuestionIds?: number[]; // List of IDs already answered to prevent duplicates
+  history?: HistoryItem[]; // Chronological list of past performance
   traits?: {
     avgResponseTime?: number; // Seconds
     impulsiveness?: number; // 0-100
