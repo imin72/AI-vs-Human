@@ -263,8 +263,12 @@ export const useGameViewModel = () => {
   const isNavigatingBackRef = useRef(false);
 
   useEffect(() => {
-    // Initialize history with a clean state on mount
+    // CRITICAL FIX: To intercept "Back" at the Intro screen, we must have a history entry.
+    // We replace the current entry (root) and push a new one (app).
+    // This way, pressing Back triggers 'popstate' instead of immediately closing the tab.
+    // This allows us to show the confirmation popup.
     window.history.replaceState({ stage: 'root' }, '');
+    window.history.pushState({ stage: 'intro' }, '');
   }, []);
 
   useEffect(() => {
@@ -297,14 +301,15 @@ export const useGameViewModel = () => {
       case AppStage.INTRO:
         // Ask for confirmation before exit
         if (window.confirm(t.common.confirm_exit_app)) {
-           // Attempt to go back as far as possible to simulate app exit in PWA
-           const len = window.history.length;
-           if (len > 1) {
-              window.history.go(-(len - 1));
-           }
+           // User confirmed exit.
+           // Since we are inside 'popstate' event handler, we have technically already "popped" to 'root'.
+           // To actually exit the app/tab, we need to go back further.
+           setTimeout(() => {
+             window.history.back();
+           }, 10);
            return true;
         }
-        return false; // Stay
+        return false; // User cancelled. We will push state back in handlePopState to stay.
       case AppStage.QUIZ:
         // PREVENT CHEATING: Do not allow going back to previous questions.
         // Always confirm exit if back is pressed during quiz.
@@ -462,9 +467,9 @@ export const useGameViewModel = () => {
       setCompletedBatches([]);
       setSelectionPhase('CATEGORY');
 
-      // CRITICAL: Replace history state to "Root" to prevent deeper back navigation loops
-      // This effectively "clears" the forward history behavior for our SPA logic
+      // CRITICAL: Replace history state to "Root" logic to match the new back button trap
       window.history.replaceState({ stage: 'root' }, '', window.location.pathname);
+      window.history.pushState({ stage: 'intro' }, '', window.location.pathname);
     },
 
     resetApp: () => {
