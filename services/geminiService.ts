@@ -71,6 +71,102 @@ const getAdaptiveLevel = (elo: number): string => {
   return "Expert/PhD Level";
 };
 
+// --- BACKGROUND TASK: Mirror Translation ---
+// This runs silently to populate DB for other languages
+const triggerBackgroundTranslation = async (
+  topicId: string,
+  categoryId: string,
+  difficulty: Difficulty,
+  sourceLang: Language,
+  sourceQuestions: QuizQuestion[]
+) => {
+  // Only run in DEV mode to save API costs, or if specifically configured
+  if (!import.meta.env.DEV) return;
+
+  const ALL_LANGUAGES: Language[] = ['en', 'ko', 'ja', 'es', 'fr', 'zh'];
+  const targetLangs = ALL_LANGUAGES.filter(l => l !== sourceLang);
+
+  console.log(`[Background] Starting translation mirroring for ${topicId} from ${sourceLang} to [${targetLangs.join(',')}]...`);
+
+  try {
+    const prompt = `
+      You are a translation engine for a Quiz Database.
+      Translate the following JSON questions from ${sourceLang} into these languages: ${JSON.stringify(targetLangs)}.
+      
+      SOURCE DATA:
+      ${JSON.stringify(sourceQuestions)}
+
+      RULES:
+      1. Return a JSON object where keys are the language codes (${targetLangs.join(', ')}).
+      2. The value for each key must be an array of questions matching the source structure exactly.
+      3. Maintain the same IDs.
+      4. Translate "question", "options", "correctAnswer", and "context" naturally.
+      5. Ensure the "correctAnswer" matches the translation used in "options".
+    `;
+
+    // Define schema for multi-language output
+    const questionSchema = {
+      type: Type.OBJECT,
+      properties: {
+        id: { type: Type.INTEGER },
+        question: { type: Type.STRING }, 
+        options: { type: Type.ARRAY, items: { type: Type.STRING } }, 
+        correctAnswer: { type: Type.STRING }, 
+        context: { type: Type.STRING }
+      }
+    };
+
+    const langProperties: Record<string, any> = {};
+    targetLangs.forEach(lang => {
+      langProperties[lang] = { type: Type.ARRAY, items: questionSchema };
+    });
+
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: [{ parts: [{ text: prompt }] }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: langProperties,
+          required: targetLangs
+        }
+      }
+    });
+
+    const translatedData = JSON.parse(cleanJson(response.text));
+    const quizCache = loadCache(CACHE_KEY_QUIZ);
+
+    // Save each language
+    for (const lang of targetLangs) {
+      if (translatedData[lang]) {
+        const questions = translatedData[lang];
+        const cacheKey = generateCacheKey(topicId, difficulty, lang as Language);
+        
+        // Update Cache
+        quizCache[cacheKey] = questions;
+
+        // Save to File System (Vite Middleware)
+        await fetch('/__save-question', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ 
+              categoryId: categoryId, 
+              key: `${topicId}_${difficulty}_${lang}`, 
+              data: questions 
+            })
+        }).catch(e => console.warn(`[Background] Failed to save ${lang} file:`, e));
+      }
+    }
+    
+    saveCache(CACHE_KEY_QUIZ, quizCache);
+    console.log(`[Background] Mirroring complete for ${topicId}`);
+
+  } catch (error) {
+    console.warn(`[Background] Translation mirroring failed for ${topicId}`, error);
+  }
+};
+
 // Batch Generation Function
 export const generateQuestionsBatch = async (
   topics: string[], 
@@ -192,12 +288,10 @@ export const generateQuestionsBatch = async (
         if (generatedData[req.stableId]) {
           const rawQuestions = generatedData[req.stableId];
           
-          // Since we only generated one language, we use it directly
-          // We still use the cache key structure for consistency
           const cacheKey = generateCacheKey(req.stableId, difficulty, lang);
           
           const formattedQuestions: QuizQuestion[] = rawQuestions.map((q: any) => ({
-             id: q.id || Math.floor(Math.random() * 10000), // Fallback ID if missing
+             id: q.id || Math.floor(Math.random() * 100000) + Date.now(),
              question: q.question,
              options: q.options,
              correctAnswer: q.correctAnswer,
@@ -206,13 +300,17 @@ export const generateQuestionsBatch = async (
           
           quizCache[cacheKey] = formattedQuestions;
           
-          // Auto-save logic (Dev only)
-          if (import.meta.env.DEV && lang === 'en') {
+          // Save Current Language to File System
+          if (import.meta.env.DEV) {
              fetch('/__save-question', {
                  method: 'POST',
                  headers: {'Content-Type': 'application/json'},
                  body: JSON.stringify({ categoryId: req.catId, key: `${req.stableId}_${difficulty}_${lang}`, data: formattedQuestions })
              }).catch(() => {});
+
+             // STRATEGY 1: Trigger Background Mirroring for other languages
+             // We do NOT await this, so the UI is not blocked
+             triggerBackgroundTranslation(req.stableId, req.catId, difficulty, lang, formattedQuestions);
           }
 
           results.push({ topic: req.originalLabel, questions: formattedQuestions, categoryId: req.catId });
