@@ -267,7 +267,10 @@ const ENGLISH_BASE: TranslationData = {
       intuition: "Intuition"
     }
   },
-  loading: { gen_vectors: "Generating test vectors...", analyzing: "AI is analyzing performance..." },
+  loading: { 
+    gen_vectors: "INITIALIZING BATTLE PROTOCOL...", 
+    analyzing: "CALCULATING NEURAL METRICS..." 
+  },
   difficulty: { [Difficulty.EASY]: "Novice", [Difficulty.MEDIUM]: "Competent", [Difficulty.HARD]: "Expert" },
   error: { title: "System Failure", btn_reset: "System Reset" }
 };
@@ -357,7 +360,10 @@ const KO_TRANSLATIONS: TranslationData = {
     level_global: "글로벌 수준",
     chart: { accuracy: "정확도", speed: "속도", cohort: "집단위치", logic: "논리력", intuition: "직관력" }
   },
-  loading: { gen_vectors: "테스트 벡터 생성 중...", analyzing: "AI 성능 분석 중..." },
+  loading: { 
+    gen_vectors: "BATTLE PROTOCOL INITIATED...", 
+    analyzing: "PROCESSING NEURAL DATA..." 
+  },
   difficulty: { [Difficulty.EASY]: "초급", [Difficulty.MEDIUM]: "중급", [Difficulty.HARD]: "고급" },
   error: { title: "시스템 오류", btn_reset: "시스템 재설정" }
 };
@@ -447,7 +453,10 @@ const JA_TRANSLATIONS: TranslationData = {
     level_global: "グローバルレベル",
     chart: { accuracy: "正確性", speed: "速度", cohort: "集団位置", logic: "論理力", intuition: "直感力" }
   },
-  loading: { gen_vectors: "テストベクトル生成中...", analyzing: "AIパフォーマンス分析中..." },
+  loading: { 
+    gen_vectors: "BATTLE PROTOCOL INITIATED...", 
+    analyzing: "NEURAL LINK ACTIVE..." 
+  },
   difficulty: { [Difficulty.EASY]: "初級", [Difficulty.MEDIUM]: "中級", [Difficulty.HARD]: "上級" },
   error: { title: "システムエラー", btn_reset: "システムリセット" }
 };
@@ -579,7 +588,10 @@ const ZH_TRANSLATIONS: TranslationData = {
     level_global: "全球水平",
     chart: { accuracy: "准确性", speed: "速度", cohort: "群体定位", logic: "逻辑力", intuition: "直觉力" }
   },
-  loading: { gen_vectors: "正在生成测试向量...", analyzing: "AI 正在分析表现..." },
+  loading: { 
+    gen_vectors: "BATTLE PROTOCOL INITIATED...", 
+    analyzing: "NEURAL LINK ACTIVE..." 
+  },
   difficulty: { [Difficulty.EASY]: "初级", [Difficulty.MEDIUM]: "中级", [Difficulty.HARD]: "高级" },
   error: { title: "系统错误", btn_reset: "系统重置" }
 };

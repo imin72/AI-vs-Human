@@ -134,7 +134,6 @@ export const generateQuestionsBatch = async (
   // 3. Fetch missing topics via Gemini API
   if (missingRequests.length > 0) {
     try {
-      const SUPPORTED_LANGUAGES: Language[] = ['en', 'ko', 'ja', 'zh', 'es', 'fr'];
       const targetEnglishIds = missingRequests.map(r => r.stableId); // Send English IDs to AI
       
       const adaptiveContexts = missingRequests.map(r => {
@@ -143,6 +142,7 @@ export const generateQuestionsBatch = async (
          return `${r.stableId}: User Knowledge Level: ${level} (Elo ${elo})`;
       }).join("; ");
 
+      // OPTIMIZATION: Only generate for the requested language to reduce latency
       const prompt = `
         You are a high-level knowledge testing AI.
         Generate 5 multiple-choice questions for EACH of the following topics: ${JSON.stringify(targetEnglishIds)}.
@@ -151,7 +151,7 @@ export const generateQuestionsBatch = async (
         1. Base Difficulty: ${difficulty}.
         2. USER ADAPTATION PROFILE: ${adaptiveContexts}.
         3. Target Audience: ${userProfile?.ageGroup || 'General'}.
-        4. **MULTI-LANGUAGE GENERATION:** For EACH question, provide the content in ALL supported languages: English (en), Korean (ko), Japanese (ja), Chinese Simplified (zh), Spanish (es), and French (fr).
+        4. **LANGUAGE:** Generate content in **${lang}** language ONLY.
         5. Return a JSON object where keys are the exact topic names provided (${targetEnglishIds.join(', ')}).
       `;
 
@@ -159,14 +159,13 @@ export const generateQuestionsBatch = async (
         type: Type.OBJECT,
         properties: {
           id: { type: Type.INTEGER },
-          en: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
-          ko: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
-          ja: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
-          zh: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
-          es: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
-          fr: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } }
+          // Flattened schema: Just the question details, no language sub-keys
+          question: { type: Type.STRING }, 
+          options: { type: Type.ARRAY, items: { type: Type.STRING } }, 
+          correctAnswer: { type: Type.STRING }, 
+          context: { type: Type.STRING }
         },
-        required: ["id", "en", "ko", "ja", "zh", "es", "fr"]
+        required: ["id", "question", "options", "correctAnswer", "context"]
       };
 
       const topicProperties: Record<string, any> = {};
@@ -193,33 +192,30 @@ export const generateQuestionsBatch = async (
         if (generatedData[req.stableId]) {
           const rawQuestions = generatedData[req.stableId];
           
-          // Save ALL languages to cache using Stable ID keys
-          SUPPORTED_LANGUAGES.forEach(targetLang => {
-            const localizedQuestions: QuizQuestion[] = rawQuestions.map((q: any) => ({
-              id: q.id,
-              ...q[targetLang]
-            }));
-
-            const cacheKey = generateCacheKey(req.stableId, difficulty, targetLang);
-            quizCache[cacheKey] = localizedQuestions;
-            
-            // Auto-save logic (Dev only)
-            if (import.meta.env.DEV && targetLang === 'en') {
-               fetch('/__save-question', {
-                   method: 'POST',
-                   headers: {'Content-Type': 'application/json'},
-                   body: JSON.stringify({ categoryId: req.catId, key: `${req.stableId}_${difficulty}_${targetLang}`, data: localizedQuestions })
-               }).catch(() => {});
-            }
-          });
-
-          // Return result for CURRENT requested language
-          // IMPORTANT: The result object must use the `originalLabel` as `topic` so the UI matches the selection.
-          const resultQuestions = rawQuestions.map((q: any) => ({
-            id: q.id,
-            ...q[lang]
+          // Since we only generated one language, we use it directly
+          // We still use the cache key structure for consistency
+          const cacheKey = generateCacheKey(req.stableId, difficulty, lang);
+          
+          const formattedQuestions: QuizQuestion[] = rawQuestions.map((q: any) => ({
+             id: q.id || Math.floor(Math.random() * 10000), // Fallback ID if missing
+             question: q.question,
+             options: q.options,
+             correctAnswer: q.correctAnswer,
+             context: q.context
           }));
-          results.push({ topic: req.originalLabel, questions: resultQuestions, categoryId: req.catId });
+          
+          quizCache[cacheKey] = formattedQuestions;
+          
+          // Auto-save logic (Dev only)
+          if (import.meta.env.DEV && lang === 'en') {
+             fetch('/__save-question', {
+                 method: 'POST',
+                 headers: {'Content-Type': 'application/json'},
+                 body: JSON.stringify({ categoryId: req.catId, key: `${req.stableId}_${difficulty}_${lang}`, data: formattedQuestions })
+             }).catch(() => {});
+          }
+
+          results.push({ topic: req.originalLabel, questions: formattedQuestions, categoryId: req.catId });
         }
       });
       

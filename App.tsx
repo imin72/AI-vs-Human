@@ -78,7 +78,7 @@ export default function App() {
           questions={quizState.questions}
           currentIndex={quizState.currentQuestionIndex}
           selectedOption={quizState.selectedOption}
-          topicLabel={state.quizState.questions.length > 0 ? (state.quizState.questions[0] as any).topic || topicState.selectedSubTopics[0] || "Quiz" : "Quiz"}
+          topicLabel={quizState.currentTopicName || "Quiz"}
           onSelectOption={actions.selectOption}
           onConfirm={actions.confirmAnswer}
           onHome={actions.goHome}

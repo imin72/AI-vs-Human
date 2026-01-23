@@ -129,6 +129,16 @@ export const useGameViewModel = () => {
     setDisplayedTopics(shuffleArray(topics));
   }, [t]);
 
+  // Determine topic ID from label (helper)
+  const getTopicIdFromLabel = (label: string): string => {
+    const topicObj = displayedTopics.find(t => t.label === label);
+    if (topicObj) return topicObj.id;
+    
+    // Fallback: Try to find by value in current translations
+    const rawKey = Object.keys(t.topics.categories).find(k => t.topics.categories[k] === label);
+    return rawKey || "GENERAL"; 
+  };
+
   const finishBatchQuiz = async (allBatches: AccumulatedBatchData[], profile: UserProfile, lang: Language) => {
     if (isPending) return;
     setIsPending(true);
@@ -669,6 +679,7 @@ export const useGameViewModel = () => {
         selectedOption, 
         remainingTopics: quizQueue.length,
         nextTopicName: quizQueue.length > 0 ? quizQueue[0].topic : undefined,
+        currentTopicName: currentQuizSet?.topic || (batchProgress.topics.length > 0 ? batchProgress.topics[batchProgress.current - 1] : undefined),
         batchProgress,
         isSubmitting // Expose locking state
       },
