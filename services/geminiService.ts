@@ -8,20 +8,23 @@ const CACHE_KEY_QUIZ = "cognito_quiz_cache_v3";
 
 // --- Safe Environment Helpers ---
 const isDev = () => {
+  // 1. Security Check: Always disable on Vercel Production
+  if (typeof window !== 'undefined') {
+     const h = window.location.hostname;
+     if (h.includes('vercel.app')) return false;
+  }
+
   try {
-    // 1. Check Vite's DEV flag
+    // 2. Check Vite's DEV flag
     // @ts-ignore
     if (import.meta.env.DEV) return true;
   } catch {}
 
-  // 2. Check Hostname
+  // 3. Runtime Check for Previews
   if (typeof window !== 'undefined') {
     const h = window.location.hostname;
-    // Explicitly exclude Vercel
-    if (h.includes('vercel.app')) return false;
-    
     // Allow Localhost and AIStudio Previews
-    if (h === 'localhost' || h === '127.0.0.1' || h.includes('googleusercontent.com') || h.includes('webcontainer.io')) return true;
+    if (h === 'localhost' || h === '127.0.0.1' || h.includes('googleusercontent.com') || h.includes('webcontainer.io') || h.includes('idx.google')) return true;
   }
   return false;
 };

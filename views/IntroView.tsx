@@ -31,18 +31,22 @@ const LANGUAGES: { id: Language; flag: string }[] = [
 
 // Robust helper to check if we are in a Debug/Preview environment
 const isDebugMode = () => {
+  // 1. Runtime Domain Check (Priority 1: Block Production)
+  if (typeof window !== 'undefined') {
+    const h = window.location.hostname;
+    // Explicitly DISABLE on Vercel production domains
+    if (h.includes('vercel.app')) return false;
+  }
+
   try {
-    // 1. Check Vite's DEV flag (covers npm run dev)
+    // 2. Check Vite's DEV flag (covers npm run dev)
     // @ts-ignore
     if (import.meta.env.DEV) return true;
   } catch {}
 
-  // 2. Runtime Domain Check
+  // 3. Runtime Domain Check (Priority 2: Allow Preview/Localhost)
   if (typeof window !== 'undefined') {
     const h = window.location.hostname;
-    
-    // Explicitly DISABLE on Vercel production domains
-    if (h.includes('vercel.app')) return false;
 
     // ENABLE for Localhost
     if (h === 'localhost' || h === '127.0.0.1') return true;
