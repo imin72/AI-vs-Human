@@ -263,6 +263,7 @@ export const useGameViewModel = () => {
   const isNavigatingBackRef = useRef(false);
 
   useEffect(() => {
+    // Initialize history with a clean state on mount
     window.history.replaceState({ stage: 'root' }, '');
   }, []);
 
@@ -296,7 +297,12 @@ export const useGameViewModel = () => {
       case AppStage.INTRO:
         // Ask for confirmation before exit
         if (window.confirm(t.common.confirm_exit_app)) {
-          return true; // Let browser pop (exit or previous page)
+           // Attempt to go back as far as possible to simulate app exit in PWA
+           const len = window.history.length;
+           if (len > 1) {
+              window.history.go(-(len - 1));
+           }
+           return true;
         }
         return false; // Stay
       case AppStage.QUIZ:
@@ -331,6 +337,7 @@ export const useGameViewModel = () => {
       
       if (!success) {
         // If we stayed (returned false), restore the state
+        // This effectively cancels the back navigation in the UI
         window.history.pushState({ stage }, '');
       }
     };
@@ -439,8 +446,10 @@ export const useGameViewModel = () => {
       setIsPending(false);
       setIsSubmitting(false);
 
+      // Reset to Intro
       setStage(AppStage.INTRO); 
       
+      // Reset all Game Data
       setEvaluation(null);
       setUserAnswers([]);
       setCurrentQuestionIndex(0);
@@ -451,8 +460,11 @@ export const useGameViewModel = () => {
       setBatchProgress({ total: 0, current: 0, topics: [] });
       setSessionResults([]); 
       setCompletedBatches([]);
-      
       setSelectionPhase('CATEGORY');
+
+      // CRITICAL: Replace history state to "Root" to prevent deeper back navigation loops
+      // This effectively "clears" the forward history behavior for our SPA logic
+      window.history.replaceState({ stage: 'root' }, '', window.location.pathname);
     },
 
     resetApp: () => {
