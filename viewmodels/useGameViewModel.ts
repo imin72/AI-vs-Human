@@ -107,11 +107,14 @@ export const useGameViewModel = () => {
   const t = useMemo(() => TRANSLATIONS[language], [language]);
 
   // --- REFS FOR EVENT LISTENERS ---
-  // Using refs ensures the handlePopState closure always accesses the LATEST state
-  // without needing to be removed/re-added constantly, which can miss events.
   const stageRef = useRef(stage);
   const tRef = useRef(t);
   const selectionPhaseRef = useRef(selectionPhase);
+  
+  // Critical: Track if we are in the process of exiting to prevent loops
+  const isExitingRef = useRef(false);
+  // Track if a history push was triggered by internal navigation to avoid loop with popstate
+  const isInternalNavRef = useRef(false);
 
   useEffect(() => { stageRef.current = stage; }, [stage]);
   useEffect(() => { tRef.current = t; }, [t]);
@@ -256,20 +259,24 @@ export const useGameViewModel = () => {
   };
 
   // --- History Navigation Logic ---
-  const isPoppingRef = useRef(false);
-
+  
   // 1. Initial Stack Setup: [Root, Intro]
   useEffect(() => {
-    window.history.replaceState({ stage: 'root' }, '');
-    window.history.pushState({ stage: AppStage.INTRO }, '');
+    // We strictly enforce a history stack on mount so "Back" has somewhere to go (and trigger popstate)
+    const currentState = window.history.state;
+    if (!currentState || currentState.stage !== AppStage.INTRO) {
+       window.history.replaceState({ stage: 'root' }, '');
+       window.history.pushState({ stage: AppStage.INTRO }, '');
+    }
   }, []);
 
   // 2. Update History on Stage Change
   useEffect(() => {
-    if (isPoppingRef.current) {
-      isPoppingRef.current = false;
+    if (isInternalNavRef.current) {
+      isInternalNavRef.current = false;
       return;
     }
+    // Don't push duplicates if we are just re-rendering intro
     if (stage !== AppStage.INTRO) {
       window.history.pushState({ stage }, '');
     }
@@ -278,26 +285,39 @@ export const useGameViewModel = () => {
   // 3. Handle Back Button (PopState)
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
-      isPoppingRef.current = true;
-      event.preventDefault();
+      // CRITICAL: If we are in exit mode, ignore all history events to prevent loops
+      if (isExitingRef.current) return;
+
+      // Prevent default is implicit for popstate as it happens after navigation, 
+      // but we manage the stack manually.
+      isInternalNavRef.current = true; // Mark as internal to prevent useEffect loop
 
       const currentStage = stageRef.current;
       const currentT = tRef.current;
       const currentSelectionPhase = selectionPhaseRef.current;
 
-      // CASE 1: INTRO VIEW
+      // CASE 1: INTRO VIEW (The Exit Trap)
       if (currentStage === AppStage.INTRO) {
-        if (window.confirm(currentT.common.confirm_exit_app)) {
-           // User confirmed Exit.
-           // We are now at 'root' (popped intro).
-           // Call back() again to exit root.
-           // Use setTimeout to ensure this runs after the event loop clears.
+        // Fallback text if translation is delayed/missing
+        const confirmMsg = currentT?.common?.confirm_exit_app || "Do you want to exit the application?";
+        
+        if (window.confirm(confirmMsg)) {
+           // USER CONFIRMED EXIT
+           isExitingRef.current = true; // LOCK: Ignore subsequent popstates (prevents infinite loop)
+           
+           // We are currently at 'root' (because user popped 'intro').
+           // We want to go back ONE MORE step to exit the app/tab context.
            setTimeout(() => {
-             window.history.back();
+             if (window.history.length > 1) {
+                window.history.back();
+             } else {
+                // Fallback for direct opens with no history
+                window.close(); 
+             }
            }, 0);
         } else {
-           // User cancelled.
-           // Restore 'intro' state to the stack.
+           // USER CANCELLED
+           // We are at 'root'. We must restore 'intro' to the stack.
            window.history.pushState({ stage: AppStage.INTRO }, '');
         }
         return;
@@ -311,18 +331,22 @@ export const useGameViewModel = () => {
             window.history.pushState({ stage: AppStage.TOPIC_SELECTION }, '');
          } else {
             setStage(AppStage.INTRO);
+            // Ensure stack is clean: [Root] -> [Intro]
+            // We just popped to [Root] (conceptually), so push Intro
             window.history.pushState({ stage: AppStage.INTRO }, '');
          }
          return;
       }
 
-      // CASE 3: QUIZ or RESULTS
+      // CASE 3: QUIZ or RESULTS (Exit to Home Confirm)
       if (currentStage === AppStage.QUIZ || currentStage === AppStage.RESULTS) {
-         const msg = currentStage === AppStage.QUIZ ? currentT.common.confirm_exit : currentT.common.confirm_home;
+         const msg = currentStage === AppStage.QUIZ ? (currentT.common.confirm_exit || "Exit Quiz?") : (currentT.common.confirm_home || "Return Home?");
 
          if (window.confirm(msg)) {
+            // User confirmed "Go Home"
             resetToHome();
          } else {
+            // Cancelled: Restore state
             window.history.pushState({ stage: currentStage }, '');
          }
          return;
@@ -335,7 +359,7 @@ export const useGameViewModel = () => {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []); // Empty dependency array: We use Refs to access state!
+  }, []); 
 
   // --- Reset Helper ---
   const resetToHome = () => {
@@ -355,6 +379,7 @@ export const useGameViewModel = () => {
 
       setStage(AppStage.INTRO);
 
+      // Clean Stack Reset: [Root] -> [Intro]
       window.history.replaceState({ stage: 'root' }, '');
       window.history.pushState({ stage: AppStage.INTRO }, '');
   };
