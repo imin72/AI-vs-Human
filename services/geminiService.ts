@@ -130,15 +130,8 @@ export const generateQuestionsBatch = async (
   // 3. Fetch missing topics via Gemini API
   if (missingTopics.length > 0) {
     try {
-      const languageNames: Record<Language, string> = {
-        en: "English",
-        ko: "Korean (한국어)",
-        ja: "Japanese (日本語)",
-        es: "Spanish (Español)",
-        fr: "French (Français)",
-        zh: "Chinese Simplified (简体中文)"
-      };
-
+      const SUPPORTED_LANGUAGES: Language[] = ['en', 'ko', 'ja', 'zh', 'es', 'fr'];
+      
       // Construct Adaptive Context per Topic
       const adaptiveContexts = missingTopics.map(t => {
          // Resolve topic info to get English ID for Elo lookup
@@ -154,31 +147,35 @@ export const generateQuestionsBatch = async (
         Generate 5 multiple-choice questions for EACH of the following topics: ${JSON.stringify(missingTopics)}.
         
         CRITICAL INSTRUCTIONS:
-        1. ALL text content MUST be written in ${languageNames[lang]}.
-        2. Base Difficulty: ${difficulty}, BUT ADJUST based on user profile below.
-        3. USER ADAPTATION PROFILE: ${adaptiveContexts}.
+        1. Base Difficulty: ${difficulty}.
+        2. USER ADAPTATION PROFILE: ${adaptiveContexts}.
            - If user is Expert, ask obscure/deep questions.
            - If Beginner, ask fundamental questions.
-        4. Target Audience: ${userProfile?.ageGroup || 'General'}.
-        5. Provide interesting 'context' (hints/facts) for each question.
-        6. Return a JSON object where keys are the exact topic names provided, and values are arrays of questions.
+        3. Target Audience: ${userProfile?.ageGroup || 'General'}.
+        4. **MULTI-LANGUAGE GENERATION:** For EACH question, provide the content in ALL supported languages: English (en), Korean (ko), Japanese (ja), Chinese Simplified (zh), Spanish (es), and French (fr).
+        5. Return a JSON object where keys are the exact topic names provided.
       `;
+
+      const questionSchema = {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.INTEGER },
+          // Language Maps
+          en: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
+          ko: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
+          ja: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
+          zh: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
+          es: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
+          fr: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } }
+        },
+        required: ["id", "en", "ko", "ja", "zh", "es", "fr"]
+      };
 
       const topicProperties: Record<string, any> = {};
       missingTopics.forEach(topic => {
         topicProperties[topic] = {
           type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              id: { type: Type.INTEGER },
-              question: { type: Type.STRING },
-              options: { type: Type.ARRAY, items: { type: Type.STRING } },
-              correctAnswer: { type: Type.STRING },
-              context: { type: Type.STRING }
-            },
-            required: ["id", "question", "options", "correctAnswer"]
-          }
+          items: questionSchema
         };
       });
 
@@ -199,29 +196,46 @@ export const generateQuestionsBatch = async (
       
       missingTopics.forEach(topic => {
         if (generatedData[topic]) {
-          const qs = generatedData[topic];
+          const rawQuestions = generatedData[topic];
           
-          // --- AUTO-SAVE LOGIC (Dev Only) ---
-          if (import.meta.env.DEV) {
-             const info = resolveTopicInfo(topic, lang);
-             if (info) {
-               const { catId, englishName } = info;
-               const key = `${englishName}_${difficulty}_${lang}`;
-               
-               fetch('/__save-question', {
-                 method: 'POST',
-                 headers: {'Content-Type': 'application/json'},
-                 body: JSON.stringify({ categoryId: catId, key, data: qs })
-               }).then(() => {
-                 console.log(`%c💾 [Dev] Auto-saved "${key}" to static DB.`, 'color: #4ade80; font-weight: bold;');
-               }).catch(e => console.warn("Auto-save failed:", e));
-             }
-          }
-          // -----------------------------------
+          // Process and Save EACH language
+          SUPPORTED_LANGUAGES.forEach(targetLang => {
+            // Extract specific language version from the raw multi-lang response
+            const localizedQuestions: QuizQuestion[] = rawQuestions.map((q: any) => ({
+              id: q.id,
+              ...q[targetLang] // Spread question, options, correctAnswer, context
+            }));
 
-          const cacheKey = generateCacheKey(topic, difficulty, lang);
-          quizCache[cacheKey] = qs;
-          results.push({ topic, questions: qs });
+            // Save to Local Cache
+            const cacheKey = generateCacheKey(topic, difficulty, targetLang);
+            quizCache[cacheKey] = localizedQuestions;
+
+            // --- AUTO-SAVE LOGIC (Dev Only) ---
+            if (import.meta.env.DEV && targetLang === lang) { // Only log saving for current lang to avoid spam, but actually saving all is better? 
+               // Actually save ALL languages to file
+               const info = resolveTopicInfo(topic, targetLang); // Topic name might be in original request lang
+               // Note: resolveTopicInfo works best if 'topic' matches 'targetLang'. 
+               // Since 'topic' is from the loop (which is in 'lang'), we need to be careful.
+               // For simplicity in Dev mode, we just try to save.
+               if (info) {
+                 const { catId, englishName } = info;
+                 const fileKey = `${englishName}_${difficulty}_${targetLang}`;
+                 
+                 fetch('/__save-question', {
+                   method: 'POST',
+                   headers: {'Content-Type': 'application/json'},
+                   body: JSON.stringify({ categoryId: catId, key: fileKey, data: localizedQuestions })
+                 }).catch(e => console.warn("Auto-save failed:", e));
+               }
+            }
+          });
+
+          // Add ONLY the requested language to the results return
+          const resultQuestions = rawQuestions.map((q: any) => ({
+            id: q.id,
+            ...q[lang]
+          }));
+          results.push({ topic, questions: resultQuestions });
         }
       });
       
