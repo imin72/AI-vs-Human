@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { 
   AppStage, 
   Language, 
@@ -7,7 +7,7 @@ import {
   QuizQuestion, 
   UserAnswer, 
   EvaluationResult,
-  QuizSet,
+  QuizSet
 } from '../types';
 import { generateQuestionsBatch, evaluateBatchAnswers, BatchEvaluationInput, seedLocalDatabase } from '../services/geminiService';
 import { audioHaptic } from '../services/audioHapticService';
@@ -170,6 +170,7 @@ export const useGameViewModel = () => {
         currentElos[batch.topicId] = newElo;
 
         const aiBenchmark = difficulty === Difficulty.HARD ? 98 : difficulty === Difficulty.MEDIUM ? 95 : 92;
+        // 타입 에러 해결을 위해 명시적 객체 생성
         currentHistory.push({
           timestamp: Date.now(),
           topicId: batch.topicId,
@@ -244,16 +245,8 @@ export const useGameViewModel = () => {
     }
   };
 
-  // --- History Navigation Logic (RE-DESIGNED) ---
-  
-  // 1. 초기화: 앱 실행 시 히스토리 스택을 강제로 조정하여 Intro에서도 뒤로가기를 감지하도록 함
-  useEffect(() => {
-    // 현재 상태를 교체(0)하고, 새로운 상태(1)를 밀어넣어 Intro가 Back을 받을 수 있게 함
-    window.history.replaceState({ depth: 0 }, '');
-    window.history.pushState({ depth: 1 }, ''); 
-  }, []);
+  // --- History Navigation Logic (RE-DESIGNED & FIXED) ---
 
-  // Helper: 모든 상태를 초기화하고 Intro로 이동
   const resetAllStateToHome = useCallback(() => {
     setStage(AppStage.INTRO);
     setQuizQueue([]);
@@ -267,55 +260,84 @@ export const useGameViewModel = () => {
     setSelectedCategories([]); 
     setSelectedSubTopics([]);
     setEvaluation(null);
-    // Intro로 돌아왔으므로 히스토리를 깔끔하게 정리하는 것이 좋으나,
-    // 브라우저 동작 특성상 뒤로가기로 왔다면 이미 처리가 된 상태임.
   }, []);
 
+  // 1. [초기화] 앱 실행 시 히스토리 스택 설정 (중복 방지 로직 추가)
   useEffect(() => {
-    const handlePopState = (_: PopStateEvent) => {
-      // 사용자가 브라우저 뒤로가기(혹은 물리버튼)를 눌렀을 때 실행됨
+    // 이미 히스토리가 depth=1로 설정되어 있다면 다시 초기화하지 않음 (Strict Mode 중복 실행 방지)
+    if (window.history.state && window.history.state.depth === 1) {
+      return;
+    }
+    // 초기 실행: 현재를 0으로 바꾸고, 앱 시작점인 1을 쌓음
+    // 뒤로가기(0으로 이동) 시 '종료'로 처리하기 위함
+    window.history.replaceState({ depth: 0 }, '');
+    window.history.pushState({ depth: 1 }, '');
+  }, []);
+
+  // 2. [이벤트 핸들러] 뒤로가기 감지 및 처리
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // event.state는 사용자가 '이동하려고 하는 곳'의 상태입니다.
+      // 현재 depth가 1(Intro)인데, 뒤로가기를 눌러서 depth가 0인 곳으로 왔다면? -> 종료 시도
+
       const confirmHomeMsg = t.common.confirm_home || "홈 화면으로 이동하시겠습니까? 진행 중인 내용은 초기화됩니다.";
 
-      // 1) IntroView: 종료 팝업
+      // -----------------------------------------------------------
+      // Case 1) IntroView에서 뒤로가기 (depth 1 -> 0 감지)
+      // -----------------------------------------------------------
       if (stage === AppStage.INTRO) {
         if (window.confirm(t.common.confirm_exit_app || "앱을 종료하시겠습니까?")) {
-           // 종료 확정: 브라우저 히스토리 뒤로 이동하여 이탈 유도
-           window.history.back(); 
-           window.close();
+          // [종료 확정]
+          // 이미 depth 0으로 왔습니다. 여기서 한 번 더 뒤로가면(depth -1) 브라우저 밖으로 나갑니다.
+          window.history.back();
+          // 혹시 모를 상황 대비 close 시도
+          window.close();
         } else {
-           // 종료 취소: 다시 현재 상태(Intro)를 히스토리에 복구
-           window.history.pushState({ depth: 1 }, '');
+          // [종료 취소]
+          // 사용자가 머무르기를 원하므로, 다시 depth 1을 쌓아서 원상복구합니다.
+          window.history.pushState({ depth: 1 }, '');
         }
         return;
       }
 
-      // 2) 영역선택 (SubTopic -> Category)
+      // -----------------------------------------------------------
+      // Case 2) 영역선택: SubTopic -> Category
+      // -----------------------------------------------------------
       if (stage === AppStage.TOPIC_SELECTION && selectionPhase === 'SUBTOPIC') {
+        // 브라우저 뒤로가기로 왔으니 히스토리는 자동으로 처리됨
+        // 화면 상태만 맞춰줍니다.
         setSelectionPhase('CATEGORY');
         setSelectedSubTopics([]);
         return;
       }
 
-      // 2-1) 영역선택/프로필 (Category/Profile -> Intro)
+      // -----------------------------------------------------------
+      // Case 2-1) 영역선택/프로필 -> Intro
+      // -----------------------------------------------------------
       if ((stage === AppStage.TOPIC_SELECTION && selectionPhase === 'CATEGORY') || stage === AppStage.PROFILE) {
         setStage(AppStage.INTRO);
         return;
       }
 
-      // 3) & 4) 문제풀이(Quiz) 및 결과(Result) : 홈 이동 팝업
+      // -----------------------------------------------------------
+      // Case 3 & 4) 문제풀이/결과 -> 홈 이동 팝업
+      // -----------------------------------------------------------
       if (stage === AppStage.QUIZ || stage === AppStage.RESULTS || stage === AppStage.ERROR) {
-        // 뒤로가기 동작을 일단 취소(Visual Rollback)하기 위해 다시 pushState
-        window.history.pushState({ depth: 99 }, ''); 
+        // 뒤로가기를 눌렀지만, 팝업에서 취소할 수도 있으므로 일단 다시 앞으로(현재 위치로) 밀어넣어 '이탈'을 막음
+        // depth 99는 임의의 값 (현재 상태 유지용)
+        window.history.pushState({ depth: 99 }, '');
 
         if (window.confirm(confirmHomeMsg)) {
-          // 예: 홈으로 이동 및 초기화
+          // [예] 홈으로 이동
           resetAllStateToHome();
-        } 
-        // 아니오: pushState로 복구해뒀으므로 화면은 그대로 유지됨
+          // 주의: 여기서 history를 또 조작하지 않아도 됨. 
+          // pushState로 막아둔 상태에서 화면만 Intro로 바뀌면 됨.
+        }
+        // [아니오] 아무것도 안 함 (화면 유지)
         return;
       }
 
-      // Default Fallback
+      // 그 외 알 수 없는 상태면 안전하게 Intro로
       setStage(AppStage.INTRO);
     };
 
@@ -336,9 +358,9 @@ export const useGameViewModel = () => {
 
     startIntro: () => {
       try { audioHaptic.playClick('hard'); } catch {}
-      // 앞으로 가기: 히스토리 추가
+      // 앞으로 가기: 히스토리 추가 (depth 2)
       window.history.pushState({ depth: 2 }, ''); 
-
+      
       if (userProfile.gender && userProfile.nationality) {
         setStage(AppStage.TOPIC_SELECTION);
       } else {
@@ -356,7 +378,6 @@ export const useGameViewModel = () => {
       try { audioHaptic.playClick(); } catch {}
       localStorage.removeItem(PROFILE_KEY);
       setUserProfile({ gender: '', ageGroup: '', nationality: '' });
-      // 프로필 리셋 후에도 프로필 화면 유지
       setStage(AppStage.PROFILE);
     },
 
@@ -368,8 +389,8 @@ export const useGameViewModel = () => {
     submitProfile: () => {
       try { audioHaptic.playClick('hard'); } catch {}
       localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
-      // 프로필 -> 토픽선택 (같은 레벨로 간주하거나 이동 처리)
-      // 여기서는 히스토리를 쌓지 않고 화면만 전환 (Back 시 Intro로 가도록)
+      // 프로필 저장 후 다음 단계로 이동하지만, 같은 '설정' 단계로 보거나 이동으로 처리
+      // 여기서는 그냥 화면만 전환 (뒤로가면 Intro)
       setStage(AppStage.TOPIC_SELECTION);
     },
 
@@ -388,7 +409,7 @@ export const useGameViewModel = () => {
     proceedToSubTopics: () => {
       try { audioHaptic.playClick(); } catch {}
       if (selectedCategories.length > 0) {
-        // 세부 선택으로 진입: 히스토리 추가
+        // 세부 선택 진입: 히스토리 추가 (depth 3)
         window.history.pushState({ depth: 3 }, '');
         setSelectionPhase('SUBTOPIC');
       }
@@ -412,6 +433,7 @@ export const useGameViewModel = () => {
     },
     
     // UI 뒤로가기 버튼: 물리 뒤로가기와 동일하게 처리
+    // 이 함수를 호출하면 handlePopState가 실행되어 로직을 수행함
     goBack: () => {
       if (isPending || isSubmitting) return; 
       try { audioHaptic.playClick(); } catch {}
@@ -420,8 +442,10 @@ export const useGameViewModel = () => {
     
     goHome: () => {
       try { audioHaptic.playClick(); } catch {}
+      // 홈 버튼은 팝업 없이 즉시 이동 (사용자가 명시적으로 눌렀으므로)
+      // 혹은 기획 의도에 따라 팝업을 띄울 수도 있음
       if (stage === AppStage.QUIZ || stage === AppStage.RESULTS) {
-        if (!window.confirm(t.common.confirm_home || "Return to Home?")) return;
+         if (!window.confirm(t.common.confirm_home || "Return to Home?")) return;
       }
       setIsPending(false);
       setIsSubmitting(false);
@@ -442,7 +466,7 @@ export const useGameViewModel = () => {
       setIsPending(true);
       setStage(AppStage.LOADING_QUIZ);
       
-      // 퀴즈 진입 시 히스토리 추가 (미리 추가해둠)
+      // 퀴즈 진입 시 히스토리 추가 (depth 4)
       window.history.pushState({ depth: 4 }, '');
 
       try {
@@ -500,7 +524,7 @@ export const useGameViewModel = () => {
        setIsPending(true);
        setStage(AppStage.LOADING_QUIZ);
        
-       // 디버그 퀴즈도 히스토리 추가
+       // 디버그 퀴즈 진입 시 히스토리 추가
        window.history.pushState({ depth: 4 }, '');
 
        try {
