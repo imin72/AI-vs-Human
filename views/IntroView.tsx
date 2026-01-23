@@ -78,7 +78,7 @@ export const IntroView: React.FC<IntroViewProps> = ({
   const isEnvDebug = isDebugMode();
   // Manual override state for production
   const [showDebugOverride, setShowDebugOverride] = useState(false);
-  const [tapCount, setTapCount] = useState(0);
+  const [, setTapCount] = useState(0);
 
   useEffect(() => {
     const saved = localStorage.getItem(PROFILE_KEY);
