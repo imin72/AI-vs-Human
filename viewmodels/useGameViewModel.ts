@@ -65,6 +65,7 @@ interface AccumulatedBatchData {
 }
 
 export const useGameViewModel = () => {
+  // --- State Definitions ---
   const [stage, setStage] = useState<AppStage>(AppStage.INTRO);
   const [language, setLanguage] = useState<Language>(getBrowserLanguage());
   const [userProfile, setUserProfile] = useState<UserProfile>({ 
@@ -104,16 +105,18 @@ export const useGameViewModel = () => {
 
   const t = useMemo(() => TRANSLATIONS[language], [language]);
 
-  // --- [핵심 수정 1] Refs로 상태 감싸기 (이벤트 리스너 안정성 확보) ---
+  // --- Refs (상태 동기화 문제 해결) ---
   const stageRef = useRef(stage);
   const selectionPhaseRef = useRef(selectionPhase);
   const tRef = useRef(t);
-  
+  const isExitingRef = useRef(false); // 종료 진행 중인지 체크
+
   useEffect(() => { stageRef.current = stage; }, [stage]);
   useEffect(() => { selectionPhaseRef.current = selectionPhase; }, [selectionPhase]);
   useEffect(() => { tRef.current = t; }, [t]);
 
-  // Load Profile on Mount
+  // --- Initial Loaders ---
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(PROFILE_KEY);
@@ -131,12 +134,13 @@ export const useGameViewModel = () => {
     }
   }, []);
 
-  // Initialize and Shuffle Topics when Language Changes
   useEffect(() => {
     const topics = Object.entries(t.topics.categories)
       .map(([id, label]) => ({ id, label }));
     setDisplayedTopics(shuffleArray(topics));
   }, [t]);
+
+  // --- Logic Helpers ---
 
   const finishBatchQuiz = async (allBatches: AccumulatedBatchData[], profile: UserProfile, lang: Language) => {
     if (isPending) return;
@@ -247,7 +251,6 @@ export const useGameViewModel = () => {
     }
   };
 
-  // Helper for Resetting
   const resetAllStateToHome = useCallback(() => {
     setStage(AppStage.INTRO);
     setQuizQueue([]);
@@ -264,78 +267,84 @@ export const useGameViewModel = () => {
     setEvaluation(null);
   }, []);
 
-  // --- [핵심 수정 2] History Trap 설치 (앱 로드 시 1회만 실행) ---
+  // --- [핵심] 1. 앱 시작 시 단 하나의 History Trap 설치 ---
   useEffect(() => {
-    // 앱 초기화 시 히스토리를 하나 쌓아서 뒤로가기가 '종료'가 되도록 함
-    if (!window.history.state || window.history.state.key !== 'app_initialized') {
-        window.history.replaceState({ key: 'root' }, '');
-        window.history.pushState({ key: 'app_initialized', stage: 'intro' }, '');
+    // 이미 트랩이 설치되어 있는지 확인 (Strict Mode 중복 방지)
+    if (!window.history.state || window.history.state.trap !== true) {
+        // 현재 상태를 교체하고, 'trap' 상태를 하나 쌓음.
+        // 이 'trap' 상태에서 뒤로가기를 하면 popstate 이벤트가 발생하고 스택이 하나 줄어듦.
+        window.history.replaceState({ root: true }, '');
+        window.history.pushState({ trap: true }, '');
     }
   }, []);
 
-  // --- [핵심 수정 3] 통합된 Back Navigation Handler (Refs + Async) ---
+  // --- [핵심] 2. 뒤로가기(Popstate) 통합 핸들러 ---
   useEffect(() => {
     const handlePopState = (_: PopStateEvent) => {
-      // Refs를 사용하여 가장 최신의 값을 안전하게 가져옴
+      // 종료 중이라면 아무것도 하지 않음 (브라우저 기본 동작 허용)
+      if (isExitingRef.current) return;
+
+      // [Trap Logic]
+      // 뒤로가기를 눌러서 히스토리가 빠졌으므로, 즉시 다시 채워넣어 '이탈'을 막음.
+      // 이렇게 하면 사용자는 항상 'trap' 상태에 머물게 됨.
+      window.history.pushState({ trap: true }, '');
+
+      // Refs로 최신 상태 확인
       const currentStage = stageRef.current;
       const currentPhase = selectionPhaseRef.current;
       const currentT = tRef.current;
       
-      const confirmHomeMsg = currentT.common.confirm_home || "수행내용이 초기화되고 홈화면으로 이동합니다.";
+      const confirmHomeMsg = currentT.common.confirm_home || "홈 화면으로 이동하시겠습니까? 진행 중인 내용은 초기화됩니다.";
 
-      // 1) IntroView: 뒤로가기 시 무조건 종료 팝업
+      // ---------------- Case 1: Intro (종료 팝업) ----------------
       if (currentStage === AppStage.INTRO) {
-        const exitMsg = currentT.common.confirm_exit_app || "앱을 종료하시겠습니까?";
-        if (window.confirm(exitMsg)) {
-          // [중요] setTimeout으로 종료 로직을 비동기 처리하여 브라우저 충돌 방지
-          setTimeout(() => {
-             const len = window.history.length;
-             // 히스토리가 쌓여있다면 최대한 뒤로 보내서 이탈 시도
-             if (len > 2) window.history.go(-(len - 1));
-             else window.history.back();
-             
+        if (window.confirm(currentT.common.confirm_exit_app || "앱을 종료하시겠습니까?")) {
+          // 종료 확정 시
+          isExitingRef.current = true;
+          // 트랩을 위해 방금 push한 것(-1)과, 최초 앱 진입 시 push한 것(-1)을 합쳐서
+          // 2칸 뒤로 가야 앱 밖으로 나갈 수 있음.
+          const histLen = window.history.length;
+          if (histLen > 2) {
+             window.history.go(-2);
+          } else {
+             // 히스토리가 짧다면 일반 back 또는 close 시도
+             window.history.back();
              try { window.close(); } catch {}
-          }, 0);
-        } else {
-          // 취소 시 Trap 복구 (Intro 상태 유지)
-          window.history.pushState({ key: 'app_initialized', stage: 'intro' }, '');
+          }
         }
+        // 종료 취소 시: 이미 맨 위에서 pushState({trap:true})를 했으므로 자동 복구됨.
         return;
       }
 
-      // 2) PROFILE, TOPIC_SELECTION: 바로 전단계로 이동 (팝업 없음)
-      if (currentStage === AppStage.PROFILE) {
-        setStage(AppStage.INTRO);
-        return;
-      }
-      
+      // ---------------- Case 2: Selection (단계 이동) ----------------
       if (currentStage === AppStage.TOPIC_SELECTION) {
         if (currentPhase === 'SUBTOPIC') {
           setSelectionPhase('CATEGORY');
           setSelectedSubTopics([]);
-          return;
+        } else {
+          // Category 단계 -> Intro로
+          setStage(AppStage.INTRO);
         }
-        // CATEGORY에서 뒤로가기 -> Intro
+        return;
+      }
+
+      if (currentStage === AppStage.PROFILE) {
         setStage(AppStage.INTRO);
         return;
       }
 
-      // 3) QUIZ, RESULTS, ERROR: 홈 이동 확인 팝업
-      const isQuizStage = currentStage === AppStage.QUIZ || currentStage === AppStage.LOADING_QUIZ;
-      const isResultStage = currentStage === AppStage.RESULTS || currentStage === AppStage.ERROR || currentStage === AppStage.ANALYZING;
+      // ---------------- Case 3: Quiz / Result (홈 이동 팝업) ----------------
+      const isQuiz = currentStage === AppStage.QUIZ || currentStage === AppStage.LOADING_QUIZ;
+      const isResult = currentStage === AppStage.RESULTS || currentStage === AppStage.ERROR || currentStage === AppStage.ANALYZING;
 
-      if (isQuizStage || isResultStage) {
-        // 일단 뒤로가기 동작을 막기 위해 히스토리 복구 (Lock)
-        window.history.pushState({ key: 'locked', stage: currentStage }, '');
-
-        if (window.confirm(confirmHomeMsg)) {
-          // [중요] setTimeout으로 상태 변경을 비동기 처리
-          setTimeout(() => {
-             resetAllStateToHome();
-             // 여기서 replaceState는 굳이 안 해도 resetAllStateToHome이 Intro로 보내므로 OK
-          }, 0);
-        }
-        // 아니오 선택 시: 이미 pushState로 복구했으므로 현상 유지됨
+      if (isQuiz || isResult) {
+        // window.confirm은 블로킹 함수라 상태 복구(pushState) 후에 호출해야 안전함
+        // setTimeout을 사용하여 렌더링 사이클 이후에 실행 (UI 멈춤 방지)
+        setTimeout(() => {
+            if (window.confirm(confirmHomeMsg)) {
+                resetAllStateToHome();
+            }
+        }, 0);
         return;
       }
 
@@ -345,10 +354,11 @@ export const useGameViewModel = () => {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [resetAllStateToHome]); // 의존성 최소화
+  }, [resetAllStateToHome]);
 
 
   // --- Actions ---
+  // [중요] Actions 내부의 모든 history.pushState 제거됨 (Trap 충돌 방지)
   const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { 
       try { audioHaptic.playClick('soft'); } catch {}
@@ -359,8 +369,7 @@ export const useGameViewModel = () => {
     },
     startIntro: () => {
       try { audioHaptic.playClick('hard'); } catch {}
-      // 앞으로 이동 시 히스토리 추가
-      window.history.pushState({ key: 'step_2' }, '');
+      // 히스토리 추가 X -> 상태만 변경
       if (userProfile.gender && userProfile.nationality) {
         setStage(AppStage.TOPIC_SELECTION);
       } else {
@@ -369,7 +378,6 @@ export const useGameViewModel = () => {
     },
     editProfile: () => {
       try { audioHaptic.playClick(); } catch {}
-      window.history.pushState({ key: 'profile' }, '');
       setStage(AppStage.PROFILE);
     },
     resetProfile: () => {
@@ -401,7 +409,6 @@ export const useGameViewModel = () => {
     proceedToSubTopics: () => {
       try { audioHaptic.playClick(); } catch {}
       if (selectedCategories.length > 0) {
-        window.history.pushState({ key: 'subtopic' }, '');
         setSelectionPhase('SUBTOPIC');
       }
     },
@@ -421,11 +428,11 @@ export const useGameViewModel = () => {
        setDifficulty(diff);
     },
     
-    // UI 뒤로가기 버튼은 브라우저 백과 동일하게 동작하도록 통일
+    // UI 뒤로가기 버튼: 물리 뒤로가기와 동일하게 동작하도록 history.back 호출
     goBack: () => {
       if (isPending || isSubmitting) return; 
       try { audioHaptic.playClick(); } catch {}
-      window.history.back();
+      window.history.back(); // -> handlePopState가 처리함
     },
     
     goHome: () => {
@@ -453,8 +460,7 @@ export const useGameViewModel = () => {
       setIsPending(true);
       setStage(AppStage.LOADING_QUIZ);
       
-      // 퀴즈 진입 시 히스토리 추가
-      window.history.pushState({ key: 'quiz_start' }, '');
+      // 히스토리 추가 X
 
       try {
         const quizSets = await generateQuestionsBatch(selectedSubTopics, difficulty, language, userProfile);
@@ -510,8 +516,6 @@ export const useGameViewModel = () => {
        try { audioHaptic.playClick(); } catch {}
        setIsPending(true);
        setStage(AppStage.LOADING_QUIZ);
-       
-       window.history.pushState({ key: 'debug_quiz' }, '');
 
        try {
          await new Promise(resolve => setTimeout(resolve, 800));
@@ -559,8 +563,6 @@ export const useGameViewModel = () => {
 
     previewResults: () => {
       try { audioHaptic.playClick(); } catch {}
-      window.history.pushState({ key: 'preview_results' }, '');
-
       const mockResult: EvaluationResult = {
         id: "SCIENCE",
         totalScore: 88,
@@ -575,7 +577,7 @@ export const useGameViewModel = () => {
       setSessionResults([
           mockResult, 
           {...mockResult, id:"HISTORY", title:"History", totalScore: 70}, 
-          {...mockResult, id:"ARTS", title:"Arts", totalScore: 95}, 
+          {...mockResult, id:"ARTS", title:"Arts", totalScore: 95},
           {...mockResult, id:"TECH", title:"Technology", totalScore: 65}
       ]);
       setStage(AppStage.RESULTS);
