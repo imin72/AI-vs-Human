@@ -140,7 +140,7 @@ export const IntroView: React.FC<IntroViewProps> = ({
               <Loader size={10} /> LOADING
             </button>
            )}
-           {onDebugSeed && import.meta.env.DEV && (
+           {onDebugSeed && (
             <button onClick={onDebugSeed} className="text-[10px] text-slate-500 hover:text-green-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded border border-green-900/30">
               <Database size={10} /> SEED DB
             </button>

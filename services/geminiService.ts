@@ -3,10 +3,15 @@ import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { QuizQuestion, EvaluationResult, Difficulty, UserProfile, Language, QuizSet, UserAnswer } from "../types";
 import { getStaticQuestions, resolveTopicInfo } from "../data/staticDatabase";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const MODEL_NAME = 'gemini-3-flash-preview';
-
 const CACHE_KEY_QUIZ = "cognito_quiz_cache_v3"; 
+
+// Lazy Initialization Wrapper
+const getAiClient = () => {
+  const apiKey = process.env.API_KEY || ""; 
+  // Allow initialization even if empty to prevent app crash, API calls will fail gracefully later
+  return new GoogleGenAI({ apiKey });
+};
 
 // 비상용 폴백 퀴즈
 const FALLBACK_QUIZ: QuizQuestion[] = [
@@ -73,9 +78,11 @@ const getAdaptiveLevel = (elo: number): string => {
 // --- CLIENT-SIDE SEEDING FUNCTION ---
 // Allows generating master data from the browser without CLI
 export const seedLocalDatabase = async (onProgress: (msg: string) => void) => {
+  // Removed strict DEV check to allow button visibility in deployment, 
+  // but warn that file saving won't work without dev server.
   if (!import.meta.env.DEV) {
-    console.warn("Seeding only allowed in DEV mode");
-    return;
+    console.warn("NOTE: Seeding in production will generate data but cannot save to file system.");
+    onProgress("Warning: File saving requires Dev Server. Data will be cached in memory only.");
   }
 
   // Define core topics to seed (English Master Data)
@@ -87,6 +94,8 @@ export const seedLocalDatabase = async (onProgress: (msg: string) => void) => {
   ];
 
   onProgress("Initializing Seeding Protocol...");
+
+  const ai = getAiClient();
 
   for (const group of SEED_TARGETS) {
     for (const topic of group.topics) {
@@ -119,16 +128,20 @@ export const seedLocalDatabase = async (onProgress: (msg: string) => void) => {
 
         const questions = JSON.parse(cleanJson(response.text));
         
-        // Save via Middleware
-        await fetch('/__save-question', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ 
-              categoryId: group.cat, 
-              key: key, 
-              data: questions 
-            })
-        });
+        // Save via Middleware (Will fail silently on Prod)
+        try {
+          await fetch('/__save-question', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ 
+                categoryId: group.cat, 
+                key: key, 
+                data: questions 
+              })
+          });
+        } catch (err) {
+          console.warn("[Seed] Could not save to file (Expected in Prod)", err);
+        }
 
         // Also update cache so we can use it immediately
         const quizCache = loadCache(CACHE_KEY_QUIZ);
@@ -159,6 +172,7 @@ const triggerBackgroundTranslation = async (
 
   const ALL_LANGUAGES: Language[] = ['en', 'ko', 'ja', 'es', 'fr', 'zh'];
   const targetLangs = ALL_LANGUAGES.filter(l => l !== sourceLang);
+  const ai = getAiClient();
 
   console.log(`[Background] Starting translation mirroring for ${topicId} from ${sourceLang} to [${targetLangs.join(',')}]...`);
 
@@ -245,6 +259,7 @@ export const generateQuestionsBatch = async (
 ): Promise<QuizSet[]> => {
   const quizCache = loadCache(CACHE_KEY_QUIZ);
   const results: QuizSet[] = [];
+  const ai = getAiClient();
   
   const resolvedRequests = topics.map(topicLabel => {
     const info = resolveTopicInfo(topicLabel, lang);
@@ -509,6 +524,7 @@ export const evaluateBatchAnswers = async (
       fr: "French (Français)",
       zh: "Chinese Simplified (简体中文)"
     };
+    const ai = getAiClient();
 
     const summaries = batches.map(b => 
       `## Topic: ${b.topic} (Score: ${b.score}/100)
