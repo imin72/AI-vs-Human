@@ -89,7 +89,6 @@ export default function App() {
           onHome={actions.goHome}
           onBack={actions.goBack} // Pass back action
           language={language}
-          setLanguage={actions.setLanguage}
           batchProgress={quizState.batchProgress} // Pass batch info
         />
       )}
@@ -108,7 +107,6 @@ export default function App() {
           remainingTopics={quizState.remainingTopics}
           nextTopicName={quizState.nextTopicName} // Pass next topic name
           language={language} 
-          setLanguage={actions.setLanguage}
         />
       )}
       

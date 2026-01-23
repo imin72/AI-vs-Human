@@ -124,6 +124,7 @@ export const useGameViewModel = () => {
     const topicObj = displayedTopics.find(t => t.label === label);
     if (topicObj) return topicObj.id;
     
+    // Fallback: Try to find by value in current translations
     const rawKey = Object.keys(t.topics.categories).find(k => t.topics.categories[k] === label);
     return rawKey || "GENERAL"; 
   };
@@ -319,31 +320,11 @@ export const useGameViewModel = () => {
   // --- Actions ---
   const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { 
-      const currentLang = language;
-      const nextLang = lang;
-      
-      // Map currently selected subtopics to the new language
-      if (selectedSubTopics.length > 0) {
-        const currentT = TRANSLATIONS[currentLang];
-        const nextT = TRANSLATIONS[nextLang];
-        const newSelected: string[] = [];
-        
-        selectedSubTopics.forEach(topicName => {
-           for (const [catId, list] of Object.entries(currentT.topics.subtopics) as [string, string[]][]) {
-              const index = list.indexOf(topicName);
-              if (index !== -1) {
-                 const nextName = nextT.topics.subtopics[catId]?.[index];
-                 if (nextName) {
-                    newSelected.push(nextName);
-                 }
-                 break;
-              }
-           }
-        });
-        
-        setSelectedSubTopics(newSelected);
-      }
-      
+      // Reset selections to prevent language mismatch with static DB
+      setSelectedCategories([]);
+      setSelectedSubTopics([]);
+      setSelectionPhase('CATEGORY');
+
       setLanguage(lang); 
       
       if (stage === AppStage.LANGUAGE) {

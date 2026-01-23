@@ -2,10 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { EvaluationResult, Language, TOPIC_IDS } from '../types';
 import { Button } from './Button';
-import { Share2, RefreshCw, Brain, CheckCircle, XCircle, Home, ArrowRight, Activity, Terminal, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Link as LinkIcon, Download, Twitter, Smartphone, Instagram } from 'lucide-react';
+import { Share2, RefreshCw, Brain, CheckCircle, CheckCircle2, XCircle, Home, ArrowRight, Activity, Terminal, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Link as LinkIcon, Download, Twitter, Smartphone, Instagram } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 import { toPng } from 'html-to-image';
-import { LanguageSwitcher } from './LanguageSwitcher';
 import { TRANSLATIONS } from '../utils/translations';
 
 interface StageResultsProps {
@@ -17,7 +16,6 @@ interface StageResultsProps {
   remainingTopics?: number;
   nextTopicName?: string;
   language: Language;
-  setLanguage: (lang: Language) => void;
 }
 
 const getTopicIcon = (id: string | undefined) => {
@@ -49,8 +47,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
   onNextTopic, 
   remainingTopics = 0, 
   nextTopicName, 
-  language, 
-  setLanguage 
+  language 
 }) => {
   // Page 0: Summary, Page 1: Details
   const [currentPage, setCurrentPage] = useState(0); 
@@ -234,7 +231,6 @@ export const StageResults: React.FC<StageResultsProps> = ({
             </span>
          </div>
          <div className="flex gap-2">
-           <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
            <button onClick={onHome} className={btnStyle} aria-label="Home">
              <Home size={20} />
            </button>
@@ -353,7 +349,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
                          >
                             <div className="flex gap-3">
                                <div className={`mt-1 shrink-0 ${item.isCorrect ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                  {item.isCorrect ? <CheckCircle size={18} /> : <XCircle size={18} />}
+                                  {item.isCorrect ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
                                 </div>
                                 <div>
                                    <div className="text-xs font-bold text-slate-400 uppercase mb-1">{t.popup_question} {idx + 1}</div>

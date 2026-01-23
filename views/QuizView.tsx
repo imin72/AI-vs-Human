@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, Cpu, Terminal, Zap, Lightbulb, Home, Timer, CheckCircle2, ChevronLeft } from 'lucide-react';
 import { Button } from '../components/Button';
-import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { QuizQuestion, Language } from '../types';
 import { TRANSLATIONS } from '../utils/translations';
 
@@ -14,9 +13,8 @@ interface QuizViewProps {
   onSelectOption: (opt: string) => void;
   onConfirm: () => void;
   onHome: () => void;
-  onBack?: () => void; // Added onBack prop
+  onBack?: () => void; 
   language: Language;
-  setLanguage: (lang: Language) => void;
   batchProgress?: { total: number; current: number; topics: string[] };
 }
 
@@ -30,7 +28,6 @@ export const QuizView: React.FC<QuizViewProps> = ({
   onHome,
   onBack,
   language,
-  setLanguage,
   batchProgress
 }) => {
   const question = questions[currentIndex];
@@ -176,7 +173,6 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
          {/* Right Controls */}
          <div className="flex gap-2">
-           <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} className={btnStyle} />
            {/* Show Back button if not first question */}
            {currentIndex > 0 && onBack && (
              <button onClick={onBack} className={btnStyle} aria-label="Back">
