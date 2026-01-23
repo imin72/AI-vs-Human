@@ -258,7 +258,7 @@ export const useGameViewModel = () => {
     }
   };
 
-  // --- History Navigation Logic (수정됨) ---
+ // --- History Navigation Logic (수정됨) ---
   const isNavigatingBackRef = useRef(false);
 
   useEffect(() => {
@@ -272,10 +272,13 @@ export const useGameViewModel = () => {
       return;
     }
     // Only push state if we are NOT at the root (INTRO)
+    // 수정사항: [stage, selectionPhase]가 변할 때마다 히스토리를 쌓습니다.
+    // 이를 통해 '대분야 -> 세부선택' 이동 시에도 히스토리가 생성되어,
+    // 뒤로가기 시 'Intro'가 아닌 '대분야' 히스토리로 자연스럽게 돌아갑니다.
     if (stage !== AppStage.INTRO) {
-      window.history.pushState({ stage }, '');
+      window.history.pushState({ stage, selectionPhase }, '');
     }
-  }, [stage]);
+  }, [stage, selectionPhase]); // <--- 여기에 selectionPhase 추가
 
   const performBackNavigation = useCallback((): boolean => {
     // [공통] 데이터 제출 중이거나 로딩 중일 때는 뒤로가기 방지
