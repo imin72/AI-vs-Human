@@ -57,7 +57,6 @@ const cleanJson = (text: string | undefined): string => {
 
 /**
  * Helper to generate the unique cache key.
- * Now expects `stableTopicId` (English Name) to ensure cross-language hits.
  */
 const generateCacheKey = (stableTopicId: string, difficulty: Difficulty, lang: Language) => {
   return `${stableTopicId}_${difficulty}_${lang}`.toLowerCase();
@@ -72,7 +71,6 @@ const getAdaptiveLevel = (elo: number): string => {
 };
 
 // --- BACKGROUND TASK: Mirror Translation ---
-// This runs silently to populate DB for other languages
 const triggerBackgroundTranslation = async (
   topicId: string,
   categoryId: string,
@@ -80,7 +78,6 @@ const triggerBackgroundTranslation = async (
   sourceLang: Language,
   sourceQuestions: QuizQuestion[]
 ) => {
-  // Only run in DEV mode to save API costs, or if specifically configured
   if (!import.meta.env.DEV) return;
 
   const ALL_LANGUAGES: Language[] = ['en', 'ko', 'ja', 'es', 'fr', 'zh'];
@@ -137,16 +134,12 @@ const triggerBackgroundTranslation = async (
     const translatedData = JSON.parse(cleanJson(response.text));
     const quizCache = loadCache(CACHE_KEY_QUIZ);
 
-    // Save each language
     for (const lang of targetLangs) {
       if (translatedData[lang]) {
         const questions = translatedData[lang];
         const cacheKey = generateCacheKey(topicId, difficulty, lang as Language);
-        
-        // Update Cache
         quizCache[cacheKey] = questions;
 
-        // Save to File System (Vite Middleware)
         await fetch('/__save-question', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -160,7 +153,6 @@ const triggerBackgroundTranslation = async (
     }
     
     saveCache(CACHE_KEY_QUIZ, quizCache);
-    console.log(`[Background] Mirroring complete for ${topicId}`);
 
   } catch (error) {
     console.warn(`[Background] Translation mirroring failed for ${topicId}`, error);
@@ -177,39 +169,37 @@ export const generateQuestionsBatch = async (
   const quizCache = loadCache(CACHE_KEY_QUIZ);
   const results: QuizSet[] = [];
   
-  // Resolve all topics to stable IDs first
   const resolvedRequests = topics.map(topicLabel => {
     const info = resolveTopicInfo(topicLabel, lang);
     return {
       originalLabel: topicLabel,
-      stableId: info ? info.englishName : topicLabel, // Use English name if found, else custom label
+      stableId: info ? info.englishName : topicLabel, 
       catId: info ? info.catId : "GENERAL"
     };
   });
 
   const missingRequests: typeof resolvedRequests = [];
+  const translationRequests: { req: typeof resolvedRequests[0], sourceData: QuizQuestion[] }[] = [];
+  
   const seenIds = new Set(userProfile?.seenQuestionIds || []);
 
-  // HYBRID STRATEGY
+  // Check Local Data & Cache
   for (const req of resolvedRequests) {
     const cacheKey = generateCacheKey(req.stableId, difficulty, lang);
 
-    // 1. Try Static Database first (Pass localized label if possible, or stable ID if mapped)
-    // getStaticQuestions is robust now and can handle either if resolveTopicInfo is updated
+    // 1. Check Static Database (Target Language)
     const staticQuestions = await getStaticQuestions(req.originalLabel, difficulty, lang);
-    
     if (staticQuestions) {
-      // --- ADAPTIVE FILTERING ---
       const unseenQuestions = staticQuestions.filter(q => !seenIds.has(q.id));
       if (unseenQuestions.length >= 5) {
         const selected = unseenQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
-        console.log(`[Static DB Hit] ${req.stableId} (Adaptive Filter: ${selected.length})`);
+        console.log(`[Static DB Hit] ${req.stableId}`);
         results.push({ topic: req.originalLabel, questions: selected, categoryId: req.catId });
         continue;
       }
     }
 
-    // 2. Try Local Cache (Keyed by Stable ID + Lang)
+    // 2. Check Browser Cache
     if (quizCache[cacheKey]) {
        const cachedQuestions = quizCache[cacheKey];
        if (Array.isArray(cachedQuestions)) {
@@ -223,14 +213,78 @@ export const generateQuestionsBatch = async (
        }
     }
 
-    console.log(`[Cache Miss] ${req.stableId} (${lang})`);
+    // 3. Strategy 3: Check Static Database (Master Data - English) for Translation
+    // If we are NOT requesting English, check if English data exists to translate
+    if (lang !== 'en') {
+      const masterQuestions = await getStaticQuestions(req.originalLabel, difficulty, 'en');
+      if (masterQuestions && masterQuestions.length > 0) {
+        // We found English master data! Add to translation queue.
+        console.log(`[Master Data Found] ${req.stableId} (en) -> Translating to ${lang}`);
+        translationRequests.push({ req, sourceData: masterQuestions });
+        continue;
+      }
+    }
+
+    // 4. If nothing found, add to Generation Queue
+    console.log(`[Cache/DB Miss] ${req.stableId} -> Generating`);
     missingRequests.push(req);
   }
 
-  // 3. Fetch missing topics via Gemini API
+  // PROCESS TRANSLATION REQUESTS (Strategy 3)
+  if (translationRequests.length > 0) {
+    try {
+      // Process one by one (or batch if needed, but simple for now)
+      for (const item of translationRequests) {
+        const { req, sourceData } = item;
+        
+        // Select 5 questions from Master Data
+        const sourceSelection = sourceData.filter(q => !seenIds.has(q.id)).slice(0, 5);
+        if (sourceSelection.length === 0) {
+          // Fallback if all master data is seen (unlikely for now)
+          missingRequests.push(req);
+          continue;
+        }
+
+        const prompt = `
+          Translate these quiz questions from English to ${lang}.
+          Return strictly valid JSON matching the input structure.
+          INPUT: ${JSON.stringify(sourceSelection)}
+        `;
+
+        const response = await ai.models.generateContent({
+          model: MODEL_NAME,
+          contents: [{ parts: [{ text: prompt }] }],
+          config: { responseMimeType: "application/json" }
+        });
+
+        const translatedQs = JSON.parse(cleanJson(response.text));
+        
+        // Cache & Save
+        const cacheKey = generateCacheKey(req.stableId, difficulty, lang);
+        quizCache[cacheKey] = translatedQs;
+        saveCache(CACHE_KEY_QUIZ, quizCache);
+
+        if (import.meta.env.DEV) {
+           fetch('/__save-question', {
+               method: 'POST',
+               headers: {'Content-Type': 'application/json'},
+               body: JSON.stringify({ categoryId: req.catId, key: `${req.stableId}_${difficulty}_${lang}`, data: translatedQs })
+           }).catch(() => {});
+        }
+
+        results.push({ topic: req.originalLabel, questions: translatedQs, categoryId: req.catId });
+      }
+    } catch (e) {
+      console.error("Translation Fallback Failed", e);
+      // If translation fails, add to missing requests to try raw generation
+      translationRequests.forEach(t => missingRequests.push(t.req));
+    }
+  }
+
+  // PROCESS GENERATION REQUESTS (Original Generation)
   if (missingRequests.length > 0) {
     try {
-      const targetEnglishIds = missingRequests.map(r => r.stableId); // Send English IDs to AI
+      const targetEnglishIds = missingRequests.map(r => r.stableId); 
       
       const adaptiveContexts = missingRequests.map(r => {
          const elo = userProfile?.eloRatings?.[r.catId] || 1000;
@@ -238,7 +292,6 @@ export const generateQuestionsBatch = async (
          return `${r.stableId}: User Knowledge Level: ${level} (Elo ${elo})`;
       }).join("; ");
 
-      // OPTIMIZATION: Only generate for the requested language to reduce latency
       const prompt = `
         You are a high-level knowledge testing AI.
         Generate 5 multiple-choice questions for EACH of the following topics: ${JSON.stringify(targetEnglishIds)}.
@@ -255,7 +308,6 @@ export const generateQuestionsBatch = async (
         type: Type.OBJECT,
         properties: {
           id: { type: Type.INTEGER },
-          // Flattened schema: Just the question details, no language sub-keys
           question: { type: Type.STRING }, 
           options: { type: Type.ARRAY, items: { type: Type.STRING } }, 
           correctAnswer: { type: Type.STRING }, 
@@ -300,7 +352,6 @@ export const generateQuestionsBatch = async (
           
           quizCache[cacheKey] = formattedQuestions;
           
-          // Save Current Language to File System
           if (import.meta.env.DEV) {
              fetch('/__save-question', {
                  method: 'POST',
@@ -308,8 +359,7 @@ export const generateQuestionsBatch = async (
                  body: JSON.stringify({ categoryId: req.catId, key: `${req.stableId}_${difficulty}_${lang}`, data: formattedQuestions })
              }).catch(() => {});
 
-             // STRATEGY 1: Trigger Background Mirroring for other languages
-             // We do NOT await this, so the UI is not blocked
+             // Trigger Background Mirroring (Strategy 1)
              triggerBackgroundTranslation(req.stableId, req.catId, difficulty, lang, formattedQuestions);
           }
 
@@ -326,7 +376,6 @@ export const generateQuestionsBatch = async (
     }
   }
 
-  // Ensure result order matches input order
   return topics.map(t => results.find(r => r.topic === t)!).filter(Boolean);
 };
 
