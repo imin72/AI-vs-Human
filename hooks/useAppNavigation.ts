@@ -5,9 +5,7 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
   const [stage, setStage] = useState<AppStage>(initialStage);
   const [selectionPhase, setSelectionPhase] = useState<'CATEGORY' | 'SUBTOPIC'>('CATEGORY');
   
-  // 종료 프로세스 진행 중인지 체크 (중복 실행 방지)
-  const isExitingRef = useRef(false);
-
+  // 콜백 저장소
   const callbacksRef = useRef({
     onExitApp: () => {},
     onResetQuiz: () => {},
@@ -29,57 +27,67 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
     };
   }, []);
 
-  // 상태 참조 Ref (이벤트 리스너 내부용)
+  // 상태 참조 Ref
   const stateRef = useRef({ stage, selectionPhase });
   useEffect(() => {
     stateRef.current = { stage, selectionPhase };
   }, [stage, selectionPhase]);
 
-  // --- [핵심] 더블 히스토리 트랩 (Double Trap) ---
+  // --- [핵심] 상태 기반 히스토리 가드 (State-Based History Guard) ---
   useEffect(() => {
-    // 1. 초기화 시: 현재 상태를 저장하고, 트랩을 '2번' 쌓습니다.
-    if (!window.history.state || window.history.state.key !== 'trap2') {
-      window.history.replaceState({ key: 'root' }, '');
-      window.history.pushState({ key: 'trap1' }, '');
-      window.history.pushState({ key: 'trap2' }, '');
-    }
+    // 1. 초기화: 앱이 실행되면 현재 히스토리에 'app_active'라는 깃발을 꽂습니다.
+    // 만약 이미 꽂혀있다면(새로고침 등) 중복해서 꽂지 않습니다.
+    const ensureHistoryState = () => {
+      if (!window.history.state || window.history.state.tag !== 'app_active') {
+        // 현재 페이지를 'root'로 교체 (나가는 문)
+        window.history.replaceState({ tag: 'root' }, '');
+        // 그 위에 'app_active' 상태를 쌓음 (우리 앱이 노는 공간)
+        window.history.pushState({ tag: 'app_active' }, '');
+      }
+    };
 
-    // [에러 수정] event -> _ : 사용하지 않는 변수 처리
-    const handlePopState = (_: PopStateEvent) => {
-      // 종료 중이면 간섭하지 않음
-      if (isExitingRef.current) return;
+    ensureHistoryState();
 
-      // 2. 뒤로가기 감지 시: 현재 위치를 확인하지 않고 무조건 다시 끝으로 밀어넣습니다.
-      window.history.pushState({ key: 'trap2' }, '');
-
+    const handlePopState = (event: PopStateEvent) => {
+      // 뒤로가기가 발생하면 event.state는 이전 상태(아마도 'root' 또는 null)가 됩니다.
+      
       const { stage, selectionPhase } = stateRef.current;
       const { onExitApp, onResetQuiz, confirmExitMsg, confirmHomeMsg } = callbacksRef.current;
 
-      // 3. 로직 수행 (비동기로 UI 블로킹 방지)
-      setTimeout(() => {
-        // [상황 A] Intro 화면: 앱 종료
-        if (stage === AppStage.INTRO) {
-          if (window.confirm(confirmExitMsg)) {
-             isExitingRef.current = true;
-             
-             // [종료 로직] 3칸 뒤로 이동 (Trap2 -> Trap1 -> Root -> Exit)
-             const len = window.history.length;
-             if (len > 3) {
-                 window.history.go(-3);
-             } else {
-                 // 히스토리 깊이가 얕을 경우 백업 로직
-                 window.history.back(); 
-                 setTimeout(() => window.history.back(), 50); 
-                 setTimeout(() => window.history.back(), 100); 
-             }
-             
-             if (onExitApp) onExitApp();
-             try { window.close(); } catch {}
+      // [로직 A] 앱 종료 시도 (Intro 화면)
+      if (stage === AppStage.INTRO) {
+        // 사용자에게 종료 의사를 물어봅니다.
+        // 이때 브라우저는 이미 'root' 상태로 돌아와 있습니다.
+        if (window.confirm(confirmExitMsg)) {
+          // [종료 확정]
+          // 이미 'root' 위치에 있으므로, 한 번 더 뒤로 가면 앱을 벗어납니다.
+          // 모바일 호환성을 위해 안전하게 back() 호출
+          if (onExitApp) onExitApp();
+          
+          // history.length 체크 후 이탈 시도
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            // 히스토리가 없으면 창 닫기 시도
+            try { window.close(); } catch {}
           }
-          return;
+        } else {
+          // [종료 취소]
+          // 다시 앱 상태('app_active')를 밀어넣어 못 나가게 막습니다.
+          window.history.pushState({ tag: 'app_active' }, '');
         }
+        return;
+      }
 
-        // [상황 B] 퀴즈/결과 화면: 홈 이동
+      // [로직 B] 앱 내부 이동 (Intro 이외의 화면)
+      // 이 경우 뒤로가기는 "취소" 또는 "이전 단계"를 의미하므로 앱이 꺼지면 안 됩니다.
+      
+      // 1. 일단 다시 가둡니다. (무조건 방어)
+      window.history.pushState({ tag: 'app_active' }, '');
+
+      // 2. 비동기로 UI 로직 수행 (브라우저 렌더링 충돌 방지)
+      setTimeout(() => {
+        // B-1. 퀴즈/결과 화면 -> 홈 이동 확인
         const isGameActive = stage === AppStage.QUIZ || stage === AppStage.RESULTS || stage === AppStage.LOADING_QUIZ || stage === AppStage.ANALYZING || stage === AppStage.ERROR;
         
         if (isGameActive) {
@@ -91,16 +99,16 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
           return;
         }
 
-        // [상황 C] 영역 선택 (서브토픽 -> 카테고리)
+        // B-2. 영역 선택 (서브토픽 -> 카테고리)
         if (stage === AppStage.TOPIC_SELECTION && selectionPhase === 'SUBTOPIC') {
           setSelectionPhase('CATEGORY');
           return;
         }
 
-        // [상황 D] 그 외 -> 인트로로
+        // B-3. 그 외 (프로필, 카테고리 선택 등) -> 인트로로 안전하게 복귀
         setStage(AppStage.INTRO);
         setSelectionPhase('CATEGORY');
-      }, 10); 
+      }, 0);
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -112,6 +120,7 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
 
   // 수동 뒤로가기 (UI 버튼)
   const goBack = useCallback(() => {
+    // 물리 버튼과 동일하게 처리하여 handlePopState 로직을 태움
     window.history.back();
   }, []);
 
