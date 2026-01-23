@@ -74,7 +74,11 @@ export const IntroView: React.FC<IntroViewProps> = ({
   onDebugSeed
 }) => {
   const [hasProfile, setHasProfile] = useState(false);
-  const showDebug = isDebugMode();
+  // Default debug check
+  const isEnvDebug = isDebugMode();
+  // Manual override state for production
+  const [showDebugOverride, setShowDebugOverride] = useState(false);
+  const [tapCount, setTapCount] = useState(0);
 
   useEffect(() => {
     const saved = localStorage.getItem(PROFILE_KEY);
@@ -85,6 +89,19 @@ export const IntroView: React.FC<IntroViewProps> = ({
       }
     }
   }, []);
+
+  const handleSecretTap = () => {
+    setTapCount(prev => {
+      const newCount = prev + 1;
+      if (newCount >= 5) {
+        setShowDebugOverride(true);
+        return 0;
+      }
+      return newCount;
+    });
+  };
+
+  const showDebug = isEnvDebug || showDebugOverride;
 
   return (
     <div className="w-full max-w-2xl relative flex flex-col items-center animate-fade-in h-full">
@@ -125,8 +142,11 @@ export const IntroView: React.FC<IntroViewProps> = ({
           </div>
         </div>
         
-        <div className="space-y-6 mb-10 max-w-lg">
-          <h2 className="text-3xl md:text-5xl font-black text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] tracking-tight leading-tight">
+        <div className="space-y-6 mb-10 max-w-lg select-none">
+          <h2 
+            onClick={handleSecretTap}
+            className="text-3xl md:text-5xl font-black text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] tracking-tight leading-tight cursor-default active:scale-95 transition-transform duration-100"
+          >
             {t.title}
           </h2>
           <p className="text-base md:text-lg text-slate-400 leading-relaxed font-medium">
@@ -157,26 +177,26 @@ export const IntroView: React.FC<IntroViewProps> = ({
           )}
         </div>
 
-        {/* Debug Controls (Visible only in Local/Preview environment, HIDDEN on Vercel) */}
+        {/* Debug Controls (Visible in Local/Preview OR via Secret Tap) */}
         {showDebug && (
-          <div className="mt-8 pt-4 border-t border-slate-800/50 w-full flex justify-center gap-2 opacity-50 hover:opacity-100 transition-opacity duration-300 flex-wrap">
+          <div className="mt-8 pt-4 border-t border-slate-800/50 w-full flex justify-center gap-2 animate-fade-in flex-wrap">
              {onDebugBypass && (
-              <button onClick={onDebugBypass} className="text-[10px] text-slate-500 hover:text-rose-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
+              <button onClick={onDebugBypass} className="text-[10px] text-slate-500 hover:text-rose-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded border border-slate-800 hover:border-rose-500/50 transition-all">
                 <Bug size={10} /> BYPASS
               </button>
              )}
              {onDebugPreview && (
-              <button onClick={onDebugPreview} className="text-[10px] text-slate-500 hover:text-cyan-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
+              <button onClick={onDebugPreview} className="text-[10px] text-slate-500 hover:text-cyan-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded border border-slate-800 hover:border-cyan-500/50 transition-all">
                 <Eye size={10} /> PREVIEW
               </button>
              )}
              {onDebugLoading && (
-              <button onClick={onDebugLoading} className="text-[10px] text-slate-500 hover:text-yellow-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded">
+              <button onClick={onDebugLoading} className="text-[10px] text-slate-500 hover:text-yellow-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded border border-slate-800 hover:border-yellow-500/50 transition-all">
                 <Loader size={10} /> LOADING
               </button>
              )}
              {onDebugSeed && (
-              <button onClick={onDebugSeed} className="text-[10px] text-slate-500 hover:text-green-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded border border-green-900/30">
+              <button onClick={onDebugSeed} className="text-[10px] text-slate-500 hover:text-green-400 flex items-center gap-1 px-2 py-1 bg-slate-900 rounded border border-slate-800 hover:border-green-500/50 transition-all">
                 <Database size={10} /> SEED DB
               </button>
              )}
