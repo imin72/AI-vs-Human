@@ -90,6 +90,7 @@ export default function App() {
           onBack={actions.goBack} // Pass back action
           language={language}
           batchProgress={quizState.batchProgress} // Pass batch info
+          isSubmitting={quizState.isSubmitting} // Pass lock state
         />
       )}
       

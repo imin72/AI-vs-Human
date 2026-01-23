@@ -17,6 +17,7 @@ interface QuizViewProps {
   onBack?: () => void; 
   language: Language;
   batchProgress?: { total: number; current: number; topics: string[] };
+  isSubmitting?: boolean;
 }
 
 export const QuizView: React.FC<QuizViewProps> = ({ 
@@ -29,7 +30,8 @@ export const QuizView: React.FC<QuizViewProps> = ({
   onHome,
   onBack,
   language,
-  batchProgress
+  batchProgress,
+  isSubmitting = false
 }) => {
   const question = questions[currentIndex];
   const [aiLogs, setAiLogs] = useState<string[]>([]);
@@ -119,6 +121,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
   }, [selectedOption, language]);
 
   const handleHintClick = () => {
+    if (isSubmitting) return;
     audioHaptic.playClick('soft');
     setShowHint(true);
     setAiComment(language === 'ko' ? 
@@ -133,7 +136,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
     }
   }, [aiLogs]);
 
-  const btnStyle = "w-10 h-10 flex items-center justify-center text-white bg-slate-800/80 backdrop-blur-md rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg p-0";
+  const btnStyle = "w-10 h-10 flex items-center justify-center text-white bg-slate-800/80 backdrop-blur-md rounded-full hover:bg-slate-700 transition-all border border-white/10 shadow-lg p-0 disabled:opacity-50 disabled:cursor-not-allowed";
   const isAiDone = aiProgress >= 100;
 
   const isLastQuestion = currentIndex === questions.length - 1;
@@ -177,11 +180,11 @@ export const QuizView: React.FC<QuizViewProps> = ({
          <div className="flex gap-2">
            {/* Show Back button if not first question */}
            {currentIndex > 0 && onBack && (
-             <button onClick={onBack} className={btnStyle} aria-label="Back">
+             <button onClick={onBack} className={btnStyle} aria-label="Back" disabled={isSubmitting}>
                <ChevronLeft size={18} />
              </button>
            )}
-           <button onClick={onHome} className={btnStyle} aria-label="Home">
+           <button onClick={onHome} className={btnStyle} aria-label="Home" disabled={isSubmitting}>
              <Home size={18} />
            </button>
          </div>
@@ -223,7 +226,8 @@ export const QuizView: React.FC<QuizViewProps> = ({
                 {!showHint ? (
                   <button 
                     onClick={handleHintClick}
-                    className="flex items-center gap-2 text-[10px] font-bold text-amber-400 hover:text-amber-300 transition-colors uppercase tracking-widest bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/20"
+                    disabled={isSubmitting}
+                    className={`flex items-center gap-2 text-[10px] font-bold text-amber-400 hover:text-amber-300 transition-colors uppercase tracking-widest bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/20 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <Lightbulb size={12} /> {language === 'ko' ? "AI 힌트 요청" : "Request AI Hint"}
                   </button>
@@ -242,12 +246,13 @@ export const QuizView: React.FC<QuizViewProps> = ({
                 <button
                   key={idx}
                   onClick={() => onSelectOption(option)}
-                  onMouseEnter={() => audioHaptic.playHover()}
+                  disabled={isSubmitting} // Disable interactions when submitting
+                  onMouseEnter={() => !isSubmitting && audioHaptic.playHover()}
                   className={`p-4 rounded-2xl text-left transition-all duration-300 border relative group overflow-hidden ${
                     selectedOption === option
                       ? 'bg-cyan-600 border-cyan-400 text-white shadow-[0_0_25px_rgba(8,145,178,0.5)] scale-[1.02]'
                       : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-600 hover:bg-slate-800'
-                  }`}
+                  } ${isSubmitting ? 'cursor-not-allowed opacity-80' : ''}`}
                 >
                   <div className="flex items-center gap-4 relative z-10">
                     <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center font-black text-xs transition-colors ${
@@ -269,11 +274,13 @@ export const QuizView: React.FC<QuizViewProps> = ({
         <div className="flex flex-col gap-2 shrink-0">
           <Button 
             onClick={onConfirm} 
-            disabled={!selectedOption}
+            disabled={!selectedOption || isSubmitting}
             fullWidth
-            className="py-4 text-sm font-black uppercase tracking-widest shadow-lg"
+            className={`py-4 text-sm font-black uppercase tracking-widest shadow-lg ${isSubmitting ? 'opacity-75 cursor-wait' : ''}`}
           >
-            {buttonText} <ChevronRight size={18} />
+            {isSubmitting ? (language === 'ko' ? '기록 중...' : 'Recording...') : (
+                <><span className="mr-2">{buttonText}</span> <ChevronRight size={18} /></>
+            )}
           </Button>
 
           {/* AI Status Panel */}

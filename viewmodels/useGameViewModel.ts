@@ -81,6 +81,7 @@ export const useGameViewModel = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Lock for answer submission
   
   // Batch Progress Tracking
   const [batchProgress, setBatchProgress] = useState<{ total: number, current: number, topics: string[] }>({ total: 0, current: 0, topics: [] });
@@ -265,7 +266,7 @@ export const useGameViewModel = () => {
   }, [stage]);
 
   const performBackNavigation = useCallback((): boolean => {
-    if (isPending) return false;
+    if (isPending || isSubmitting) return false; // Block back nav during submission
     audioHaptic.playClick('soft');
 
     switch (stage) {
@@ -310,7 +311,7 @@ export const useGameViewModel = () => {
       default:
         return true;
     }
-  }, [stage, selectionPhase, isPending, t, currentQuestionIndex]);
+  }, [stage, selectionPhase, isPending, isSubmitting, t, currentQuestionIndex]);
 
   useEffect(() => {
     const handlePopState = (_: PopStateEvent) => {
@@ -404,7 +405,7 @@ export const useGameViewModel = () => {
     },
     
     goBack: () => {
-      if (isPending) return;
+      if (isPending || isSubmitting) return; // Block back nav during submission
       audioHaptic.playClick();
       
       if (stage === AppStage.QUIZ) {
@@ -426,7 +427,7 @@ export const useGameViewModel = () => {
     },
     
     goHome: () => {
-      if (isPending) return;
+      if (isPending || isSubmitting) return; // Block home nav during submission
       audioHaptic.playClick();
       if (stage === AppStage.QUIZ) {
         if (!window.confirm(t.common.confirm_exit)) return;
@@ -591,15 +592,20 @@ export const useGameViewModel = () => {
     },
     
     selectOption: (option: string) => {
+        if (isSubmitting) return; // Block changing answer during submission
         audioHaptic.playClick('soft');
         setSelectedOption(option);
     },
     confirmAnswer: () => {
-      if (!selectedOption) return;
+      if (!selectedOption || isSubmitting) return; // Prevent double submission
+      
+      // 1. Lock the UI immediately
+      setIsSubmitting(true);
+      
       const question = questions[currentQuestionIndex];
       const isCorrect = selectedOption === question.correctAnswer;
       
-      // Feedback sound
+      // 2. Play Feedback sound (Result determined here)
       if (isCorrect) audioHaptic.playSuccess();
       else audioHaptic.playError();
 
@@ -612,12 +618,15 @@ export const useGameViewModel = () => {
       };
       const updatedAnswers = [...userAnswers, answer];
       setUserAnswers(updatedAnswers);
-      setSelectedOption(null);
+      // Don't clear selectedOption yet, so user sees what they picked during transition
       
+      // 3. Move to next question after delay
       if (currentQuestionIndex < questions.length - 1) {
         setTimeout(() => {
            setCurrentQuestionIndex(prev => prev + 1);
-        }, 500); // Slight delay for audio to play out
+           setSelectedOption(null); // Clear now
+           setIsSubmitting(false); // Unlock
+        }, 800); // Increased delay slightly to ensure feedback is felt before change
       } else {
         const currentTopicLabel = currentQuizSet?.topic || (batchProgress.topics[batchProgress.current - 1] || "Unknown");
         const currentTopicId = getTopicIdFromLabel(currentTopicLabel);
@@ -632,19 +641,25 @@ export const useGameViewModel = () => {
         setCompletedBatches(newCompletedBatches);
 
         if (quizQueue.length > 0) {
-           const nextProgress = {
-              ...batchProgress,
-              current: batchProgress.current + 1
-           };
-           const [next, ...rest] = quizQueue;
-           setQuizQueue(rest);
-           setCurrentQuizSet(next);
-           setQuestions(next.questions);
-           setCurrentQuestionIndex(0);
-           setUserAnswers([]);
-           setBatchProgress(nextProgress);
+           setTimeout(() => {
+               const nextProgress = {
+                  ...batchProgress,
+                  current: batchProgress.current + 1
+               };
+               const [next, ...rest] = quizQueue;
+               setQuizQueue(rest);
+               setCurrentQuizSet(next);
+               setQuestions(next.questions);
+               setCurrentQuestionIndex(0);
+               setUserAnswers([]);
+               setBatchProgress(nextProgress);
+               setSelectedOption(null);
+               setIsSubmitting(false);
+           }, 800);
         } else {
-           finishBatchQuiz(newCompletedBatches, userProfile, language);
+           finishBatchQuiz(newCompletedBatches, userProfile, language).then(() => {
+               setIsSubmitting(false);
+           });
         }
       }
     },
@@ -654,7 +669,7 @@ export const useGameViewModel = () => {
     },
     shuffleSubTopics: () => {},
     setCustomTopic: (_topic: string) => {}
-  }), [isPending, stage, selectionPhase, selectedCategories, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, performBackNavigation, displayedTopics, completedBatches]);
+  }), [isPending, stage, selectionPhase, selectedCategories, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, performBackNavigation, displayedTopics, completedBatches, isSubmitting]);
 
   return {
     state: {
@@ -667,7 +682,8 @@ export const useGameViewModel = () => {
         selectedOption, 
         remainingTopics: quizQueue.length,
         nextTopicName: quizQueue.length > 0 ? quizQueue[0].topic : undefined,
-        batchProgress 
+        batchProgress,
+        isSubmitting // Expose locking state
       },
       resultState: { evaluation, sessionResults, errorMsg } 
     },
