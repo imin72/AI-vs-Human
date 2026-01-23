@@ -146,9 +146,17 @@ export const seedLocalDatabase = async (onProgress: (msg: string) => void) => {
 
         const prompt = `
           Generate 5 challenging, high-quality multiple-choice questions about "${topic}".
-          Language: English. Difficulty: Hard.
-          Format: JSON Array with keys: id, question, options, correctAnswer, context.
-          Context should be an interesting fact.
+          
+          STRICT OBJECTIVITY RULES:
+          1. All questions must be based on UNDISPUTED FACTS and HARD DATA.
+          2. Avoid subjective value judgments (e.g., "Who is the best...", "What is the most beautiful...").
+          3. Answers must be objectively verifiable in a standard encyclopedia.
+          4. No ambiguous scenarios.
+          
+          Constraints:
+          - Language: English. Difficulty: Hard.
+          - Format: JSON Array with keys: id, question, options, correctAnswer, context.
+          - Context: A short, interesting fact explaining the answer.
         `;
 
         const response = await ai.models.generateContent({
@@ -426,10 +434,13 @@ export const generateQuestionsBatch = async (
         
         CRITICAL INSTRUCTIONS:
         1. Base Difficulty: ${difficulty}.
-        2. USER ADAPTATION PROFILE: ${adaptiveContexts}.
-        3. Target Audience: ${userProfile?.ageGroup || 'General'}.
-        4. **LANGUAGE:** Generate content in **${lang}** language ONLY.
-        5. Return a JSON object where keys are the exact topic names provided (${targetEnglishIds.join(', ')}).
+        2. **OBJECTIVITY RULE**: All questions must be based on UNDISPUTED FACTS and HARD DATA. 
+           - DO NOT ask for subjective opinions, moral judgments, or ambiguous interpretations (e.g., avoid "Who is the best...", "What is the most important...").
+           - The correct answer must be VERIFIABLE and INDISPUTABLE.
+        3. USER ADAPTATION PROFILE: ${adaptiveContexts}.
+        4. Target Audience: ${userProfile?.ageGroup || 'General'}.
+        5. **LANGUAGE:** Generate content in **${lang}** language ONLY.
+        6. Return a JSON object where keys are the exact topic names provided (${targetEnglishIds.join(', ')}).
       `;
 
       const questionSchema = {

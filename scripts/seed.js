@@ -77,6 +77,7 @@ async function generateMasterData() {
           Generate ${QUESTIONS_PER_TOPIC} challenging, high-quality multiple-choice questions about "${topic}".
           
           Constraints:
+          - **STRICT OBJECTIVITY**: Questions must be based on absolute facts, physical laws, historical dates, or verifiable data. Avoid subjective value judgments or ambiguous scenarios.
           - Language: English
           - Difficulty: ${TARGET_DIFFICULTY}
           - Format: JSON Array of objects with keys: id (number), question (string), options (string array), correctAnswer (string), context (string).
