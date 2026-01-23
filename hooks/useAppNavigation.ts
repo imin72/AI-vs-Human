@@ -36,7 +36,6 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
   // --- [핵심] 상태 기반 히스토리 가드 (State-Based History Guard) ---
   useEffect(() => {
     // 1. 초기화: 앱이 실행되면 현재 히스토리에 'app_active'라는 깃발을 꽂습니다.
-    // 만약 이미 꽂혀있다면(새로고침 등) 중복해서 꽂지 않습니다.
     const ensureHistoryState = () => {
       if (!window.history.state || window.history.state.tag !== 'app_active') {
         // 현재 페이지를 'root'로 교체 (나가는 문)
@@ -48,8 +47,8 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
 
     ensureHistoryState();
 
-    const handlePopState = (event: PopStateEvent) => {
-      // 뒤로가기가 발생하면 event.state는 이전 상태(아마도 'root' 또는 null)가 됩니다.
+    // [수정됨] event -> _ : 사용하지 않는 변수 처리
+    const handlePopState = (_: PopStateEvent) => {
       
       const { stage, selectionPhase } = stateRef.current;
       const { onExitApp, onResetQuiz, confirmExitMsg, confirmHomeMsg } = callbacksRef.current;
@@ -60,15 +59,12 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
         // 이때 브라우저는 이미 'root' 상태로 돌아와 있습니다.
         if (window.confirm(confirmExitMsg)) {
           // [종료 확정]
-          // 이미 'root' 위치에 있으므로, 한 번 더 뒤로 가면 앱을 벗어납니다.
-          // 모바일 호환성을 위해 안전하게 back() 호출
           if (onExitApp) onExitApp();
           
           // history.length 체크 후 이탈 시도
           if (window.history.length > 1) {
             window.history.back();
           } else {
-            // 히스토리가 없으면 창 닫기 시도
             try { window.close(); } catch {}
           }
         } else {
@@ -80,7 +76,6 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
       }
 
       // [로직 B] 앱 내부 이동 (Intro 이외의 화면)
-      // 이 경우 뒤로가기는 "취소" 또는 "이전 단계"를 의미하므로 앱이 꺼지면 안 됩니다.
       
       // 1. 일단 다시 가둡니다. (무조건 방어)
       window.history.pushState({ tag: 'app_active' }, '');
@@ -120,7 +115,6 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
 
   // 수동 뒤로가기 (UI 버튼)
   const goBack = useCallback(() => {
-    // 물리 버튼과 동일하게 처리하여 handlePopState 로직을 태움
     window.history.back();
   }, []);
 
