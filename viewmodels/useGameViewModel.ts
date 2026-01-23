@@ -266,7 +266,7 @@ export const useGameViewModel = () => {
 
   const performBackNavigation = useCallback((): boolean => {
     if (isPending || isSubmitting) return false; // Block back nav during submission
-    audioHaptic.playClick('soft');
+    try { audioHaptic.playClick('soft'); } catch {}
 
     switch (stage) {
       case AppStage.TOPIC_SELECTION:
@@ -332,7 +332,7 @@ export const useGameViewModel = () => {
   // --- Actions ---
   const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { 
-      audioHaptic.playClick('soft');
+      try { audioHaptic.playClick('soft'); } catch {}
       // Reset selections to prevent language mismatch with static DB
       setSelectedCategories([]);
       setSelectedSubTopics([]);
@@ -340,7 +340,7 @@ export const useGameViewModel = () => {
       setLanguage(lang); 
     },
     startIntro: () => {
-      audioHaptic.playClick('hard');
+      try { audioHaptic.playClick('hard'); } catch {}
       if (userProfile.gender && userProfile.nationality) {
         setStage(AppStage.TOPIC_SELECTION);
       } else {
@@ -348,26 +348,26 @@ export const useGameViewModel = () => {
       }
     },
     editProfile: () => {
-      audioHaptic.playClick();
+      try { audioHaptic.playClick(); } catch {}
       setStage(AppStage.PROFILE);
     },
     resetProfile: () => {
-      audioHaptic.playClick();
+      try { audioHaptic.playClick(); } catch {}
       localStorage.removeItem(PROFILE_KEY);
       setUserProfile({ gender: '', ageGroup: '', nationality: '' });
       setStage(AppStage.PROFILE);
     },
     updateProfile: (profile: Partial<UserProfile>) => {
-      audioHaptic.playClick('soft');
+      try { audioHaptic.playClick('soft'); } catch {}
       setUserProfile(prev => ({ ...prev, ...profile }));
     },
     submitProfile: () => {
-      audioHaptic.playClick('hard');
+      try { audioHaptic.playClick('hard'); } catch {}
       localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
       setStage(AppStage.TOPIC_SELECTION);
     },
     selectCategory: (id: string) => {
-      audioHaptic.playClick('soft');
+      try { audioHaptic.playClick('soft'); } catch {}
       setSelectedCategories(prev => {
         if (prev.includes(id)) {
           return prev.filter(cat => cat !== id);
@@ -378,13 +378,13 @@ export const useGameViewModel = () => {
       });
     },
     proceedToSubTopics: () => {
-      audioHaptic.playClick();
+      try { audioHaptic.playClick(); } catch {}
       if (selectedCategories.length > 0) {
         setSelectionPhase('SUBTOPIC');
       }
     },
     selectSubTopic: (sub: string) => {
-      audioHaptic.playClick('soft');
+      try { audioHaptic.playClick('soft'); } catch {}
       setSelectedSubTopics(prev => {
         if (prev.includes(sub)) {
           return prev.filter(p => p !== sub);
@@ -395,13 +395,13 @@ export const useGameViewModel = () => {
       });
     },
     setDifficulty: (diff: Difficulty) => {
-       audioHaptic.playClick('soft');
+       try { audioHaptic.playClick('soft'); } catch {}
        setDifficulty(diff);
     },
     
     goBack: () => {
       if (isPending || isSubmitting) return; // Block back nav during submission
-      audioHaptic.playClick();
+      try { audioHaptic.playClick(); } catch {}
 
       if (stage === AppStage.TOPIC_SELECTION && selectionPhase === 'SUBTOPIC') {
         setSelectionPhase('CATEGORY');
@@ -415,20 +415,21 @@ export const useGameViewModel = () => {
     },
     
     goHome: () => {
-      // NOTE: We allow exiting even if pending/submitting, but we ask for confirmation.
-      // if (isPending || isSubmitting) return; 
+      try { audioHaptic.playClick(); } catch {}
       
-      audioHaptic.playClick();
-      
-      // GLOBAL CONFIRMATION for going home
-      // Use confirm_home or fallback to confirm_exit
-      if (!window.confirm(t.common.confirm_home || t.common.confirm_exit)) return;
+      // Only require confirmation during active critical states
+      // Profile, Intro, Results, and Topic Selection (Category phase) are safe to exit instantly
+      const needsConfirmation = stage === AppStage.QUIZ || stage === AppStage.LOADING_QUIZ || stage === AppStage.ANALYZING;
+
+      if (needsConfirmation) {
+        if (!window.confirm(t.common.confirm_home || t.common.confirm_exit || "Return to Home?")) return;
+      }
       
       // Force reset states in case we were stuck
       setIsPending(false);
       setIsSubmitting(false);
 
-      setStage(AppStage.INTRO); // Now goes to INTRO instead of checking language/profile
+      setStage(AppStage.INTRO); 
       
       setEvaluation(null);
       setUserAnswers([]);
@@ -441,12 +442,11 @@ export const useGameViewModel = () => {
       setSessionResults([]); 
       setCompletedBatches([]);
       
-      // CRITICAL FIX: Reset selection phase to CATEGORY so user doesn't get stuck in empty SUBTOPIC view
       setSelectionPhase('CATEGORY');
     },
 
     resetApp: () => {
-      audioHaptic.playClick();
+      try { audioHaptic.playClick(); } catch {}
       setUserAnswers([]); 
       setCurrentQuestionIndex(0); 
       setEvaluation(null);
@@ -467,7 +467,7 @@ export const useGameViewModel = () => {
       if (isPending) return;
       if (selectedSubTopics.length === 0) return;
       
-      audioHaptic.playClick('hard');
+      try { audioHaptic.playClick('hard'); } catch {}
       setIsPending(true);
       setStage(AppStage.LOADING_QUIZ);
       try {
@@ -502,7 +502,7 @@ export const useGameViewModel = () => {
     },
     
     nextTopicInQueue: () => {
-      audioHaptic.playClick();
+      try { audioHaptic.playClick(); } catch {}
       if (quizQueue.length > 0) {
          const [next, ...rest] = quizQueue;
          
@@ -524,7 +524,7 @@ export const useGameViewModel = () => {
 
     startDebugQuiz: async () => {
        if (isPending) return;
-       audioHaptic.playClick();
+       try { audioHaptic.playClick(); } catch {}
        setIsPending(true);
        setStage(AppStage.LOADING_QUIZ);
        
@@ -565,10 +565,9 @@ export const useGameViewModel = () => {
 
     triggerSeeding: async () => {
        if (isPending) return;
-       audioHaptic.playClick('hard');
+       try { audioHaptic.playClick('hard'); } catch {}
        setIsPending(true);
        
-       // Note: We don't change stage, we just show alerts or logs for now, or maybe a dedicated loading stage
        try {
          await seedLocalDatabase((msg) => {
             console.log(msg);
@@ -582,7 +581,7 @@ export const useGameViewModel = () => {
     },
 
     previewResults: () => {
-      audioHaptic.playClick();
+      try { audioHaptic.playClick(); } catch {}
       const mockResult: EvaluationResult = {
         id: "SCIENCE",
         totalScore: 88,
@@ -604,7 +603,7 @@ export const useGameViewModel = () => {
     },
 
     previewLoading: () => {
-        audioHaptic.playClick();
+        try { audioHaptic.playClick(); } catch {}
         setStage(AppStage.LOADING_QUIZ);
         // Automatically go back after 5 seconds
         setTimeout(() => {
@@ -614,7 +613,7 @@ export const useGameViewModel = () => {
     
     selectOption: (option: string) => {
         if (isSubmitting) return; // Block changing answer during submission
-        audioHaptic.playClick('soft');
+        try { audioHaptic.playClick('soft'); } catch {}
         setSelectedOption(option);
     },
     confirmAnswer: () => {
@@ -685,7 +684,7 @@ export const useGameViewModel = () => {
       }
     },
     shuffleTopics: () => {
-      audioHaptic.playClick();
+      try { audioHaptic.playClick(); } catch {}
       setDisplayedTopics(prev => shuffleArray(prev));
     },
     shuffleSubTopics: () => {},
