@@ -432,7 +432,7 @@ export const StageResults: React.FC<StageResultsProps> = ({
                       <Activity size={16} className="text-rose-400" />
                       <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t.section_gap}</h3>
                     </div>
-                    <span className="text-[10px] font-mono text-slate-500">{t.label_gap_avg}: <span className="text-white">{gap}</span> pts</span>
+                    <span className="text-[10px] font-mono text-slate-500"><span className="text-white">{gap}</span> {t.unit_pts}</span>
                   </div>
                   <div className="w-full h-32 bg-slate-900/50 rounded-xl border border-slate-800 p-2">
                     {growthData.length > 0 ? (
