@@ -7,7 +7,8 @@ import {
   QuizQuestion, 
   UserAnswer, 
   EvaluationResult,
-  QuizSet
+  QuizSet,
+  HistoryItem
 } from '../types';
 import { generateQuestionsBatch, evaluateBatchAnswers, BatchEvaluationInput, seedLocalDatabase } from '../services/geminiService';
 import { audioHaptic } from '../services/audioHapticService';
@@ -64,7 +65,6 @@ interface AccumulatedBatchData {
 }
 
 export const useGameViewModel = () => {
-  // --- State Definitions ---
   const [stage, setStage] = useState<AppStage>(AppStage.INTRO);
   const [language, setLanguage] = useState<Language>(getBrowserLanguage());
   const [userProfile, setUserProfile] = useState<UserProfile>({ 
@@ -104,17 +104,16 @@ export const useGameViewModel = () => {
 
   const t = useMemo(() => TRANSLATIONS[language], [language]);
 
-  // --- Refs for Event Listeners (Fixing State Stale Issue) ---
+  // --- [핵심 수정 1] Refs로 상태 감싸기 (이벤트 리스너 안정성 확보) ---
   const stageRef = useRef(stage);
   const selectionPhaseRef = useRef(selectionPhase);
   const tRef = useRef(t);
-
+  
   useEffect(() => { stageRef.current = stage; }, [stage]);
   useEffect(() => { selectionPhaseRef.current = selectionPhase; }, [selectionPhase]);
   useEffect(() => { tRef.current = t; }, [t]);
 
-  // --- Initial Loaders ---
-
+  // Load Profile on Mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem(PROFILE_KEY);
@@ -132,13 +131,12 @@ export const useGameViewModel = () => {
     }
   }, []);
 
+  // Initialize and Shuffle Topics when Language Changes
   useEffect(() => {
     const topics = Object.entries(t.topics.categories)
       .map(([id, label]) => ({ id, label }));
     setDisplayedTopics(shuffleArray(topics));
   }, [t]);
-
-  // --- Logic Helpers ---
 
   const finishBatchQuiz = async (allBatches: AccumulatedBatchData[], profile: UserProfile, lang: Language) => {
     if (isPending) return;
@@ -176,13 +174,14 @@ export const useGameViewModel = () => {
         currentElos[batch.topicId] = newElo;
 
         const aiBenchmark = difficulty === Difficulty.HARD ? 98 : difficulty === Difficulty.MEDIUM ? 95 : 92;
-        currentHistory.push({
+        const historyItem: HistoryItem = {
           timestamp: Date.now(),
           topicId: batch.topicId,
           score: score,
           aiScore: aiBenchmark,
           difficulty: difficulty
-        });
+        };
+        currentHistory.push(historyItem);
 
         batchInputs.push({
           topic: batch.topicLabel,
@@ -248,8 +247,7 @@ export const useGameViewModel = () => {
     }
   };
 
-  // --- History Navigation Logic (Stabilized) ---
-
+  // Helper for Resetting
   const resetAllStateToHome = useCallback(() => {
     setStage(AppStage.INTRO);
     setQuizQueue([]);
@@ -262,91 +260,82 @@ export const useGameViewModel = () => {
     setSelectionPhase('CATEGORY');
     setSelectedCategories([]); 
     setSelectedSubTopics([]);
+    setSelectedOption(null);
     setEvaluation(null);
   }, []);
 
-  // 1. [Trap Setup] 앱 최초 로드 시에만 History Trap 설정
+  // --- [핵심 수정 2] History Trap 설치 (앱 로드 시 1회만 실행) ---
   useEffect(() => {
-    // 히스토리 상태가 없거나, 우리가 설정한 'root'가 아닐 때만 초기화
-    // 이를 통해 언어 변경 등으로 인한 리렌더링 시 중복 push를 방지함
+    // 앱 초기화 시 히스토리를 하나 쌓아서 뒤로가기가 '종료'가 되도록 함
     if (!window.history.state || window.history.state.key !== 'app_initialized') {
-        window.history.replaceState({ key: 'root' }, ''); // 현재를 root로 교체
-        window.history.pushState({ key: 'app_initialized', stage: 'intro' }, ''); // intro 상태 추가
+        window.history.replaceState({ key: 'root' }, '');
+        window.history.pushState({ key: 'app_initialized', stage: 'intro' }, '');
     }
   }, []);
 
-  // 2. [Event Listener] popstate 핸들러
+  // --- [핵심 수정 3] 통합된 Back Navigation Handler (Refs + Async) ---
   useEffect(() => {
     const handlePopState = (_: PopStateEvent) => {
-      // Refs를 사용하여 최신 상태값 접근 (closures 문제 방지)
+      // Refs를 사용하여 가장 최신의 값을 안전하게 가져옴
       const currentStage = stageRef.current;
       const currentPhase = selectionPhaseRef.current;
       const currentT = tRef.current;
       
-      const confirmHomeMsg = currentT.common.confirm_home || "홈 화면으로 이동하시겠습니까? 진행 중인 내용은 초기화됩니다.";
+      const confirmHomeMsg = currentT.common.confirm_home || "수행내용이 초기화되고 홈화면으로 이동합니다.";
 
-      // -----------------------------------------------------------
-      // Case 1) IntroView에서 뒤로가기
-      // -----------------------------------------------------------
+      // 1) IntroView: 뒤로가기 시 무조건 종료 팝업
       if (currentStage === AppStage.INTRO) {
-        // 이미 히스토리 스택이 하나 빠진 상태(root)로 왔음.
-        
-        // confirm 창을 띄움
-        if (window.confirm(currentT.common.confirm_exit_app || "앱을 종료하시겠습니까?")) {
-          // [종료 확정]
-          // ★ 핵심 수정: setTimeout으로 감싸서 이벤트 루프를 끊고 실행
-          // 이렇게 하면 window.confirm이 닫힌 후 브라우저가 안정된 상태에서 back()을 수행함
+        const exitMsg = currentT.common.confirm_exit_app || "앱을 종료하시겠습니까?";
+        if (window.confirm(exitMsg)) {
+          // [중요] setTimeout으로 종료 로직을 비동기 처리하여 브라우저 충돌 방지
           setTimeout(() => {
-             // 루트(0)에서 한 번 더 뒤로가면(-1) 브라우저 밖으로 나감
-             // 만약 히스토리가 꼬여서 안 나가진다면, 강제로 더 뒤로 보냄
-             const histLen = window.history.length;
-             if (histLen > 2) {
-                window.history.go(-(histLen - 1)); // 가능한 맨 뒤로
-             } else {
-                window.history.back();
-             }
+             const len = window.history.length;
+             // 히스토리가 쌓여있다면 최대한 뒤로 보내서 이탈 시도
+             if (len > 2) window.history.go(-(len - 1));
+             else window.history.back();
+             
              try { window.close(); } catch {}
           }, 0);
         } else {
-          // [종료 취소]
-          // 다시 Trap(intro 상태)을 쌓아서 원래대로 복구
+          // 취소 시 Trap 복구 (Intro 상태 유지)
           window.history.pushState({ key: 'app_initialized', stage: 'intro' }, '');
         }
         return;
       }
 
-      // -----------------------------------------------------------
-      // Case 2) 영역선택: SubTopic -> Category
-      // -----------------------------------------------------------
-      if (currentStage === AppStage.TOPIC_SELECTION && currentPhase === 'SUBTOPIC') {
-        setSelectionPhase('CATEGORY');
-        setSelectedSubTopics([]);
+      // 2) PROFILE, TOPIC_SELECTION: 바로 전단계로 이동 (팝업 없음)
+      if (currentStage === AppStage.PROFILE) {
+        setStage(AppStage.INTRO);
         return;
       }
-
-      // -----------------------------------------------------------
-      // Case 2-1) 영역선택/프로필 -> Intro
-      // -----------------------------------------------------------
-      if ((currentStage === AppStage.TOPIC_SELECTION && currentPhase === 'CATEGORY') || currentStage === AppStage.PROFILE) {
+      
+      if (currentStage === AppStage.TOPIC_SELECTION) {
+        if (currentPhase === 'SUBTOPIC') {
+          setSelectionPhase('CATEGORY');
+          setSelectedSubTopics([]);
+          return;
+        }
+        // CATEGORY에서 뒤로가기 -> Intro
         setStage(AppStage.INTRO);
         return;
       }
 
-      // -----------------------------------------------------------
-      // Case 3 & 4) 문제풀이/결과 -> 홈 이동 팝업
-      // -----------------------------------------------------------
-      if (currentStage === AppStage.QUIZ || currentStage === AppStage.RESULTS || currentStage === AppStage.ERROR) {
-        // 뒤로가기를 막기 위해 일단 다시 lock 상태를 push
+      // 3) QUIZ, RESULTS, ERROR: 홈 이동 확인 팝업
+      const isQuizStage = currentStage === AppStage.QUIZ || currentStage === AppStage.LOADING_QUIZ;
+      const isResultStage = currentStage === AppStage.RESULTS || currentStage === AppStage.ERROR || currentStage === AppStage.ANALYZING;
+
+      if (isQuizStage || isResultStage) {
+        // 일단 뒤로가기 동작을 막기 위해 히스토리 복구 (Lock)
         window.history.pushState({ key: 'locked', stage: currentStage }, '');
 
         if (window.confirm(confirmHomeMsg)) {
-          // [예] 홈으로 이동
-          // setTimeout을 사용하여 UI 업데이트와 상태 변경을 분리
+          // [중요] setTimeout으로 상태 변경을 비동기 처리
           setTimeout(() => {
              resetAllStateToHome();
+             // 여기서 replaceState는 굳이 안 해도 resetAllStateToHome이 Intro로 보내므로 OK
           }, 0);
         }
-        // [아니오] 아무것도 안 함 (화면 유지)
+        // 아니오 선택 시: 이미 pushState로 복구했으므로 현상 유지됨
         return;
       }
 
@@ -356,7 +345,7 @@ export const useGameViewModel = () => {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [resetAllStateToHome]); 
+  }, [resetAllStateToHome]); // 의존성 최소화
 
 
   // --- Actions ---
@@ -366,47 +355,38 @@ export const useGameViewModel = () => {
       setSelectedCategories([]);
       setSelectedSubTopics([]);
       setSelectionPhase('CATEGORY');
-      // 언어 변경 시에는 히스토리를 건드리지 않음 (기존 intro 상태 유지)
       setLanguage(lang); 
     },
-
     startIntro: () => {
       try { audioHaptic.playClick('hard'); } catch {}
-      // 앞으로 이동: 히스토리 추가
+      // 앞으로 이동 시 히스토리 추가
       window.history.pushState({ key: 'step_2' }, '');
-      
       if (userProfile.gender && userProfile.nationality) {
         setStage(AppStage.TOPIC_SELECTION);
       } else {
         setStage(AppStage.PROFILE);
       }
     },
-
     editProfile: () => {
       try { audioHaptic.playClick(); } catch {}
       window.history.pushState({ key: 'profile' }, '');
       setStage(AppStage.PROFILE);
     },
-
     resetProfile: () => {
       try { audioHaptic.playClick(); } catch {}
       localStorage.removeItem(PROFILE_KEY);
       setUserProfile({ gender: '', ageGroup: '', nationality: '' });
       setStage(AppStage.PROFILE);
     },
-
     updateProfile: (profile: Partial<UserProfile>) => {
       try { audioHaptic.playClick('soft'); } catch {}
       setUserProfile(prev => ({ ...prev, ...profile }));
     },
-
     submitProfile: () => {
       try { audioHaptic.playClick('hard'); } catch {}
       localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
-      // 프로필 설정 완료는 화면 전환으로 처리 (뒤로가기 시 intro로 가도록 히스토리 추가 X)
       setStage(AppStage.TOPIC_SELECTION);
     },
-
     selectCategory: (id: string) => {
       try { audioHaptic.playClick('soft'); } catch {}
       setSelectedCategories(prev => {
@@ -418,16 +398,13 @@ export const useGameViewModel = () => {
         }
       });
     },
-
     proceedToSubTopics: () => {
       try { audioHaptic.playClick(); } catch {}
       if (selectedCategories.length > 0) {
-        // 세부 선택 진입: 히스토리 추가
         window.history.pushState({ key: 'subtopic' }, '');
         setSelectionPhase('SUBTOPIC');
       }
     },
-
     selectSubTopic: (sub: string) => {
       try { audioHaptic.playClick('soft'); } catch {}
       setSelectedSubTopics(prev => {
@@ -439,24 +416,23 @@ export const useGameViewModel = () => {
         }
       });
     },
-
     setDifficulty: (diff: Difficulty) => {
        try { audioHaptic.playClick('soft'); } catch {}
        setDifficulty(diff);
     },
     
-    // UI 뒤로가기 버튼 핸들러
+    // UI 뒤로가기 버튼은 브라우저 백과 동일하게 동작하도록 통일
     goBack: () => {
       if (isPending || isSubmitting) return; 
       try { audioHaptic.playClick(); } catch {}
-      // 브라우저 뒤로가기를 호출하여 handlePopState 로직을 태움
       window.history.back();
     },
     
     goHome: () => {
       try { audioHaptic.playClick(); } catch {}
-      if (stage === AppStage.QUIZ || stage === AppStage.RESULTS) {
-         if (!window.confirm(t.common.confirm_home || "Return to Home?")) return;
+      const needsConfirmation = stage === AppStage.QUIZ || stage === AppStage.LOADING_QUIZ || stage === AppStage.ANALYZING;
+      if (needsConfirmation) {
+        if (!window.confirm(t.common.confirm_home || "홈화면으로 이동하시겠습니까?")) return;
       }
       setIsPending(false);
       setIsSubmitting(false);
@@ -599,7 +575,7 @@ export const useGameViewModel = () => {
       setSessionResults([
           mockResult, 
           {...mockResult, id:"HISTORY", title:"History", totalScore: 70}, 
-          {...mockResult, id:"ARTS", title:"Arts", totalScore: 95},
+          {...mockResult, id:"ARTS", title:"Arts", totalScore: 95}, 
           {...mockResult, id:"TECH", title:"Technology", totalScore: 65}
       ]);
       setStage(AppStage.RESULTS);
