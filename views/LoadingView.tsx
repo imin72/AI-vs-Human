@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Cpu, Zap, Activity, Binary, ShieldAlert, Wifi } from 'lucide-react';
+import { Cpu, Zap, Activity, Binary, Wifi } from 'lucide-react';
 
 interface LoadingViewProps {
   text: string;

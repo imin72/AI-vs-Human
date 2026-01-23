@@ -287,8 +287,15 @@ export const evaluateBatchAnswers = async (
     };
 
     const summaries = batches.map(b => 
-      `Topic: ${b.topic}, Score: ${b.score}/100, Details: [${b.performance.map(p => `Q${p.questionId}:${p.isCorrect?'Correct':'Incorrect'}`).join(',')}]`
-    ).join('\n');
+      `## Topic: ${b.topic} (Score: ${b.score}/100)
+       Questions:
+       ${b.performance.map(p => 
+         `- Q${p.questionId}: "${p.questionText}"
+            User Selected: "${p.selectedOption}"
+            Correct Answer: "${p.correctAnswer}"
+            Result: ${p.isCorrect ? 'Correct' : 'Incorrect'}`
+       ).join('\n')}`
+    ).join('\n\n');
 
     const prompt = `
       You are an AI analyst evaluating human intelligence.
@@ -303,7 +310,7 @@ export const evaluateBatchAnswers = async (
       REQUIREMENTS:
       1. Return a JSON object containing an array "results".
       2. Each item in "results" must correspond to the input topics in order.
-      3. For "details", provide a brief witty comment on why they might have missed it or a congratulation.
+      3. For "details" array, provide specific analysis for each question based on the Question text and the User's answer. Explain why the answer is wrong or praise the insight.
       4. "aiComparison" and "demographicComment" should be creative and slightly provocative (Human vs AI theme).
       5. Include "questionId" in details to match input.
     `;
