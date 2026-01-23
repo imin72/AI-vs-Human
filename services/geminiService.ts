@@ -9,11 +9,21 @@ const CACHE_KEY_QUIZ = "cognito_quiz_cache_v3";
 // --- Safe Environment Helpers ---
 const isDev = () => {
   try {
+    // 1. Check Vite's DEV flag
     // @ts-ignore
-    return typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
-  } catch {
-    return false;
+    if (import.meta.env.DEV) return true;
+  } catch {}
+
+  // 2. Check Hostname
+  if (typeof window !== 'undefined') {
+    const h = window.location.hostname;
+    // Explicitly exclude Vercel
+    if (h.includes('vercel.app')) return false;
+    
+    // Allow Localhost and AIStudio Previews
+    if (h === 'localhost' || h === '127.0.0.1' || h.includes('googleusercontent.com') || h.includes('webcontainer.io')) return true;
   }
+  return false;
 };
 
 const getApiKey = () => {

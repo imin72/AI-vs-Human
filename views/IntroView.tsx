@@ -29,14 +29,33 @@ const LANGUAGES: { id: Language; flag: string }[] = [
   { id: 'fr', flag: '🇫🇷' },
 ];
 
-// Helper to safely check dev mode in component
-const isDev = () => {
+// Robust helper to check if we are in a Debug/Preview environment
+const isDebugMode = () => {
   try {
+    // 1. Check Vite's DEV flag (covers npm run dev)
     // @ts-ignore
-    return typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
-  } catch {
-    return false;
+    if (import.meta.env.DEV) return true;
+  } catch {}
+
+  // 2. Runtime Domain Check
+  if (typeof window !== 'undefined') {
+    const h = window.location.hostname;
+    
+    // Explicitly DISABLE on Vercel production domains
+    if (h.includes('vercel.app')) return false;
+
+    // ENABLE for Localhost
+    if (h === 'localhost' || h === '127.0.0.1') return true;
+
+    // ENABLE for AIStudio / Project IDX / Cloud Shell Previews
+    // These typically run on googleusercontent.com or similar subdomains
+    if (h.includes('googleusercontent.com') || h.includes('webcontainer.io') || h.includes('idx.google')) {
+      return true;
+    }
   }
+
+  // Default to false for production
+  return false;
 };
 
 export const IntroView: React.FC<IntroViewProps> = ({ 
@@ -51,7 +70,7 @@ export const IntroView: React.FC<IntroViewProps> = ({
   onDebugSeed
 }) => {
   const [hasProfile, setHasProfile] = useState(false);
-  const showDebug = isDev();
+  const showDebug = isDebugMode();
 
   useEffect(() => {
     const saved = localStorage.getItem(PROFILE_KEY);
@@ -134,7 +153,7 @@ export const IntroView: React.FC<IntroViewProps> = ({
           )}
         </div>
 
-        {/* Debug Controls (Visible only in DEV environment) */}
+        {/* Debug Controls (Visible only in Local/Preview environment, HIDDEN on Vercel) */}
         {showDebug && (
           <div className="mt-8 pt-4 border-t border-slate-800/50 w-full flex justify-center gap-2 opacity-50 hover:opacity-100 transition-opacity duration-300 flex-wrap">
              {onDebugBypass && (
