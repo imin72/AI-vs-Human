@@ -1,5 +1,3 @@
-// src/viewmodels/useGameViewModel.ts
-
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
   Language, 
@@ -9,17 +7,16 @@ import {
   UserAnswer, 
   EvaluationResult,
   QuizSet,
-  AppStage,
-  HistoryItem
+  AppStage
+  // 에러 수정: 사용하지 않는 HistoryItem 제거
 } from '../types';
 import { generateQuestionsBatch, evaluateBatchAnswers, BatchEvaluationInput, seedLocalDatabase } from '../services/geminiService';
 import { audioHaptic } from '../services/audioHapticService';
 import { TRANSLATIONS } from '../utils/translations';
-import { useAppNavigation } from '../hooks/useAppNavigation'; // [NEW] 방금 만든 훅 임포트
+import { useAppNavigation } from '../hooks/useAppNavigation'; 
 
 const PROFILE_KEY = 'cognito_user_profile_v1';
 
-// (기존 상수 및 헬퍼 함수들은 유지)
 const DEBUG_QUIZ: QuizQuestion[] = [
   { 
     id: 1, 
@@ -67,8 +64,7 @@ interface AccumulatedBatchData {
 }
 
 export const useGameViewModel = () => {
-  // [1] 내비게이션 훅 사용 (핵심 분리 완료!)
-  // 이제 stage 관리와 뒤로가기 로직은 얘가 다 알아서 합니다.
+  // [1] 내비게이션 훅 사용
   const { 
     stage, setStage, 
     selectionPhase, setSelectionPhase, 
@@ -80,12 +76,12 @@ export const useGameViewModel = () => {
   const [language, setLanguage] = useState<Language>(getBrowserLanguage());
   const t = useMemo(() => TRANSLATIONS[language], [language]);
 
-  // [3] 사용자 프로필 (추후 분리 예정 - Step 2)
+  // [3] 사용자 프로필
   const [userProfile, setUserProfile] = useState<UserProfile>({ 
     gender: '', ageGroup: '', nationality: '', eloRatings: {}, seenQuestionIds: [], history: []
   });
 
-  // [4] 퀴즈 데이터 및 상태 (추후 분리 예정 - Step 3)
+  // [4] 퀴즈 데이터 및 상태
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubTopics, setSelectedSubTopics] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.MEDIUM);
@@ -107,7 +103,6 @@ export const useGameViewModel = () => {
   const [isPending, setIsPending] = useState(false);
 
   // --- 퀴즈 데이터 초기화 함수 ---
-  // 내비게이션 훅이 "홈으로 갈 때" 이 함수를 호출해달라고 부탁할 겁니다.
   const resetQuizData = useCallback(() => {
     setQuizQueue([]);
     setCurrentQuizSet(null);
@@ -124,19 +119,18 @@ export const useGameViewModel = () => {
     setIsSubmitting(false);
   }, []);
 
-  // --- [중요] 내비게이션 훅에 콜백 등록 ---
-  // 언어가 바뀌거나 로직이 변할 때마다 최신 함수/메시지를 내비게이션 훅에 전달합니다.
+  // --- 내비게이션 훅에 콜백 등록 ---
   useEffect(() => {
     updateCallbacks(
-      () => { try { window.close(); } catch {} }, // 앱 종료 시 실행할 추가 로직
-      resetQuizData,                              // 홈 이동 시 실행할 초기화 로직
+      () => { try { window.close(); } catch {} }, 
+      resetQuizData,                              
       t.common.confirm_exit_app || "앱을 종료하시겠습니까?",
       t.common.confirm_home || "홈으로 이동하시겠습니까? 진행 중인 내용은 초기화됩니다."
     );
   }, [t, updateCallbacks, resetQuizData]);
 
 
-  // --- 기존 비즈니스 로직들 (유지) ---
+  // --- 기존 비즈니스 로직들 ---
   
   useEffect(() => {
     try {
@@ -263,13 +257,11 @@ export const useGameViewModel = () => {
       resetQuizData();
       setLanguage(lang); 
     },
-    // [중요] 내비게이션 훅의 함수를 그대로 UI에 노출
     goBack,
     goHome,
     
     startIntro: () => {
       try { audioHaptic.playClick('hard'); } catch {}
-      // 이제 히스토리 조작 없이 stage만 바꿉니다. (내비게이션 훅이 관리)
       if (userProfile.gender && userProfile.nationality) {
         setStage(AppStage.TOPIC_SELECTION);
       } else {
