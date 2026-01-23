@@ -278,47 +278,57 @@ export const useGameViewModel = () => {
   }, [stage]);
 
   const performBackNavigation = useCallback((): boolean => {
-    if (isPending || isSubmitting) return false; // Block back nav during submission
+    // [공통] 데이터 제출 중이거나 로딩 중일 때는 뒤로가기 방지
+    if (isPending || isSubmitting) return false; 
     try { audioHaptic.playClick('soft'); } catch {}
 
-    const confirmHomeMsg = t.common.confirm_home || "Return to Home? Progress will be reset.";
+    const confirmHomeMsg = t.common.confirm_home || "홈 화면으로 이동하시겠습니까? 진행 중인 내용은 초기화됩니다.";
 
     switch (stage) {
-      // 2) IntroView를 제외한 영역선택(PROFILE, TOPIC_SELECTION)은 바로 전단계로 이동
+      // -----------------------------------------------------------
+      // 2) IntroView를 제외한 영역선택View(PROFILE, TOPIC_SELECTION)는 바로 전단계로 이동
+      // -----------------------------------------------------------
       case AppStage.TOPIC_SELECTION:
         if (selectionPhase === 'SUBTOPIC') {
+            // 서브토픽 선택 단계라면 -> 카테고리 선택 단계로 이동
             setSelectionPhase('CATEGORY');
             setSelectedSubTopics([]);
-            return true;
+            return true; 
         }
+        // 카테고리 선택 단계라면 -> Intro로 이동
         setStage(AppStage.INTRO); 
         return true;
 
       case AppStage.PROFILE:
+        // 프로필 설정 단계라면 -> Intro로 이동
         setStage(AppStage.INTRO);
         return true;
 
-      // 1) IntroView의 뒤로가기 액션은 무조건 종료팝업
+      // -----------------------------------------------------------
+      // 1) IntroView의 뒤로가기 액션은 무조건 종료팝업 -> '예' 누르면 앱 종료
+      // -----------------------------------------------------------
       case AppStage.INTRO:
-        // 앱 종료 확인
-        if (window.confirm(t.common.confirm_exit_app || "Do you want to exit the app?")) {
+        if (window.confirm(t.common.confirm_exit_app || "앱을 종료하시겠습니까?")) {
            const len = window.history.length;
-           // PWA/브라우저 환경에서 뒤로가기를 최대한 수행하여 이탈 시도
            if (len > 1) {
+              // 브라우저 히스토리를 뒤로 돌려 앱 이탈 시도
               window.history.go(-(len - 1));
            } else {
-             window.close(); // 가능한 경우 창 닫기 시도
+             // 닫기 시도 (PWA/팝업 등)
+             window.close(); 
            }
            return true;
         }
-        return false; // 취소 시 스테이
+        return false; // '아니오' 선택 시 Intro 화면 유지
 
-      // 3) 문제풀이View: 뒤로가기 시 팝업 -> 예(홈+초기화), 아니오(재개)
+      // -----------------------------------------------------------
+      // 3) 문제풀이View: 뒤로가기 시 팝업 -> '예' (홈+초기화), '아니오' (재개)
+      // -----------------------------------------------------------
       case AppStage.QUIZ:
         if (window.confirm(confirmHomeMsg)) {
-          // 홈으로 이동 및 완전 초기화
+          // '예': 홈으로 이동 및 모든 진행상태 초기화
           setStage(AppStage.INTRO);
-          // 퀴즈 관련 상태 초기화
+          
           setQuizQueue([]);
           setCurrentQuizSet(null);
           setBatchProgress({ total: 0, current: 0, topics: [] });
@@ -329,18 +339,22 @@ export const useGameViewModel = () => {
           setSelectionPhase('CATEGORY');
           setSelectedCategories([]); 
           setSelectedSubTopics([]);
-          // 히스토리 스택 정리
+          
+          // 히스토리 스택 초기화 (뒤로가기로 다시 퀴즈 진입 방지)
           window.history.replaceState({ stage: 'root' }, '', window.location.pathname);
           return true;
         }
-        return false; // 아니오 누르면 문제풀이 유지
+        return false; // '아니오': 팝업 닫고 문제풀이 화면 유지
 
-      // 4) 결과View: 뒤로가기 시 팝업 -> 예(홈+초기화), 아니오(복귀/유지)
+      // -----------------------------------------------------------
+      // 4) 결과View: 뒤로가기 시 팝업 -> '예' (홈+초기화), '아니오' (결과화면 복귀)
+      // -----------------------------------------------------------
       case AppStage.RESULTS:
       case AppStage.ERROR:
         if (window.confirm(confirmHomeMsg)) {
-          // 홈으로 이동 및 완전 초기화
+          // '예': 홈으로 이동 및 결과 데이터 초기화
           setStage(AppStage.INTRO);
+          
           setEvaluation(null);
           setSessionResults([]); 
           setCompletedBatches([]);
@@ -350,12 +364,13 @@ export const useGameViewModel = () => {
           setSelectionPhase('CATEGORY');
           setSelectedCategories([]);
           setSelectedSubTopics([]);
-          // 히스토리 스택 정리
+          
           window.history.replaceState({ stage: 'root' }, '', window.location.pathname);
           return true;
         }
-        return false; // 아니오 누르면 결과화면 유지
+        return false; // '아니오': 팝업 닫고 결과 화면 유지
 
+      // 그 외 예외 상황
       default:
         setStage(AppStage.INTRO);
         return true;
