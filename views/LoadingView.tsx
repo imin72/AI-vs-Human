@@ -4,14 +4,16 @@ import { Cpu, Zap, Activity, Binary, Wifi } from 'lucide-react';
 
 interface LoadingViewProps {
   text: string;
+  logs?: string[];
+  syncText?: string;
 }
 
-export const LoadingView: React.FC<LoadingViewProps> = ({ text }) => {
+export const LoadingView: React.FC<LoadingViewProps> = ({ text, logs, syncText = "SYNCHRONIZING..." }) => {
   const [progress, setProgress] = useState(0);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [displayedLogs, setDisplayedLogs] = useState<string[]>([]);
   
-  // Cyberpunk-style logs
-  const SYSTEM_LOGS = [
+  // Default logs if none provided
+  const DEFAULT_LOGS = [
     "INITIALIZING_NEURAL_NET...",
     "HANDSHAKE_PROTOCOL: [SECURE]",
     "ACCESSING_GLOBAL_DATABASE...",
@@ -21,6 +23,8 @@ export const LoadingView: React.FC<LoadingViewProps> = ({ text }) => {
     "ALLOCATING_VIRTUAL_NEURONS...",
     "READY_TO_ENGAGE."
   ];
+
+  const targetLogs = logs && logs.length > 0 ? logs : DEFAULT_LOGS;
 
   useEffect(() => {
     // 1. Progress Bar Simulation
@@ -36,8 +40,8 @@ export const LoadingView: React.FC<LoadingViewProps> = ({ text }) => {
     // 2. Terminal Log Simulation
     let logIndex = 0;
     const logTimer = setInterval(() => {
-      if (logIndex < SYSTEM_LOGS.length) {
-        setLogs(prev => [...prev, SYSTEM_LOGS[logIndex]].slice(-4)); // Keep last 4 logs
+      if (logIndex < targetLogs.length) {
+        setDisplayedLogs(prev => [...prev, targetLogs[logIndex]].slice(-6)); // Keep last 6 logs
         logIndex++;
       }
     }, 400);
@@ -46,7 +50,7 @@ export const LoadingView: React.FC<LoadingViewProps> = ({ text }) => {
       clearInterval(timer);
       clearInterval(logTimer);
     };
-  }, []);
+  }, [targetLogs]);
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden animate-fade-in">
@@ -89,7 +93,7 @@ export const LoadingView: React.FC<LoadingViewProps> = ({ text }) => {
           </h2>
           <div className="flex items-center justify-center gap-2 text-cyan-400 font-mono text-sm">
              <Wifi size={14} className="animate-pulse" />
-             <span>SYNCHRONIZING... {progress}%</span>
+             <span>{syncText} {progress}%</span>
           </div>
         </div>
 
@@ -101,10 +105,10 @@ export const LoadingView: React.FC<LoadingViewProps> = ({ text }) => {
           ></div>
         </div>
 
-        {/* Terminal Logs */}
-        <div className="w-full bg-black/50 border border-slate-800 rounded-lg p-4 font-mono text-[10px] md:text-xs h-24 flex flex-col justify-end shadow-inner">
-           {logs.map((log, idx) => (
-             <div key={idx} className="text-green-500/80 leading-tight truncate">
+        {/* Terminal Logs - Increased Height and Font Size */}
+        <div className="w-full bg-black/50 border border-slate-800 rounded-lg p-4 font-mono text-xs md:text-sm h-40 flex flex-col justify-end shadow-inner">
+           {displayedLogs.map((log, idx) => (
+             <div key={idx} className="text-green-500/80 leading-snug truncate">
                <span className="opacity-50 mr-2">{`>`}</span>
                {log}
              </div>

@@ -73,7 +73,11 @@ export default function App() {
       )}
       
       {stage === AppStage.LOADING_QUIZ && (
-        <LoadingView text={t.loading.gen_vectors} />
+        <LoadingView 
+          text={t.loading.gen_vectors} 
+          logs={t.loading.logs} 
+          syncText={t.loading.sync}
+        />
       )}
       
       {stage === AppStage.QUIZ && (
@@ -93,7 +97,11 @@ export default function App() {
       )}
       
       {stage === AppStage.ANALYZING && (
-        <LoadingView text={t.loading.analyzing} />
+        <LoadingView 
+          text={t.loading.analyzing} 
+          logs={t.loading.logs} 
+          syncText={t.loading.sync}
+        />
       )}
       
       {stage === AppStage.RESULTS && resultState.evaluation && (

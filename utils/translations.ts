@@ -5,7 +5,7 @@ export interface TranslationData {
   common: {
     btn_back: string;
     confirm_exit: string;
-    confirm_home: string; // Added new key
+    confirm_home: string;
     close: string;
   };
   intro: {
@@ -102,6 +102,8 @@ export interface TranslationData {
   loading: {
     gen_vectors: string;
     analyzing: string;
+    sync: string;
+    logs: string[];
   };
   difficulty: {
     [key in Difficulty]: string;
@@ -270,8 +272,19 @@ const ENGLISH_BASE: TranslationData = {
     }
   },
   loading: { 
-    gen_vectors: "INITIALIZING BATTLE PROTOCOL...", 
-    analyzing: "CALCULATING NEURAL METRICS..." 
+    gen_vectors: "PREPARING FOR AI BATTLE...", 
+    analyzing: "CALCULATING NEURAL METRICS...",
+    sync: "SYNCHRONIZING...",
+    logs: [
+      "INITIALIZING_NEURAL_NET...",
+      "HANDSHAKE_PROTOCOL: [SECURE]",
+      "ACCESSING_GLOBAL_DATABASE...",
+      "LOADING_TOPIC_VECTORS...",
+      "CALIBRATING_DIFFICULTY_MATRIX...",
+      "SYNCHRONIZING_WAVEFORMS...",
+      "ALLOCATING_VIRTUAL_NEURONS...",
+      "READY_TO_ENGAGE."
+    ]
   },
   difficulty: { [Difficulty.EASY]: "Novice", [Difficulty.MEDIUM]: "Competent", [Difficulty.HARD]: "Expert" },
   error: { title: "System Failure", btn_reset: "System Reset" }
@@ -368,8 +381,19 @@ const KO_TRANSLATIONS: TranslationData = {
     chart: { accuracy: "정확도", speed: "속도", cohort: "집단위치", logic: "논리력", intuition: "직관력" }
   },
   loading: { 
-    gen_vectors: "BATTLE PROTOCOL INITIATED...", 
-    analyzing: "PROCESSING NEURAL DATA..." 
+    gen_vectors: "AI와의 대결 준비 중...", 
+    analyzing: "신경망 데이터 분석 중...",
+    sync: "동기화 중...",
+    logs: [
+      "신경망 초기화 중...",
+      "보안 프로토콜 연결...",
+      "글로벌 데이터베이스 접근...",
+      "주제 벡터 로딩...",
+      "난이도 매트릭스 조정...",
+      "파형 동기화...",
+      "가상 뉴런 할당...",
+      "전투 준비 완료."
+    ]
   },
   difficulty: { [Difficulty.EASY]: "초급", [Difficulty.MEDIUM]: "중급", [Difficulty.HARD]: "고급" },
   error: { title: "시스템 오류", btn_reset: "시스템 재설정" }
@@ -466,8 +490,19 @@ const JA_TRANSLATIONS: TranslationData = {
     chart: { accuracy: "正確性", speed: "速度", cohort: "集団位置", logic: "論理力", intuition: "直感力" }
   },
   loading: { 
-    gen_vectors: "BATTLE PROTOCOL INITIATED...", 
-    analyzing: "NEURAL LINK ACTIVE..." 
+    gen_vectors: "AIとの対決を準備中...", 
+    analyzing: "ニューラルリンク接続中...",
+    sync: "同期中...",
+    logs: [
+      "ニューラルネットワーク初期化...",
+      "ハンドシェイク: [安全]",
+      "グローバルDBアクセス...",
+      "トピックベクトル読み込み...",
+      "難易度マトリックス調整...",
+      "波形同期中...",
+      "仮想ニューロン割り当て...",
+      "エンゲージ準備完了."
+    ]
   },
   difficulty: { [Difficulty.EASY]: "初級", [Difficulty.MEDIUM]: "中級", [Difficulty.HARD]: "上級" },
   error: { title: "システムエラー", btn_reset: "システムリセット" }
@@ -496,6 +531,21 @@ const ES_TRANSLATIONS: TranslationData = {
     popup_ai_comment: "Análisis de IA",
     level_ai: "Nivel IA",
     level_global: "Nivel Global",
+  },
+  loading: {
+    gen_vectors: "PREPARANDO BATALLA CONTRA IA...",
+    analyzing: "ANALIZANDO DATOS...",
+    sync: "SINCRONIZANDO...",
+    logs: [
+      "INICIALIZANDO RED NEURONAL...",
+      "PROTOCOLO: [SEGURO]",
+      "ACCEDIENDO BASE DE DATOS...",
+      "CARGANDO VECTORES...",
+      "CALIBRANDO DIFICULTAD...",
+      "SINCRONIZANDO ONDAS...",
+      "ASIGNANDO NEURONAS...",
+      "LISTO PARA COMBATE."
+    ]
   }
 };
 
@@ -522,6 +572,21 @@ const FR_TRANSLATIONS: TranslationData = {
     popup_ai_comment: "Analyse IA",
     level_ai: "Niveau IA",
     level_global: "Niveau Global",
+  },
+  loading: {
+    gen_vectors: "PRÉPARATION DU COMBAT CONTRE L'IA...",
+    analyzing: "ANALYSE DES DONNÉES...",
+    sync: "SYNCHRONISATION...",
+    logs: [
+      "INITIALISATION RÉSEAU NEURONAL...",
+      "PROTOCOLE: [SÉCURISÉ]",
+      "ACCÈS BASE DE DONNÉES...",
+      "CHARGEMENT VECTEURS...",
+      "CALIBRAGE DIFFICULTÉ...",
+      "SYNCHRONISATION ONDES...",
+      "ALLOCATION NEURONES...",
+      "PRÊT À ENGAGER."
+    ]
   }
 };
 
@@ -616,8 +681,19 @@ const ZH_TRANSLATIONS: TranslationData = {
     chart: { accuracy: "准确性", speed: "速度", cohort: "群体定位", logic: "逻辑力", intuition: "直觉力" }
   },
   loading: { 
-    gen_vectors: "BATTLE PROTOCOL INITIATED...", 
-    analyzing: "NEURAL LINK ACTIVE..." 
+    gen_vectors: "正在准备与AI的对决...", 
+    analyzing: "NEURAL LINK ACTIVE...",
+    sync: "同步中...",
+    logs: [
+      "初始化神经网络...",
+      "握手协议: [安全]",
+      "访问全球数据库...",
+      "加载主题向量...",
+      "校准难度矩阵...",
+      "同步波形...",
+      "分配虚拟神经元...",
+      "准备战斗."
+    ]
   },
   difficulty: { [Difficulty.EASY]: "初级", [Difficulty.MEDIUM]: "中级", [Difficulty.HARD]: "高级" },
   error: { title: "系统错误", btn_reset: "系统重置" }
