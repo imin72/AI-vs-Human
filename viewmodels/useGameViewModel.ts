@@ -8,7 +8,6 @@ import {
   EvaluationResult,
   QuizSet,
   AppStage
-  // 에러 수정: 사용하지 않는 HistoryItem 제거
 } from '../types';
 import { generateQuestionsBatch, evaluateBatchAnswers, BatchEvaluationInput, seedLocalDatabase } from '../services/geminiService';
 import { audioHaptic } from '../services/audioHapticService';
