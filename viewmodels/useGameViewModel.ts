@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+// src/viewmodels/useGameViewModel.ts
+
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
-  AppStage, 
   Language, 
   UserProfile, 
   Difficulty, 
@@ -8,14 +9,17 @@ import {
   UserAnswer, 
   EvaluationResult,
   QuizSet,
+  AppStage,
   HistoryItem
 } from '../types';
 import { generateQuestionsBatch, evaluateBatchAnswers, BatchEvaluationInput, seedLocalDatabase } from '../services/geminiService';
 import { audioHaptic } from '../services/audioHapticService';
 import { TRANSLATIONS } from '../utils/translations';
+import { useAppNavigation } from '../hooks/useAppNavigation'; // [NEW] 방금 만든 훅 임포트
 
 const PROFILE_KEY = 'cognito_user_profile_v1';
 
+// (기존 상수 및 헬퍼 함수들은 유지)
 const DEBUG_QUIZ: QuizQuestion[] = [
   { 
     id: 1, 
@@ -40,7 +44,6 @@ const DEBUG_QUIZ: QuizQuestion[] = [
   }
 ];
 
-// Fisher-Yates Shuffle Helper
 const shuffleArray = <T,>(array: T[]): T[] => {
   const newArr = [...array];
   for (let i = newArr.length - 1; i > 0; i--) {
@@ -50,7 +53,6 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return newArr;
 };
 
-// Helper to detect browser language
 const getBrowserLanguage = (): Language => {
   if (typeof navigator === 'undefined') return 'en';
   const lang = navigator.language.split('-')[0];
@@ -65,26 +67,30 @@ interface AccumulatedBatchData {
 }
 
 export const useGameViewModel = () => {
-  // --- State Definitions ---
-  const [stage, setStage] = useState<AppStage>(AppStage.INTRO);
+  // [1] 내비게이션 훅 사용 (핵심 분리 완료!)
+  // 이제 stage 관리와 뒤로가기 로직은 얘가 다 알아서 합니다.
+  const { 
+    stage, setStage, 
+    selectionPhase, setSelectionPhase, 
+    updateCallbacks, 
+    goBack, goHome 
+  } = useAppNavigation(AppStage.INTRO);
+
+  // [2] 언어 및 번역
   const [language, setLanguage] = useState<Language>(getBrowserLanguage());
+  const t = useMemo(() => TRANSLATIONS[language], [language]);
+
+  // [3] 사용자 프로필 (추후 분리 예정 - Step 2)
   const [userProfile, setUserProfile] = useState<UserProfile>({ 
-    gender: '', 
-    ageGroup: '', 
-    nationality: '',
-    eloRatings: {},
-    seenQuestionIds: [],
-    history: []
+    gender: '', ageGroup: '', nationality: '', eloRatings: {}, seenQuestionIds: [], history: []
   });
-  
-  // Selection State
-  const [selectionPhase, setSelectionPhase] = useState<'CATEGORY' | 'SUBTOPIC'>('CATEGORY');
+
+  // [4] 퀴즈 데이터 및 상태 (추후 분리 예정 - Step 3)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubTopics, setSelectedSubTopics] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.MEDIUM);
   const [displayedTopics, setDisplayedTopics] = useState<{id: string, label: string}[]>([]);
   
-  // Quiz Execution State
   const [quizQueue, setQuizQueue] = useState<QuizSet[]>([]);
   const [currentQuizSet, setCurrentQuizSet] = useState<QuizSet | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -92,55 +98,60 @@ export const useGameViewModel = () => {
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false); 
-  
-  // Batch Progress Tracking
   const [batchProgress, setBatchProgress] = useState<{ total: number, current: number, topics: string[] }>({ total: 0, current: 0, topics: [] });
   const [completedBatches, setCompletedBatches] = useState<AccumulatedBatchData[]>([]);
-
-  // Result State
+  
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [sessionResults, setSessionResults] = useState<EvaluationResult[]>([]); 
   const [errorMsg, setErrorMsg] = useState('');
   const [isPending, setIsPending] = useState(false);
 
-  const t = useMemo(() => TRANSLATIONS[language], [language]);
+  // --- 퀴즈 데이터 초기화 함수 ---
+  // 내비게이션 훅이 "홈으로 갈 때" 이 함수를 호출해달라고 부탁할 겁니다.
+  const resetQuizData = useCallback(() => {
+    setQuizQueue([]);
+    setCurrentQuizSet(null);
+    setBatchProgress({ total: 0, current: 0, topics: [] });
+    setSessionResults([]); 
+    setCompletedBatches([]);
+    setUserAnswers([]);
+    setCurrentQuestionIndex(0);
+    setSelectedCategories([]); 
+    setSelectedSubTopics([]);
+    setSelectedOption(null);
+    setEvaluation(null);
+    setIsPending(false);
+    setIsSubmitting(false);
+  }, []);
 
-  // --- Refs (상태 동기화 문제 해결) ---
-  const stageRef = useRef(stage);
-  const selectionPhaseRef = useRef(selectionPhase);
-  const tRef = useRef(t);
-  const isExitingRef = useRef(false); // 종료 진행 중인지 체크
+  // --- [중요] 내비게이션 훅에 콜백 등록 ---
+  // 언어가 바뀌거나 로직이 변할 때마다 최신 함수/메시지를 내비게이션 훅에 전달합니다.
+  useEffect(() => {
+    updateCallbacks(
+      () => { try { window.close(); } catch {} }, // 앱 종료 시 실행할 추가 로직
+      resetQuizData,                              // 홈 이동 시 실행할 초기화 로직
+      t.common.confirm_exit_app || "앱을 종료하시겠습니까?",
+      t.common.confirm_home || "홈으로 이동하시겠습니까? 진행 중인 내용은 초기화됩니다."
+    );
+  }, [t, updateCallbacks, resetQuizData]);
 
-  useEffect(() => { stageRef.current = stage; }, [stage]);
-  useEffect(() => { selectionPhaseRef.current = selectionPhase; }, [selectionPhase]);
-  useEffect(() => { tRef.current = t; }, [t]);
 
-  // --- Initial Loaders ---
-
+  // --- 기존 비즈니스 로직들 (유지) ---
+  
   useEffect(() => {
     try {
       const saved = localStorage.getItem(PROFILE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        setUserProfile({
-          ...parsed,
-          eloRatings: parsed.eloRatings || {},
-          seenQuestionIds: parsed.seenQuestionIds || [],
-          history: parsed.history || []
-        });
+        setUserProfile({ ...parsed, eloRatings: parsed.eloRatings || {}, seenQuestionIds: parsed.seenQuestionIds || [], history: parsed.history || [] });
       }
-    } catch (e) {
-      console.warn("Failed to load profile");
-    }
+    } catch (e) { console.warn("Failed to load profile"); }
   }, []);
 
   useEffect(() => {
-    const topics = Object.entries(t.topics.categories)
-      .map(([id, label]) => ({ id, label }));
+    const topics = Object.entries(t.topics.categories).map(([id, label]) => ({ id, label }));
     setDisplayedTopics(shuffleArray(topics));
   }, [t]);
-
-  // --- Logic Helpers ---
 
   const finishBatchQuiz = async (allBatches: AccumulatedBatchData[], profile: UserProfile, lang: Language) => {
     if (isPending) return;
@@ -161,9 +172,7 @@ export const useGameViewModel = () => {
         const totalCount = batch.answers.length;
         const score = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
         
-        if (score >= (currentScores[batch.topicLabel] || 0)) {
-           currentScores[batch.topicLabel] = score;
-        }
+        if (score >= (currentScores[batch.topicLabel] || 0)) currentScores[batch.topicLabel] = score;
 
         batch.answers.forEach(a => seenIds.add(a.questionId));
 
@@ -178,14 +187,13 @@ export const useGameViewModel = () => {
         currentElos[batch.topicId] = newElo;
 
         const aiBenchmark = difficulty === Difficulty.HARD ? 98 : difficulty === Difficulty.MEDIUM ? 95 : 92;
-        const historyItem: HistoryItem = {
+        currentHistory.push({
           timestamp: Date.now(),
           topicId: batch.topicId,
           score: score,
           aiScore: aiBenchmark,
           difficulty: difficulty
-        };
-        currentHistory.push(historyItem);
+        });
 
         batchInputs.push({
           topic: batch.topicLabel,
@@ -231,10 +239,7 @@ export const useGameViewModel = () => {
       }
 
       const results = await evaluateBatchAnswers(batchInputs, updatedProfile, lang);
-      const resultsWithIds = results.map((res, idx) => ({
-        ...res,
-        id: allBatches[idx].topicId
-      }));
+      const resultsWithIds = results.map((res, idx) => ({ ...res, id: allBatches[idx].topicId }));
 
       setEvaluation(resultsWithIds[0]); 
       setSessionResults(resultsWithIds);
@@ -251,125 +256,20 @@ export const useGameViewModel = () => {
     }
   };
 
-  const resetAllStateToHome = useCallback(() => {
-    setStage(AppStage.INTRO);
-    setQuizQueue([]);
-    setCurrentQuizSet(null);
-    setBatchProgress({ total: 0, current: 0, topics: [] });
-    setSessionResults([]); 
-    setCompletedBatches([]);
-    setUserAnswers([]);
-    setCurrentQuestionIndex(0);
-    setSelectionPhase('CATEGORY');
-    setSelectedCategories([]); 
-    setSelectedSubTopics([]);
-    setSelectedOption(null);
-    setEvaluation(null);
-  }, []);
-
-  // --- [핵심] 1. 앱 시작 시 단 하나의 History Trap 설치 ---
-  useEffect(() => {
-    // 이미 트랩이 설치되어 있는지 확인 (Strict Mode 중복 방지)
-    if (!window.history.state || window.history.state.trap !== true) {
-        // 현재 상태를 교체하고, 'trap' 상태를 하나 쌓음.
-        // 이 'trap' 상태에서 뒤로가기를 하면 popstate 이벤트가 발생하고 스택이 하나 줄어듦.
-        window.history.replaceState({ root: true }, '');
-        window.history.pushState({ trap: true }, '');
-    }
-  }, []);
-
-  // --- [핵심] 2. 뒤로가기(Popstate) 통합 핸들러 ---
-  useEffect(() => {
-    const handlePopState = (_: PopStateEvent) => {
-      // 종료 중이라면 아무것도 하지 않음 (브라우저 기본 동작 허용)
-      if (isExitingRef.current) return;
-
-      // [Trap Logic]
-      // 뒤로가기를 눌러서 히스토리가 빠졌으므로, 즉시 다시 채워넣어 '이탈'을 막음.
-      // 이렇게 하면 사용자는 항상 'trap' 상태에 머물게 됨.
-      window.history.pushState({ trap: true }, '');
-
-      // Refs로 최신 상태 확인
-      const currentStage = stageRef.current;
-      const currentPhase = selectionPhaseRef.current;
-      const currentT = tRef.current;
-      
-      const confirmHomeMsg = currentT.common.confirm_home || "홈 화면으로 이동하시겠습니까? 진행 중인 내용은 초기화됩니다.";
-
-      // ---------------- Case 1: Intro (종료 팝업) ----------------
-      if (currentStage === AppStage.INTRO) {
-        if (window.confirm(currentT.common.confirm_exit_app || "앱을 종료하시겠습니까?")) {
-          // 종료 확정 시
-          isExitingRef.current = true;
-          // 트랩을 위해 방금 push한 것(-1)과, 최초 앱 진입 시 push한 것(-1)을 합쳐서
-          // 2칸 뒤로 가야 앱 밖으로 나갈 수 있음.
-          const histLen = window.history.length;
-          if (histLen > 2) {
-             window.history.go(-2);
-          } else {
-             // 히스토리가 짧다면 일반 back 또는 close 시도
-             window.history.back();
-             try { window.close(); } catch {}
-          }
-        }
-        // 종료 취소 시: 이미 맨 위에서 pushState({trap:true})를 했으므로 자동 복구됨.
-        return;
-      }
-
-      // ---------------- Case 2: Selection (단계 이동) ----------------
-      if (currentStage === AppStage.TOPIC_SELECTION) {
-        if (currentPhase === 'SUBTOPIC') {
-          setSelectionPhase('CATEGORY');
-          setSelectedSubTopics([]);
-        } else {
-          // Category 단계 -> Intro로
-          setStage(AppStage.INTRO);
-        }
-        return;
-      }
-
-      if (currentStage === AppStage.PROFILE) {
-        setStage(AppStage.INTRO);
-        return;
-      }
-
-      // ---------------- Case 3: Quiz / Result (홈 이동 팝업) ----------------
-      const isQuiz = currentStage === AppStage.QUIZ || currentStage === AppStage.LOADING_QUIZ;
-      const isResult = currentStage === AppStage.RESULTS || currentStage === AppStage.ERROR || currentStage === AppStage.ANALYZING;
-
-      if (isQuiz || isResult) {
-        // window.confirm은 블로킹 함수라 상태 복구(pushState) 후에 호출해야 안전함
-        // setTimeout을 사용하여 렌더링 사이클 이후에 실행 (UI 멈춤 방지)
-        setTimeout(() => {
-            if (window.confirm(confirmHomeMsg)) {
-                resetAllStateToHome();
-            }
-        }, 0);
-        return;
-      }
-
-      // Fallback
-      setStage(AppStage.INTRO);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [resetAllStateToHome]);
-
-
   // --- Actions ---
-  // [중요] Actions 내부의 모든 history.pushState 제거됨 (Trap 충돌 방지)
   const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { 
       try { audioHaptic.playClick('soft'); } catch {}
-      setSelectedCategories([]);
-      setSelectedSubTopics([]);
-      setSelectionPhase('CATEGORY');
+      resetQuizData();
       setLanguage(lang); 
     },
+    // [중요] 내비게이션 훅의 함수를 그대로 UI에 노출
+    goBack,
+    goHome,
+    
     startIntro: () => {
       try { audioHaptic.playClick('hard'); } catch {}
-      // 히스토리 추가 X -> 상태만 변경
+      // 이제 히스토리 조작 없이 stage만 바꿉니다. (내비게이션 훅이 관리)
       if (userProfile.gender && userProfile.nationality) {
         setStage(AppStage.TOPIC_SELECTION);
       } else {
@@ -398,9 +298,8 @@ export const useGameViewModel = () => {
     selectCategory: (id: string) => {
       try { audioHaptic.playClick('soft'); } catch {}
       setSelectedCategories(prev => {
-        if (prev.includes(id)) {
-          return prev.filter(cat => cat !== id);
-        } else {
+        if (prev.includes(id)) return prev.filter(cat => cat !== id);
+        else {
           if (prev.length >= 4) return prev; 
           return [...prev, id];
         }
@@ -415,9 +314,8 @@ export const useGameViewModel = () => {
     selectSubTopic: (sub: string) => {
       try { audioHaptic.playClick('soft'); } catch {}
       setSelectedSubTopics(prev => {
-        if (prev.includes(sub)) {
-          return prev.filter(p => p !== sub);
-        } else {
+        if (prev.includes(sub)) return prev.filter(p => p !== sub);
+        else {
           if (prev.length >= 4) return prev; 
           return [...prev, sub];
         }
@@ -427,31 +325,11 @@ export const useGameViewModel = () => {
        try { audioHaptic.playClick('soft'); } catch {}
        setDifficulty(diff);
     },
-    
-    // UI 뒤로가기 버튼: 물리 뒤로가기와 동일하게 동작하도록 history.back 호출
-    goBack: () => {
-      if (isPending || isSubmitting) return; 
-      try { audioHaptic.playClick(); } catch {}
-      window.history.back(); // -> handlePopState가 처리함
-    },
-    
-    goHome: () => {
-      try { audioHaptic.playClick(); } catch {}
-      const needsConfirmation = stage === AppStage.QUIZ || stage === AppStage.LOADING_QUIZ || stage === AppStage.ANALYZING;
-      if (needsConfirmation) {
-        if (!window.confirm(t.common.confirm_home || "홈화면으로 이동하시겠습니까?")) return;
-      }
-      setIsPending(false);
-      setIsSubmitting(false);
-      resetAllStateToHome();
-    },
-
     resetApp: () => {
       try { audioHaptic.playClick(); } catch {}
-      resetAllStateToHome();
+      resetQuizData();
       setStage(AppStage.TOPIC_SELECTION);
     },
-
     startQuiz: async () => {
       if (isPending) return;
       if (selectedSubTopics.length === 0) return;
@@ -460,8 +338,6 @@ export const useGameViewModel = () => {
       setIsPending(true);
       setStage(AppStage.LOADING_QUIZ);
       
-      // 히스토리 추가 X
-
       try {
         const quizSets = await generateQuestionsBatch(selectedSubTopics, difficulty, language, userProfile);
         
@@ -475,12 +351,7 @@ export const useGameViewModel = () => {
           setSessionResults([]); 
           setCompletedBatches([]); 
           
-          setBatchProgress({
-            total: selectedSubTopics.length,
-            current: 1,
-            topics: selectedSubTopics
-          });
-          
+          setBatchProgress({ total: selectedSubTopics.length, current: 1, topics: selectedSubTopics });
           setStage(AppStage.QUIZ);
         } else {
            throw new Error("No questions generated");
@@ -492,15 +363,11 @@ export const useGameViewModel = () => {
         setIsPending(false);
       }
     },
-    
     nextTopicInQueue: () => {
       try { audioHaptic.playClick(); } catch {}
       if (quizQueue.length > 0) {
          const [next, ...rest] = quizQueue;
-         const nextProgress = {
-            ...batchProgress,
-            current: batchProgress.current + 1
-         };
+         const nextProgress = { ...batchProgress, current: batchProgress.current + 1 };
          setQuizQueue(rest);
          setCurrentQuizSet(next);
          setQuestions(next.questions);
@@ -510,24 +377,18 @@ export const useGameViewModel = () => {
          setStage(AppStage.QUIZ);
       }
     },
-
     startDebugQuiz: async () => {
        if (isPending) return;
        try { audioHaptic.playClick(); } catch {}
        setIsPending(true);
        setStage(AppStage.LOADING_QUIZ);
-
+       
        try {
          await new Promise(resolve => setTimeout(resolve, 800));
          const debugTopics = ["Debug Alpha", "Debug Beta", "Debug Gamma", "Debug Delta"];
          const debugSets: QuizSet[] = debugTopics.map((topic, index) => ({
-           topic: topic,
-           categoryId: "GENERAL",
-           questions: DEBUG_QUIZ.map(q => ({
-              ...q,
-              id: q.id + (index * 100), 
-              question: `[${topic}] ${q.question}`
-           }))
+           topic: topic, categoryId: "GENERAL",
+           questions: DEBUG_QUIZ.map(q => ({ ...q, id: q.id + (index * 100), question: `[${topic}] ${q.question}` }))
          }));
          const [first, ...rest] = debugSets;
          setQuizQueue(rest);
@@ -546,7 +407,6 @@ export const useGameViewModel = () => {
          setIsPending(false);
        }
     },
-
     triggerSeeding: async () => {
        if (isPending) return;
        try { audioHaptic.playClick('hard'); } catch {}
@@ -560,46 +420,29 @@ export const useGameViewModel = () => {
          setIsPending(false);
        }
     },
-
     previewResults: () => {
       try { audioHaptic.playClick(); } catch {}
       const mockResult: EvaluationResult = {
-        id: "SCIENCE",
-        totalScore: 88,
-        humanPercentile: 92,
-        aiComparison: "Cognitive patterns exhibit surprising resistance.",
-        demographicPercentile: 95,
-        demographicComment: "Outlier detected.",
-        title: "Quantum Physics",
-        details: []
+        id: "SCIENCE", totalScore: 88, humanPercentile: 92,
+        aiComparison: "Debug Comparison", demographicPercentile: 95, demographicComment: "Debug",
+        title: "Quantum Physics", details: []
       };
       setEvaluation(mockResult);
-      setSessionResults([
-          mockResult, 
-          {...mockResult, id:"HISTORY", title:"History", totalScore: 70}, 
-          {...mockResult, id:"ARTS", title:"Arts", totalScore: 95},
-          {...mockResult, id:"TECH", title:"Technology", totalScore: 65}
-      ]);
+      setSessionResults([mockResult]);
       setStage(AppStage.RESULTS);
     },
-
     previewLoading: () => {
         try { audioHaptic.playClick(); } catch {}
         setStage(AppStage.LOADING_QUIZ);
-        setTimeout(() => {
-           setStage(AppStage.INTRO);
-        }, 5000);
+        setTimeout(() => { setStage(AppStage.INTRO); }, 5000);
     },
-    
     selectOption: (option: string) => {
         if (isSubmitting) return; 
         try { audioHaptic.playClick('soft'); } catch {}
         setSelectedOption(option);
     },
-
     confirmAnswer: () => {
       if (!selectedOption || isSubmitting) return; 
-      
       setIsSubmitting(true);
       const question = questions[currentQuestionIndex];
       const isCorrect = selectedOption === question.correctAnswer;
@@ -608,11 +451,7 @@ export const useGameViewModel = () => {
       else audioHaptic.playError();
 
       const answer = { 
-        questionId: question.id, 
-        questionText: question.question, 
-        selectedOption, 
-        correctAnswer: question.correctAnswer, 
-        isCorrect 
+        questionId: question.id, questionText: question.question, selectedOption, correctAnswer: question.correctAnswer, isCorrect 
       };
       const updatedAnswers = [...userAnswers, answer];
       setUserAnswers(updatedAnswers);
@@ -624,25 +463,16 @@ export const useGameViewModel = () => {
            setIsSubmitting(false); 
         }, 800); 
       } else {
-        const currentTopicLabel = currentQuizSet?.topic || (batchProgress.topics[batchProgress.current - 1] || "Unknown");
+        const currentTopicLabel = currentQuizSet?.topic || "Unknown";
         const currentTopicId = currentQuizSet?.categoryId || "GENERAL";
-        
-        const batchData: AccumulatedBatchData = {
-           topicLabel: currentTopicLabel,
-           topicId: currentTopicId,
-           answers: updatedAnswers
-        };
-        
+        const batchData = { topicLabel: currentTopicLabel, topicId: currentTopicId, answers: updatedAnswers };
         const newCompletedBatches = [...completedBatches, batchData];
         setCompletedBatches(newCompletedBatches);
 
         if (quizQueue.length > 0) {
            setTimeout(() => {
-               const nextProgress = {
-                  ...batchProgress,
-                  current: batchProgress.current + 1
-               };
                const [next, ...rest] = quizQueue;
+               const nextProgress = { ...batchProgress, current: batchProgress.current + 1 };
                setQuizQueue(rest);
                setCurrentQuizSet(next);
                setQuestions(next.questions);
@@ -653,35 +483,28 @@ export const useGameViewModel = () => {
                setIsSubmitting(false);
            }, 800);
         } else {
-           finishBatchQuiz(newCompletedBatches, userProfile, language).then(() => {
-               setIsSubmitting(false);
-           });
+           finishBatchQuiz(newCompletedBatches, userProfile, language).then(() => { setIsSubmitting(false); });
         }
       }
     },
-    
     shuffleTopics: () => {
       try { audioHaptic.playClick(); } catch {}
       setDisplayedTopics(prev => shuffleArray(prev));
     },
     shuffleSubTopics: () => {},
     setCustomTopic: (_topic: string) => {}
-  }), [isPending, stage, selectionPhase, selectedCategories, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, displayedTopics, completedBatches, isSubmitting, resetAllStateToHome]);
+  }), [goBack, goHome, resetQuizData, setStage, setSelectionPhase, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, completedBatches, isSubmitting, language, difficulty, selectedCategories, selectedSubTopics, isPending]);
 
   return {
     state: {
       stage, language, userProfile,
       topicState: { selectionPhase, selectedCategories, selectedSubTopics, difficulty, displayedTopics, isTopicLoading: isPending },
       quizState: { 
-        questions, 
-        currentQuestionIndex, 
-        userAnswers, 
-        selectedOption, 
+        questions, currentQuestionIndex, userAnswers, selectedOption, 
         remainingTopics: quizQueue.length,
         nextTopicName: quizQueue.length > 0 ? quizQueue[0].topic : undefined,
         currentTopicName: currentQuizSet?.topic || (batchProgress.topics.length > 0 ? batchProgress.topics[batchProgress.current - 1] : undefined),
-        batchProgress,
-        isSubmitting 
+        batchProgress, isSubmitting 
       },
       resultState: { evaluation, sessionResults, errorMsg } 
     },
