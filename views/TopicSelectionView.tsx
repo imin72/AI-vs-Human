@@ -3,11 +3,12 @@ import React, { useEffect, useRef } from 'react';
 import { 
   Play, History, FlaskConical, Palette, Zap, Map, Film, Music, Gamepad2, 
   Trophy, Cpu, Scroll, Book, Leaf, Utensils, Orbit, Lightbulb, Home, Bug, CheckCircle2, 
-  UserPen, Medal, ArrowRight, Eye, RefreshCw
+  UserPen, Medal, ArrowRight, Eye, RefreshCw, Star, Shield
 } from 'lucide-react';
 import { Button } from '../components/Button.tsx';
 import { LanguageSwitcher } from '../components/LanguageSwitcher.tsx';
 import { Difficulty, TOPIC_IDS, UserProfile, Language } from '../types.ts';
+import { getTierInfo, calculateAggregateElo, getNextTierThreshold } from '../utils/tierUtils';
 
 interface TopicSelectionViewProps {
   t: any;
@@ -86,6 +87,13 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
     subtopics: t.subtopics[catId] || []
   })) : [];
 
+  // --- Rank Data Calculation ---
+  const aggregateElo = userProfile ? calculateAggregateElo(userProfile) : 1000;
+  const rankInfo = getTierInfo(aggregateElo);
+  const nextThreshold = getNextTierThreshold(aggregateElo);
+  const prevThreshold = nextThreshold > 2200 ? 2200 : (nextThreshold === 800 ? 0 : getTierInfo(nextThreshold - 100).tier === rankInfo.tier ? 0 : nextThreshold - 300); // Simplified previous threshold logic
+  const progressPercent = Math.min(100, Math.max(0, ((aggregateElo - prevThreshold) / (nextThreshold - prevThreshold)) * 100));
+
   return (
     <div className="w-full h-full relative flex flex-col animate-fade-in">
       
@@ -131,6 +139,36 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
           </div>
         </div>
         
+        {/* --- USER RANK DISPLAY (New Feature) --- */}
+        {isCategoryPhase && (
+          <div className="mx-4 mt-3 mb-1 p-3 bg-slate-950/60 rounded-2xl border border-slate-800 flex items-center gap-4 relative overflow-hidden group">
+            <div className={`absolute left-0 top-0 bottom-0 w-1 ${rankInfo.bg}`}></div>
+            
+            {/* Hexagon Rank Icon Placeholder */}
+            <div className={`w-10 h-10 rounded-lg ${rankInfo.bg} bg-opacity-20 border ${rankInfo.border} flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(0,0,0,0.5)]`}>
+               <Shield size={20} className={rankInfo.color} />
+            </div>
+
+            <div className="flex-grow min-w-0">
+               <div className="flex justify-between items-baseline mb-1">
+                 <span className={`text-sm font-black uppercase tracking-widest ${rankInfo.color} drop-shadow-md`}>
+                   {rankInfo.label}
+                 </span>
+                 <span className="text-[10px] font-mono text-slate-500">
+                    ELO <span className="text-white font-bold">{aggregateElo}</span>
+                 </span>
+               </div>
+               {/* Progress Bar */}
+               <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                 <div 
+                   className={`h-full ${rankInfo.bg} shadow-[0_0_10px_currentColor] transition-all duration-1000`} 
+                   style={{ width: `${progressPercent}%` }}
+                 ></div>
+               </div>
+            </div>
+          </div>
+        )}
+
         {errorMsg && <div className="mx-4 mt-2 text-red-400 text-xs bg-red-900/20 p-2 rounded-xl border border-red-500/20 animate-pulse text-center">{errorMsg}</div>}
 
         {isCategoryPhase ? (
@@ -202,7 +240,10 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                     <div className="grid grid-cols-2 gap-2 p-4 pt-2">
                       {group.subtopics.map((sub: string) => {
                         const isSelected = selectedSubTopics.includes(sub);
+                        // Get specific Elo if exists, else general
+                        const topicElo = userProfile?.eloRatings?.[group.catId] || 1000;
                         const score = userProfile?.scores?.[sub];
+                        
                         return (
                           <button 
                             key={sub} 
@@ -222,12 +263,19 @@ export const TopicSelectionView: React.FC<TopicSelectionViewProps> = ({ t, state
                                 {isSelected && <CheckCircle2 size={12} className="text-cyan-400 shrink-0" />}
                             </div>
                             
-                            {/* Score Badge */}
-                            {!isSelected && score !== undefined && (
-                                <div className="text-[9px] font-mono font-bold text-amber-500 flex items-center gap-0.5 mt-1 self-start bg-amber-950/30 px-1 py-0.5 rounded border border-amber-900/50">
-                                   <Medal size={8} /> {score}
+                            <div className="flex items-center gap-2 mt-2">
+                                {/* Score Badge */}
+                                {score !== undefined && (
+                                    <div className="text-[9px] font-mono font-bold text-amber-500 flex items-center gap-0.5 bg-amber-950/30 px-1 py-0.5 rounded border border-amber-900/50">
+                                    <Medal size={8} /> {score}
+                                    </div>
+                                )}
+                                {/* Elo Indicator (Mini) */}
+                                <div className="text-[9px] font-mono text-slate-500 flex items-center gap-0.5">
+                                    <Star size={8} /> {topicElo}
                                 </div>
-                             )}
+                            </div>
+
                           </button>
                         );
                       })}

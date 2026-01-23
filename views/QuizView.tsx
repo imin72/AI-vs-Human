@@ -4,6 +4,7 @@ import { ChevronRight, Cpu, Terminal, Zap, Lightbulb, Home, Timer, CheckCircle2,
 import { Button } from '../components/Button';
 import { QuizQuestion, Language } from '../types';
 import { TRANSLATIONS } from '../utils/translations';
+import { audioHaptic } from '../services/audioHapticService';
 
 interface QuizViewProps {
   questions: QuizQuestion[];
@@ -118,6 +119,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
   }, [selectedOption, language]);
 
   const handleHintClick = () => {
+    audioHaptic.playClick('soft');
     setShowHint(true);
     setAiComment(language === 'ko' ? 
       "힌트를 구걸하다니... 인간의 한계인가요? 점수 효율이 저하됩니다." : 
@@ -240,6 +242,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
                 <button
                   key={idx}
                   onClick={() => onSelectOption(option)}
+                  onMouseEnter={() => audioHaptic.playHover()}
                   className={`p-4 rounded-2xl text-left transition-all duration-300 border relative group overflow-hidden ${
                     selectedOption === option
                       ? 'bg-cyan-600 border-cyan-400 text-white shadow-[0_0_25px_rgba(8,145,178,0.5)] scale-[1.02]'

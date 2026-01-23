@@ -19,6 +19,16 @@ export enum Difficulty {
   HARD = "HARD"
 }
 
+export enum Tier {
+  UNRANKED = "UNRANKED",
+  BRONZE = "BRONZE",
+  SILVER = "SILVER",
+  GOLD = "GOLD",
+  PLATINUM = "PLATINUM",
+  DIAMOND = "DIAMOND",
+  MASTER = "MASTER"
+}
+
 export interface UserProfile {
   gender: string;
   ageGroup: string;

@@ -11,6 +11,7 @@ import {
   QuizSet
 } from '../types';
 import { generateQuestionsBatch, evaluateBatchAnswers, BatchEvaluationInput } from '../services/geminiService';
+import { audioHaptic } from '../services/audioHapticService';
 import { TRANSLATIONS } from '../utils/translations';
 
 const PROFILE_KEY = 'cognito_user_profile_v1';
@@ -133,6 +134,7 @@ export const useGameViewModel = () => {
     if (isPending) return;
     setIsPending(true);
     setStage(AppStage.ANALYZING);
+    audioHaptic.playClick('hard');
 
     try {
       // 1. Prepare data for API
@@ -169,7 +171,12 @@ export const useGameViewModel = () => {
         else if (score >= 40) eloChange = -10; // Slight struggle
         else eloChange = -20; // Needs easier questions
 
-        currentElos[batch.topicId] = Math.max(0, currentElo + eloChange);
+        const newElo = Math.max(0, currentElo + eloChange);
+        currentElos[batch.topicId] = newElo;
+
+        if (newElo > currentElo) {
+          // Play level up sound if improved significantly (later in UI)
+        }
         // -------------------------------
 
         batchInputs.push({
@@ -211,6 +218,7 @@ export const useGameViewModel = () => {
          }));
          setEvaluation(mockResults[0]);
          setSessionResults(mockResults);
+         audioHaptic.playLevelUp();
          setStage(AppStage.RESULTS);
          return;
       }
@@ -226,11 +234,13 @@ export const useGameViewModel = () => {
 
       setEvaluation(resultsWithIds[0]); 
       setSessionResults(resultsWithIds);
+      audioHaptic.playLevelUp();
       setStage(AppStage.RESULTS);
 
     } catch (e: any) {
       console.error("Batch Finish Error", e);
       setErrorMsg(e.message || "Unknown analysis error");
+      audioHaptic.playError();
       setStage(AppStage.ERROR);
     } finally {
       setIsPending(false);
@@ -256,6 +266,7 @@ export const useGameViewModel = () => {
 
   const performBackNavigation = useCallback((): boolean => {
     if (isPending) return false;
+    audioHaptic.playClick('soft');
 
     switch (stage) {
       case AppStage.TOPIC_SELECTION:
@@ -320,6 +331,7 @@ export const useGameViewModel = () => {
   // --- Actions ---
   const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { 
+      audioHaptic.playClick('soft');
       // Reset selections to prevent language mismatch with static DB
       setSelectedCategories([]);
       setSelectedSubTopics([]);
@@ -332,6 +344,7 @@ export const useGameViewModel = () => {
       }
     },
     startIntro: () => {
+      audioHaptic.playClick('hard');
       if (userProfile.gender && userProfile.nationality) {
         setStage(AppStage.TOPIC_SELECTION);
       } else {
@@ -339,19 +352,26 @@ export const useGameViewModel = () => {
       }
     },
     editProfile: () => {
+      audioHaptic.playClick();
       setStage(AppStage.PROFILE);
     },
     resetProfile: () => {
+      audioHaptic.playClick();
       localStorage.removeItem(PROFILE_KEY);
       setUserProfile({ gender: '', ageGroup: '', nationality: '' });
       setStage(AppStage.PROFILE);
     },
-    updateProfile: (profile: Partial<UserProfile>) => setUserProfile(prev => ({ ...prev, ...profile })),
+    updateProfile: (profile: Partial<UserProfile>) => {
+      audioHaptic.playClick('soft');
+      setUserProfile(prev => ({ ...prev, ...profile }));
+    },
     submitProfile: () => {
+      audioHaptic.playClick('hard');
       localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
       setStage(AppStage.TOPIC_SELECTION);
     },
     selectCategory: (id: string) => {
+      audioHaptic.playClick('soft');
       setSelectedCategories(prev => {
         if (prev.includes(id)) {
           return prev.filter(cat => cat !== id);
@@ -362,11 +382,13 @@ export const useGameViewModel = () => {
       });
     },
     proceedToSubTopics: () => {
+      audioHaptic.playClick();
       if (selectedCategories.length > 0) {
         setSelectionPhase('SUBTOPIC');
       }
     },
     selectSubTopic: (sub: string) => {
+      audioHaptic.playClick('soft');
       setSelectedSubTopics(prev => {
         if (prev.includes(sub)) {
           return prev.filter(p => p !== sub);
@@ -376,10 +398,14 @@ export const useGameViewModel = () => {
         }
       });
     },
-    setDifficulty: (diff: Difficulty) => setDifficulty(diff),
+    setDifficulty: (diff: Difficulty) => {
+       audioHaptic.playClick('soft');
+       setDifficulty(diff);
+    },
     
     goBack: () => {
       if (isPending) return;
+      audioHaptic.playClick();
       
       if (stage === AppStage.QUIZ) {
         if (currentQuestionIndex > 0) {
@@ -401,6 +427,7 @@ export const useGameViewModel = () => {
     
     goHome: () => {
       if (isPending) return;
+      audioHaptic.playClick();
       if (stage === AppStage.QUIZ) {
         if (!window.confirm(t.common.confirm_exit)) return;
       }
@@ -425,6 +452,7 @@ export const useGameViewModel = () => {
     },
 
     resetApp: () => {
+      audioHaptic.playClick();
       setUserAnswers([]); 
       setCurrentQuestionIndex(0); 
       setEvaluation(null);
@@ -445,6 +473,7 @@ export const useGameViewModel = () => {
       if (isPending) return;
       if (selectedSubTopics.length === 0) return;
       
+      audioHaptic.playClick('hard');
       setIsPending(true);
       setStage(AppStage.LOADING_QUIZ);
       try {
@@ -479,6 +508,7 @@ export const useGameViewModel = () => {
     },
     
     nextTopicInQueue: () => {
+      audioHaptic.playClick();
       if (quizQueue.length > 0) {
          const [next, ...rest] = quizQueue;
          
@@ -500,6 +530,7 @@ export const useGameViewModel = () => {
 
     startDebugQuiz: async () => {
        if (isPending) return;
+       audioHaptic.playClick();
        setIsPending(true);
        setStage(AppStage.LOADING_QUIZ);
        
@@ -538,6 +569,7 @@ export const useGameViewModel = () => {
     },
 
     previewResults: () => {
+      audioHaptic.playClick();
       const mockResult: EvaluationResult = {
         id: "SCIENCE",
         totalScore: 88,
@@ -558,23 +590,34 @@ export const useGameViewModel = () => {
       setStage(AppStage.RESULTS);
     },
     
-    selectOption: (option: string) => setSelectedOption(option),
+    selectOption: (option: string) => {
+        audioHaptic.playClick('soft');
+        setSelectedOption(option);
+    },
     confirmAnswer: () => {
       if (!selectedOption) return;
       const question = questions[currentQuestionIndex];
+      const isCorrect = selectedOption === question.correctAnswer;
+      
+      // Feedback sound
+      if (isCorrect) audioHaptic.playSuccess();
+      else audioHaptic.playError();
+
       const answer = { 
         questionId: question.id, 
         questionText: question.question, 
         selectedOption, 
         correctAnswer: question.correctAnswer, 
-        isCorrect: selectedOption === question.correctAnswer 
+        isCorrect 
       };
       const updatedAnswers = [...userAnswers, answer];
       setUserAnswers(updatedAnswers);
       setSelectedOption(null);
       
       if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1);
+        setTimeout(() => {
+           setCurrentQuestionIndex(prev => prev + 1);
+        }, 500); // Slight delay for audio to play out
       } else {
         const currentTopicLabel = currentQuizSet?.topic || (batchProgress.topics[batchProgress.current - 1] || "Unknown");
         const currentTopicId = getTopicIdFromLabel(currentTopicLabel);
@@ -606,6 +649,7 @@ export const useGameViewModel = () => {
       }
     },
     shuffleTopics: () => {
+      audioHaptic.playClick();
       setDisplayedTopics(prev => shuffleArray(prev));
     },
     shuffleSubTopics: () => {},
