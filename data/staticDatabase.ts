@@ -27,17 +27,24 @@ const MODULE_MAP: Record<string, () => Promise<any>> = {
  * This ensures that "양자 역학" maps to "Quantum Physics" so we can look it up in the DB.
  */
 export const resolveTopicInfo = (localizedName: string, lang: Language) => {
-  // If language is English, we can try to find it directly, but it's safer to traverse to find the category.
+  // 1. Try to find in the current language map
   const subtopicsMap = TRANSLATIONS[lang].topics.subtopics;
-  
   for (const [catId, topics] of Object.entries(subtopicsMap)) {
     const index = topics.indexOf(localizedName);
     if (index !== -1) {
-      // Found the topic! Now get the English name at the same index.
       const englishName = TRANSLATIONS['en'].topics.subtopics[catId][index];
       return { catId, englishName };
     }
   }
+
+  // 2. Fallback: Check if the name is already the English name (e.g. passed from cache/internal)
+  const enSubtopicsMap = TRANSLATIONS['en'].topics.subtopics;
+  for (const [catId, topics] of Object.entries(enSubtopicsMap)) {
+    if (topics.includes(localizedName)) {
+      return { catId, englishName: localizedName };
+    }
+  }
+
   return null;
 };
 
@@ -53,21 +60,31 @@ export const getStaticQuestions = async (
   // 1. Resolve localized topic name to English key and Category
   const info = resolveTopicInfo(topic, lang);
   if (!info) {
-    console.warn(`[StaticDB] Could not resolve topic: ${topic} (${lang})`);
-    return null;
+    // Attempt to see if it's already an English key (fallback for direct calls)
+    const fallbackInfo = resolveTopicInfo(topic, 'en');
+    if (!fallbackInfo) {
+      console.warn(`[StaticDB] Could not resolve topic: ${topic} (${lang})`);
+      return null;
+    }
+    // Proceed with fallback info
+    return loadQuestionsInternal(fallbackInfo.catId, fallbackInfo.englishName, difficulty, lang);
   }
 
-  const { catId, englishName } = info;
+  return loadQuestionsInternal(info.catId, info.englishName, difficulty, lang);
+};
 
+const loadQuestionsInternal = async (
+  catId: string, 
+  englishName: string, 
+  difficulty: Difficulty, 
+  lang: Language
+): Promise<QuizQuestion[] | null> => {
   // 2. Dynamically import the category module
   const loader = MODULE_MAP[catId];
   if (!loader) return null;
 
   try {
     const module = await loader();
-    // The modules export objects like SCIENCE_DB, HISTORY_DB. 
-    // We assume the export name matches the pattern or we check values.
-    // For simplicity, we grab the first export that looks like a DB record.
     const db = Object.values(module)[0] as Record<string, QuizQuestion[]>;
     
     // 3. Construct the key: "EnglishName_DIFFICULTY_Language"
@@ -80,4 +97,4 @@ export const getStaticQuestions = async (
     console.error(`[StaticDB] Failed to load module for ${catId}`, error);
     return null;
   }
-};
+}

@@ -56,10 +56,11 @@ const cleanJson = (text: string | undefined): string => {
 };
 
 /**
- * Helper to generate the unique cache key
+ * Helper to generate the unique cache key.
+ * Now expects `stableTopicId` (English Name) to ensure cross-language hits.
  */
-const generateCacheKey = (topic: string, difficulty: Difficulty, lang: Language) => {
-  return `${topic}_${difficulty}_${lang}`.toLowerCase();
+const generateCacheKey = (stableTopicId: string, difficulty: Difficulty, lang: Language) => {
+  return `${stableTopicId}_${difficulty}_${lang}`.toLowerCase();
 };
 
 // Helper: Translate Elo to descriptive level for Gemini
@@ -79,88 +80,85 @@ export const generateQuestionsBatch = async (
 ): Promise<QuizSet[]> => {
   const quizCache = loadCache(CACHE_KEY_QUIZ);
   const results: QuizSet[] = [];
-  const missingTopics: string[] = [];
+  
+  // Resolve all topics to stable IDs first
+  const resolvedRequests = topics.map(topicLabel => {
+    const info = resolveTopicInfo(topicLabel, lang);
+    return {
+      originalLabel: topicLabel,
+      stableId: info ? info.englishName : topicLabel, // Use English name if found, else custom label
+      catId: info ? info.catId : "GENERAL"
+    };
+  });
+
+  const missingRequests: typeof resolvedRequests = [];
   const seenIds = new Set(userProfile?.seenQuestionIds || []);
 
-  // HYBRID STRATEGY: 
-  // 1. Check Static Database (Highest Quality) -> FILTER by seen IDs
-  // 2. Check LocalStorage Cache (Fastest fallback) -> FILTER by seen IDs
-  // 3. Fallback to API -> ADAPT by Elo
+  // HYBRID STRATEGY
+  for (const req of resolvedRequests) {
+    const cacheKey = generateCacheKey(req.stableId, difficulty, lang);
 
-  for (const topic of topics) {
-    const cacheKey = generateCacheKey(topic, difficulty, lang);
-
-    // 1. Try Static Database first
-    const staticQuestions = await getStaticQuestions(topic, difficulty, lang);
+    // 1. Try Static Database first (Pass localized label if possible, or stable ID if mapped)
+    // getStaticQuestions is robust now and can handle either if resolveTopicInfo is updated
+    const staticQuestions = await getStaticQuestions(req.originalLabel, difficulty, lang);
+    
     if (staticQuestions) {
       // --- ADAPTIVE FILTERING ---
       const unseenQuestions = staticQuestions.filter(q => !seenIds.has(q.id));
-      
       if (unseenQuestions.length >= 5) {
-        // Shuffle and take 5
         const selected = unseenQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
-        console.log(`[Static DB Hit] ${topic} (Adaptive Filter: ${selected.length})`);
-        results.push({ topic, questions: selected });
-        continue; // Done with this topic
-      } else {
-        console.log(`[Static DB Depleted] ${topic} - Not enough unseen questions.`);
-        // Fallthrough to Cache/API
+        console.log(`[Static DB Hit] ${req.stableId} (Adaptive Filter: ${selected.length})`);
+        results.push({ topic: req.originalLabel, questions: selected });
+        continue;
       }
     }
 
-    // 2. Try Local Cache (Previous API generations)
+    // 2. Try Local Cache (Keyed by Stable ID + Lang)
     if (quizCache[cacheKey]) {
        const cachedQuestions = quizCache[cacheKey];
        if (Array.isArray(cachedQuestions)) {
-           // Filter cache for seen IDs too
            const unseenCache = cachedQuestions.filter((q: QuizQuestion) => !seenIds.has(q.id));
            if (unseenCache.length >= 5) {
                const selected = unseenCache.sort(() => 0.5 - Math.random()).slice(0, 5);
-               console.log(`[Cache Hit] ${topic} (Adaptive Filter: ${selected.length})`);
-               results.push({ topic, questions: selected });
+               console.log(`[Cache Hit] ${req.stableId}`);
+               results.push({ topic: req.originalLabel, questions: selected });
                continue;
            }
        }
     }
 
-    console.log(`[Cache Miss/Depleted] ${topic} - Requesting API`);
-    missingTopics.push(topic);
+    console.log(`[Cache Miss] ${req.stableId} (${lang})`);
+    missingRequests.push(req);
   }
 
   // 3. Fetch missing topics via Gemini API
-  if (missingTopics.length > 0) {
+  if (missingRequests.length > 0) {
     try {
       const SUPPORTED_LANGUAGES: Language[] = ['en', 'ko', 'ja', 'zh', 'es', 'fr'];
+      const targetEnglishIds = missingRequests.map(r => r.stableId); // Send English IDs to AI
       
-      // Construct Adaptive Context per Topic
-      const adaptiveContexts = missingTopics.map(t => {
-         // Resolve topic info to get English ID for Elo lookup
-         const info = resolveTopicInfo(t, lang);
-         const catId = info?.catId || "GENERAL";
-         const elo = userProfile?.eloRatings?.[catId] || 1000;
+      const adaptiveContexts = missingRequests.map(r => {
+         const elo = userProfile?.eloRatings?.[r.catId] || 1000;
          const level = getAdaptiveLevel(elo);
-         return `${t}: User Knowledge Level: ${level} (Elo ${elo})`;
+         return `${r.stableId}: User Knowledge Level: ${level} (Elo ${elo})`;
       }).join("; ");
 
       const prompt = `
         You are a high-level knowledge testing AI.
-        Generate 5 multiple-choice questions for EACH of the following topics: ${JSON.stringify(missingTopics)}.
+        Generate 5 multiple-choice questions for EACH of the following topics: ${JSON.stringify(targetEnglishIds)}.
         
         CRITICAL INSTRUCTIONS:
         1. Base Difficulty: ${difficulty}.
         2. USER ADAPTATION PROFILE: ${adaptiveContexts}.
-           - If user is Expert, ask obscure/deep questions.
-           - If Beginner, ask fundamental questions.
         3. Target Audience: ${userProfile?.ageGroup || 'General'}.
         4. **MULTI-LANGUAGE GENERATION:** For EACH question, provide the content in ALL supported languages: English (en), Korean (ko), Japanese (ja), Chinese Simplified (zh), Spanish (es), and French (fr).
-        5. Return a JSON object where keys are the exact topic names provided.
+        5. Return a JSON object where keys are the exact topic names provided (${targetEnglishIds.join(', ')}).
       `;
 
       const questionSchema = {
         type: Type.OBJECT,
         properties: {
           id: { type: Type.INTEGER },
-          // Language Maps
           en: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
           ko: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
           ja: { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING }, context: { type: Type.STRING } } },
@@ -172,11 +170,8 @@ export const generateQuestionsBatch = async (
       };
 
       const topicProperties: Record<string, any> = {};
-      missingTopics.forEach(topic => {
-        topicProperties[topic] = {
-          type: Type.ARRAY,
-          items: questionSchema
-        };
+      targetEnglishIds.forEach(tId => {
+        topicProperties[tId] = { type: Type.ARRAY, items: questionSchema };
       });
 
       const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
@@ -187,67 +182,57 @@ export const generateQuestionsBatch = async (
           responseSchema: {
             type: Type.OBJECT,
             properties: topicProperties,
-            required: missingTopics
+            required: targetEnglishIds
           }
         }
       }));
 
       const generatedData = JSON.parse(cleanJson(response.text));
       
-      missingTopics.forEach(topic => {
-        if (generatedData[topic]) {
-          const rawQuestions = generatedData[topic];
+      missingRequests.forEach(req => {
+        if (generatedData[req.stableId]) {
+          const rawQuestions = generatedData[req.stableId];
           
-          // Process and Save EACH language
+          // Save ALL languages to cache using Stable ID keys
           SUPPORTED_LANGUAGES.forEach(targetLang => {
-            // Extract specific language version from the raw multi-lang response
             const localizedQuestions: QuizQuestion[] = rawQuestions.map((q: any) => ({
               id: q.id,
-              ...q[targetLang] // Spread question, options, correctAnswer, context
+              ...q[targetLang]
             }));
 
-            // Save to Local Cache
-            const cacheKey = generateCacheKey(topic, difficulty, targetLang);
+            const cacheKey = generateCacheKey(req.stableId, difficulty, targetLang);
             quizCache[cacheKey] = localizedQuestions;
-
-            // --- AUTO-SAVE LOGIC (Dev Only) ---
-            if (import.meta.env.DEV && targetLang === lang) { // Only log saving for current lang to avoid spam, but actually saving all is better? 
-               // Actually save ALL languages to file
-               const info = resolveTopicInfo(topic, targetLang); // Topic name might be in original request lang
-               // Note: resolveTopicInfo works best if 'topic' matches 'targetLang'. 
-               // Since 'topic' is from the loop (which is in 'lang'), we need to be careful.
-               // For simplicity in Dev mode, we just try to save.
-               if (info) {
-                 const { catId, englishName } = info;
-                 const fileKey = `${englishName}_${difficulty}_${targetLang}`;
-                 
-                 fetch('/__save-question', {
+            
+            // Auto-save logic (Dev only)
+            if (import.meta.env.DEV && targetLang === 'en') {
+               fetch('/__save-question', {
                    method: 'POST',
                    headers: {'Content-Type': 'application/json'},
-                   body: JSON.stringify({ categoryId: catId, key: fileKey, data: localizedQuestions })
-                 }).catch(e => console.warn("Auto-save failed:", e));
-               }
+                   body: JSON.stringify({ categoryId: req.catId, key: `${req.stableId}_${difficulty}_${targetLang}`, data: localizedQuestions })
+               }).catch(() => {});
             }
           });
 
-          // Add ONLY the requested language to the results return
+          // Return result for CURRENT requested language
+          // IMPORTANT: The result object must use the `originalLabel` as `topic` so the UI matches the selection.
           const resultQuestions = rawQuestions.map((q: any) => ({
             id: q.id,
             ...q[lang]
           }));
-          results.push({ topic, questions: resultQuestions });
+          results.push({ topic: req.originalLabel, questions: resultQuestions });
         }
       });
       
       saveCache(CACHE_KEY_QUIZ, quizCache);
     } catch (error) {
       console.error("Batch Quiz Generation Failed:", error);
-      missingTopics.forEach(topic => {
-         results.push({ topic, questions: FALLBACK_QUIZ });
+      missingRequests.forEach(req => {
+         results.push({ topic: req.originalLabel, questions: FALLBACK_QUIZ });
       });
     }
   }
 
+  // Ensure result order matches input order
   return topics.map(t => results.find(r => r.topic === t)!).filter(Boolean);
 };
 
@@ -274,10 +259,8 @@ export const evaluateAnswers = async (
   score: number,
   userProfile: UserProfile,
   lang: Language,
-  performance: {id: number, ok: boolean}[] // Kept simple for backward compat, but function below needs full data to be useful
+  performance: {id: number, ok: boolean}[] 
 ): Promise<EvaluationResult> => {
-  // NOTE: This legacy wrapper does not pass text data. 
-  // For full features, evaluateBatchAnswers should be called directly with UserAnswer objects.
   return (await evaluateBatchAnswers([{
     topic,
     score,
