@@ -1,716 +1,361 @@
-
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
-  AppStage, 
-  Language, 
-  UserProfile, 
-  Difficulty, 
-  QuizQuestion, 
-  UserAnswer, 
-  EvaluationResult,
-  QuizSet,
-  HistoryItem
+  AppStage, Language, UserProfile, Difficulty, 
+  TOPIC_IDS, QuizQuestion, EvaluationResult, QuizSet, UserAnswer 
 } from '../types';
-import { generateQuestionsBatch, evaluateBatchAnswers, BatchEvaluationInput, seedLocalDatabase } from '../services/geminiService';
-import { audioHaptic } from '../services/audioHapticService';
 import { TRANSLATIONS } from '../utils/translations';
+import { generateQuestionsBatch, evaluateAnswers, seedLocalDatabase } from '../services/geminiService';
+import { audioHaptic } from '../services/audioHapticService';
 
 const PROFILE_KEY = 'cognito_user_profile_v1';
 
-const DEBUG_QUIZ: QuizQuestion[] = [
-  { 
-    id: 1, 
-    question: "Which protocol is used for secure web browsing?", 
-    options: ["HTTP", "HTTPS", "FTP", "SMTP"], 
-    correctAnswer: "HTTPS", 
-    context: "Hypertext Transfer Protocol Secure is the standard." 
-  },
-  { 
-    id: 2, 
-    question: "What is the time complexity of binary search?", 
-    options: ["O(n)", "O(log n)", "O(n^2)", "O(1)"], 
-    correctAnswer: "O(log n)", 
-    context: "Binary search divides the search interval in half." 
-  },
-  {
-    id: 3,
-    question: "Which React hook is used for side effects?",
-    options: ["useState", "useEffect", "useMemo", "useReducer"],
-    correctAnswer: "useEffect",
-    context: "useEffect handles side effects in function components."
-  }
-];
-
-// Fisher-Yates Shuffle Helper
-const shuffleArray = <T,>(array: T[]): T[] => {
-  const newArr = [...array];
-  for (let i = newArr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
-  }
-  return newArr;
-};
-
-// Helper to detect browser language
-const getBrowserLanguage = (): Language => {
-  if (typeof navigator === 'undefined') return 'en';
-  const lang = navigator.language.split('-')[0];
-  const supported: Language[] = ['en', 'ko', 'ja', 'zh', 'es', 'fr'];
-  return supported.includes(lang as Language) ? (lang as Language) : 'en';
-};
-
-interface AccumulatedBatchData {
-  topicLabel: string;
-  topicId: string;
-  answers: UserAnswer[];
-}
-
 export const useGameViewModel = () => {
+  // --- Core State ---
   const [stage, setStage] = useState<AppStage>(AppStage.INTRO);
-  const [language, setLanguage] = useState<Language>(getBrowserLanguage());
-  const [userProfile, setUserProfile] = useState<UserProfile>({ 
-    gender: '', 
-    ageGroup: '', 
+  const [language, setLanguage] = useState<Language>('en');
+  
+  // --- Profile State ---
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    gender: '',
+    ageGroup: '',
     nationality: '',
+    scores: {},
     eloRatings: {},
     seenQuestionIds: [],
     history: []
   });
-  
-  // Selection State
+
+  // --- Topic Selection State ---
   const [selectionPhase, setSelectionPhase] = useState<'CATEGORY' | 'SUBTOPIC'>('CATEGORY');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubTopics, setSelectedSubTopics] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.MEDIUM);
   const [displayedTopics, setDisplayedTopics] = useState<{id: string, label: string}[]>([]);
-  
-  // Quiz Execution State
+  const [isTopicLoading, setIsTopicLoading] = useState(false);
+
+  // --- Quiz State ---
   const [quizQueue, setQuizQueue] = useState<QuizSet[]>([]);
-  const [currentQuizSet, setCurrentQuizSet] = useState<QuizSet | null>(null);
+  const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Lock for answer submission
-  
-  // Batch Progress Tracking
-  const [batchProgress, setBatchProgress] = useState<{ total: number, current: number, topics: string[] }>({ total: 0, current: 0, topics: [] });
-  // Store answers for multiple topics to analyze at the end
-  const [completedBatches, setCompletedBatches] = useState<AccumulatedBatchData[]>([]);
+  const [answers, setAnswers] = useState<UserAnswer[]>([]); 
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Result State
+  // --- Result State ---
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
-  const [sessionResults, setSessionResults] = useState<EvaluationResult[]>([]); 
-  const [errorMsg, setErrorMsg] = useState('');
-  const [isPending, setIsPending] = useState(false);
+  const [sessionResults, setSessionResults] = useState<EvaluationResult[]>([]);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const t = useMemo(() => TRANSLATIONS[language], [language]);
+  const t = TRANSLATIONS[language];
 
-  // --- REFS FOR EVENT LISTENERS ---
-  const stageRef = useRef(stage);
-  const tRef = useRef(t);
-  const selectionPhaseRef = useRef(selectionPhase);
-  
-  // Critical: Track if we are in the process of exiting to prevent loops
-  const isExitingRef = useRef(false);
-  // Track if a history push was triggered by internal navigation to avoid loop with popstate
-  const isInternalNavRef = useRef(false);
-
-  useEffect(() => { stageRef.current = stage; }, [stage]);
-  useEffect(() => { tRef.current = t; }, [t]);
-  useEffect(() => { selectionPhaseRef.current = selectionPhase; }, [selectionPhase]);
-
-  // Load Profile on Mount
+  // --- Initialization ---
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(PROFILE_KEY);
-      if (saved) {
+    const saved = localStorage.getItem(PROFILE_KEY);
+    if (saved) {
+      try {
         const parsed = JSON.parse(saved);
         setUserProfile({
-          ...parsed,
-          eloRatings: parsed.eloRatings || {},
-          seenQuestionIds: parsed.seenQuestionIds || [],
-          history: parsed.history || []
+           scores: {}, eloRatings: {}, seenQuestionIds: [], history: [], ...parsed
         });
+      } catch (e) {
+        console.error("Failed to load profile", e);
       }
-    } catch (e) {
-      console.warn("Failed to load profile");
     }
   }, []);
 
-  // Initialize and Shuffle Topics when Language Changes
   useEffect(() => {
-    const topics = Object.entries(t.topics.categories)
-      .map(([id, label]) => ({ id, label }));
-    setDisplayedTopics(shuffleArray(topics));
-  }, [t]);
-
-  const finishBatchQuiz = async (allBatches: AccumulatedBatchData[], profile: UserProfile, lang: Language) => {
-    if (isPending) return;
-    setIsPending(true);
-    setStage(AppStage.ANALYZING);
-    audioHaptic.playClick('hard');
-
-    try {
-      const batchInputs: BatchEvaluationInput[] = [];
-      
-      const updatedProfile = { ...profile };
-      const currentScores = { ...(profile.scores || {}) };
-      const currentElos = { ...(profile.eloRatings || {}) };
-      const seenIds = new Set(profile.seenQuestionIds || []);
-      const currentHistory = [...(profile.history || [])];
-
-      allBatches.forEach(batch => {
-        const correctCount = batch.answers.filter(a => a.isCorrect).length;
-        const totalCount = batch.answers.length;
-        const score = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
-        
-        if (score >= (currentScores[batch.topicLabel] || 0)) {
-           currentScores[batch.topicLabel] = score;
-        }
-
-        batch.answers.forEach(a => seenIds.add(a.questionId));
-
-        const currentElo = currentElos[batch.topicId] || 1000;
-        let eloChange = 0;
-        
-        if (score >= 80) eloChange = 30; 
-        else if (score >= 60) eloChange = 10; 
-        else if (score >= 40) eloChange = -10; 
-        else eloChange = -20; 
-
-        const newElo = Math.max(0, currentElo + eloChange);
-        currentElos[batch.topicId] = newElo;
-
-        const aiBenchmark = difficulty === Difficulty.HARD ? 98 : difficulty === Difficulty.MEDIUM ? 95 : 92;
-        
-        const historyItem: HistoryItem = {
-          timestamp: Date.now(),
-          topicId: batch.topicId,
-          score: score,
-          aiScore: aiBenchmark,
-          difficulty: difficulty
-        };
-        currentHistory.push(historyItem);
-
-        batchInputs.push({
-          topic: batch.topicLabel,
-          score: score,
-          performance: batch.answers 
-        });
-      });
-
-      updatedProfile.scores = currentScores;
-      updatedProfile.eloRatings = currentElos;
-      updatedProfile.seenQuestionIds = Array.from(seenIds);
-      updatedProfile.history = currentHistory;
-      
-      setUserProfile(updatedProfile);
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));
-
-      const isDebug = allBatches.some(b => b.topicLabel.startsWith("Debug"));
-      if (isDebug) {
-         await new Promise(resolve => setTimeout(resolve, 800));
-         const mockResults: EvaluationResult[] = allBatches.map(b => ({
-            id: b.topicId,
-            totalScore: 80,
-            humanPercentile: 90,
-            aiComparison: "Debug Mode Analysis.",
-            demographicPercentile: 50,
-            demographicComment: "Simulated Data.",
-            title: b.topicLabel,
-            details: b.answers.map(a => ({
-               questionId: a.questionId,
-               isCorrect: a.isCorrect,
-               questionText: a.questionText,
-               selectedOption: a.selectedOption,
-               correctAnswer: a.correctAnswer,
-               aiComment: "Debug Comment",
-               correctFact: "Debug Fact"
-            }))
-         }));
-         setEvaluation(mockResults[0]);
-         setSessionResults(mockResults);
-         audioHaptic.playLevelUp();
-         setStage(AppStage.RESULTS);
-         return;
-      }
-
-      const results = await evaluateBatchAnswers(batchInputs, updatedProfile, lang);
-      
-      const resultsWithIds = results.map((res, idx) => ({
-        ...res,
-        id: allBatches[idx].topicId
-      }));
-
-      setEvaluation(resultsWithIds[0]); 
-      setSessionResults(resultsWithIds);
-      audioHaptic.playLevelUp();
-      setStage(AppStage.RESULTS);
-
-    } catch (e: any) {
-      console.error("Batch Finish Error", e);
-      setErrorMsg(e.message || "Unknown analysis error");
-      audioHaptic.playError();
-      setStage(AppStage.ERROR);
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  // --- History Navigation Logic ---
-  
-  // 1. Initial Stack Setup: [Root, Intro]
-  useEffect(() => {
-    // We strictly enforce a history stack on mount so "Back" has somewhere to go (and trigger popstate)
-    const currentState = window.history.state;
-    if (!currentState || currentState.stage !== AppStage.INTRO) {
-       window.history.replaceState({ stage: 'root' }, '');
-       window.history.pushState({ stage: AppStage.INTRO }, '');
-    }
-  }, []);
-
-  // 2. Update History on Stage Change
-  useEffect(() => {
-    if (isInternalNavRef.current) {
-      isInternalNavRef.current = false;
-      return;
-    }
-    // Don't push duplicates if we are just re-rendering intro
-    if (stage !== AppStage.INTRO) {
-      window.history.pushState({ stage }, '');
-    }
-  }, [stage]);
-
-  // 3. Handle Back Button (PopState)
-  useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
-      // CRITICAL: If we are in exit mode, ignore all history events to prevent loops
-      if (isExitingRef.current) return;
-
-      // Prevent default is implicit for popstate as it happens after navigation, 
-      // but we manage the stack manually.
-      isInternalNavRef.current = true; // Mark as internal to prevent useEffect loop
-
-      const currentStage = stageRef.current;
-      const currentT = tRef.current;
-      const currentSelectionPhase = selectionPhaseRef.current;
-
-      // CASE 1: INTRO VIEW (The Exit Trap)
-      if (currentStage === AppStage.INTRO) {
-        // Fallback text if translation is delayed/missing
-        const confirmMsg = currentT?.common?.confirm_exit_app || "Do you want to exit the application?";
-        
-        if (window.confirm(confirmMsg)) {
-           // USER CONFIRMED EXIT
-           isExitingRef.current = true; // LOCK: Ignore subsequent popstates (prevents infinite loop)
-           
-           // We are currently at 'root' (because user popped 'intro').
-           // We want to go back ONE MORE step to exit the app/tab context.
-           setTimeout(() => {
-             if (window.history.length > 1) {
-                window.history.back();
-             } else {
-                // Fallback for direct opens with no history
-                window.close(); 
-             }
-           }, 0);
-        } else {
-           // USER CANCELLED
-           // We are at 'root'. We must restore 'intro' to the stack.
-           window.history.pushState({ stage: AppStage.INTRO }, '');
-        }
-        return;
-      }
-
-      // CASE 2: TOPIC SELECTION
-      if (currentStage === AppStage.TOPIC_SELECTION) {
-         if (currentSelectionPhase === 'SUBTOPIC') {
-            setSelectionPhase('CATEGORY');
-            setSelectedSubTopics([]);
-            window.history.pushState({ stage: AppStage.TOPIC_SELECTION }, '');
-         } else {
-            setStage(AppStage.INTRO);
-            // Ensure stack is clean: [Root] -> [Intro]
-            // We just popped to [Root] (conceptually), so push Intro
-            window.history.pushState({ stage: AppStage.INTRO }, '');
-         }
-         return;
-      }
-
-      // CASE 3: QUIZ or RESULTS (Exit to Home Confirm)
-      if (currentStage === AppStage.QUIZ || currentStage === AppStage.RESULTS) {
-         const msg = currentStage === AppStage.QUIZ ? (currentT.common.confirm_exit || "Exit Quiz?") : (currentT.common.confirm_home || "Return Home?");
-
-         if (window.confirm(msg)) {
-            // User confirmed "Go Home"
-            resetToHome();
-         } else {
-            // Cancelled: Restore state
-            window.history.pushState({ stage: currentStage }, '');
-         }
-         return;
-      }
-      
-      // Default Fallback
-      setStage(AppStage.INTRO);
-      window.history.pushState({ stage: AppStage.INTRO }, '');
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []); 
-
-  // --- Reset Helper ---
-  const resetToHome = () => {
-      setIsPending(false);
-      setIsSubmitting(false);
-      setEvaluation(null);
-      setUserAnswers([]);
-      setCurrentQuestionIndex(0);
-      setSelectedCategories([]);
-      setSelectedSubTopics([]);
-      setQuizQueue([]);
-      setCurrentQuizSet(null);
-      setBatchProgress({ total: 0, current: 0, topics: [] });
-      setSessionResults([]); 
-      setCompletedBatches([]);
-      setSelectionPhase('CATEGORY');
-
-      setStage(AppStage.INTRO);
-
-      // Clean Stack Reset: [Root] -> [Intro]
-      window.history.replaceState({ stage: 'root' }, '');
-      window.history.pushState({ stage: AppStage.INTRO }, '');
-  };
+    const topicsList = Object.keys(t.topics.categories).map(id => ({
+      id,
+      label: t.topics.categories[id]
+    }));
+    setDisplayedTopics(topicsList);
+  }, [language, t]);
 
   // --- Actions ---
-  const actions = useMemo(() => ({
-    setLanguage: (lang: Language) => { 
-      try { audioHaptic.playClick('soft'); } catch {}
-      setSelectedCategories([]);
-      setSelectedSubTopics([]);
-      setSelectionPhase('CATEGORY');
-      setLanguage(lang); 
-    },
-    startIntro: () => {
-      try { audioHaptic.playClick('hard'); } catch {}
-      if (userProfile.gender && userProfile.nationality) {
+
+  const goHome = useCallback(() => {
+    if (stage !== AppStage.INTRO && stage !== AppStage.RESULTS) {
+       if(!window.confirm(t.common.confirm_home)) return;
+    }
+    setStage(AppStage.INTRO);
+    setSelectedCategories([]);
+    setSelectedSubTopics([]);
+    setSelectionPhase('CATEGORY');
+    setQuizQueue([]);
+    setSessionResults([]);
+  }, [stage, t]);
+
+  const startIntro = () => {
+    if (userProfile.nationality && userProfile.gender && userProfile.ageGroup) {
+      setStage(AppStage.TOPIC_SELECTION);
+    } else {
+      setStage(AppStage.PROFILE);
+    }
+  };
+
+  const resetProfile = () => {
+    if(window.confirm("Are you sure you want to reset your profile?")) {
+        localStorage.removeItem(PROFILE_KEY);
+        setUserProfile({ gender: '', ageGroup: '', nationality: '', scores: {}, eloRatings: {}, seenQuestionIds: [], history: [] });
+    }
+  };
+
+  const updateProfile = (updates: Partial<UserProfile>) => {
+    setUserProfile(prev => ({ ...prev, ...updates }));
+  };
+
+  const submitProfile = () => {
+    if (!userProfile.gender) updateProfile({ gender: 'Other' });
+    if (!userProfile.ageGroup) updateProfile({ ageGroup: '18-24' });
+    if (!userProfile.nationality) updateProfile({ nationality: 'US' });
+    
+    // Save is handled in next render or explicitly here if needed immediately
+    const updated = { ...userProfile, gender: userProfile.gender || 'Other', ageGroup: userProfile.ageGroup || '18-24', nationality: userProfile.nationality || 'US' };
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(updated));
+    setStage(AppStage.TOPIC_SELECTION);
+  };
+
+  const editProfile = () => setStage(AppStage.PROFILE);
+
+  const shuffleTopics = () => {
+    setDisplayedTopics(prev => [...prev].sort(() => 0.5 - Math.random()));
+  };
+
+  const selectCategory = (id: string) => {
+    setSelectedCategories(prev => {
+      if (prev.includes(id)) return prev.filter(c => c !== id);
+      if (prev.length >= 3) return prev; 
+      return [...prev, id];
+    });
+  };
+
+  const proceedToSubTopics = () => {
+    setSelectionPhase('SUBTOPIC');
+    setSelectedSubTopics([]);
+  };
+
+  const goBack = () => {
+    if (stage === AppStage.QUIZ) {
+        if(!window.confirm(t.common.confirm_exit)) return;
         setStage(AppStage.TOPIC_SELECTION);
+        return;
+    }
+    if (stage === AppStage.TOPIC_SELECTION) {
+      if (selectionPhase === 'SUBTOPIC') {
+        setSelectionPhase('CATEGORY');
       } else {
-        setStage(AppStage.PROFILE);
+        goHome();
       }
-    },
-    editProfile: () => {
-      try { audioHaptic.playClick(); } catch {}
-      setStage(AppStage.PROFILE);
-    },
-    resetProfile: () => {
-      try { audioHaptic.playClick(); } catch {}
-      localStorage.removeItem(PROFILE_KEY);
-      setUserProfile({ gender: '', ageGroup: '', nationality: '' });
-      setStage(AppStage.PROFILE);
-    },
-    updateProfile: (profile: Partial<UserProfile>) => {
-      try { audioHaptic.playClick('soft'); } catch {}
-      setUserProfile(prev => ({ ...prev, ...profile }));
-    },
-    submitProfile: () => {
-      try { audioHaptic.playClick('hard'); } catch {}
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
-      setStage(AppStage.TOPIC_SELECTION);
-    },
-    selectCategory: (id: string) => {
-      try { audioHaptic.playClick('soft'); } catch {}
-      setSelectedCategories(prev => {
-        if (prev.includes(id)) {
-          return prev.filter(cat => cat !== id);
-        } else {
-          if (prev.length >= 4) return prev; 
-          return [...prev, id];
-        }
-      });
-    },
-    proceedToSubTopics: () => {
-      try { audioHaptic.playClick(); } catch {}
-      if (selectedCategories.length > 0) {
-        setSelectionPhase('SUBTOPIC');
-      }
-    },
-    selectSubTopic: (sub: string) => {
-      try { audioHaptic.playClick('soft'); } catch {}
-      setSelectedSubTopics(prev => {
-        if (prev.includes(sub)) {
-          return prev.filter(p => p !== sub);
-        } else {
-          if (prev.length >= 4) return prev; 
-          return [...prev, sub];
-        }
-      });
-    },
-    setDifficulty: (diff: Difficulty) => {
-       try { audioHaptic.playClick('soft'); } catch {}
-       setDifficulty(diff);
-    },
-    
-    goBack: () => {
-      if (isPending || isSubmitting) return; 
-      try { audioHaptic.playClick(); } catch {}
-      window.history.back();
-    },
-    
-    goHome: () => {
-      try { audioHaptic.playClick(); } catch {}
-      const needsConfirmation = stage === AppStage.QUIZ || stage === AppStage.LOADING_QUIZ || stage === AppStage.ANALYZING;
-      if (needsConfirmation) {
-        if (!window.confirm(t.common.confirm_home || t.common.confirm_exit || "Return to Home?")) return;
-      }
-      resetToHome();
-    },
+    }
+  };
 
-    resetApp: () => {
-      try { audioHaptic.playClick(); } catch {}
-      setUserAnswers([]); 
-      setCurrentQuestionIndex(0); 
-      setEvaluation(null);
-      setQuizQueue([]);
-      setCurrentQuizSet(null);
-      setBatchProgress({ total: 0, current: 0, topics: [] });
-      setSessionResults([]); 
-      setCompletedBatches([]);
-      setSelectionPhase('CATEGORY');
-      setSelectedCategories([]);
-      setSelectedSubTopics([]);
-      setStage(AppStage.TOPIC_SELECTION);
-    },
+  const selectSubTopic = (sub: string) => {
+    setSelectedSubTopics(prev => {
+      if (prev.includes(sub)) return prev.filter(s => s !== sub);
+      if (prev.length >= 4) return prev; 
+      return [...prev, sub];
+    });
+  };
 
-    startQuiz: async () => {
-      if (isPending) return;
-      if (selectedSubTopics.length === 0) return;
-      
-      try { audioHaptic.playClick('hard'); } catch {}
-      setIsPending(true);
-      setStage(AppStage.LOADING_QUIZ);
-      try {
-        const quizSets = await generateQuestionsBatch(selectedSubTopics, difficulty, language, userProfile);
+  const shuffleSubTopics = () => {};
+  const setCustomTopic = (topic: string) => {};
+
+  const startQuiz = async () => {
+    setStage(AppStage.LOADING_QUIZ);
+    setIsTopicLoading(true);
+    setErrorMsg("");
+
+    try {
+      const generatedSets = await generateQuestionsBatch(selectedSubTopics, difficulty, language, userProfile);
+      if (generatedSets.length === 0) throw new Error("Failed to generate questions.");
+
+      setQuizQueue(generatedSets);
+      setCurrentQuizIndex(0);
+      setupQuizStep(generatedSets[0]);
+      setSessionResults([]); // Reset previous session results
+      setStage(AppStage.QUIZ);
+    } catch (e: any) {
+      console.error(e);
+      setErrorMsg(e.message || "Failed to load quiz.");
+      setStage(AppStage.ERROR);
+    } finally {
+      setIsTopicLoading(false);
+    }
+  };
+
+  const setupQuizStep = (set: QuizSet) => {
+    setQuestions(set.questions);
+    setCurrentQuestionIndex(0);
+    setSelectedOption(null);
+    setAnswers([]);
+    setIsSubmitting(false);
+  };
+
+  const selectOption = (opt: string) => {
+    if(!isSubmitting) {
+        setSelectedOption(opt);
+        audioHaptic.playClick('hard');
+    }
+  };
+
+  const confirmAnswer = () => {
+    if (!selectedOption || isSubmitting) return;
+
+    setIsSubmitting(true);
+    const q = questions[currentQuestionIndex];
+    const isCorrect = selectedOption === q.correctAnswer;
+    
+    if(isCorrect) audioHaptic.playSuccess();
+    else audioHaptic.playError();
+
+    const newAnswer: UserAnswer = {
+        questionId: q.id,
+        questionText: q.question,
+        selectedOption: selectedOption,
+        correctAnswer: q.correctAnswer,
+        isCorrect
+    };
+
+    const updatedAnswers = [...answers, newAnswer];
+    setAnswers(updatedAnswers);
+
+    setTimeout(() => {
+        if (currentQuestionIndex < questions.length - 1) {
+            setCurrentQuestionIndex(prev => prev + 1);
+            setSelectedOption(null);
+            setIsSubmitting(false);
+        } else {
+            finishTopic(updatedAnswers);
+        }
+    }, 1000);
+  };
+
+  const finishTopic = async (finalAnswers: UserAnswer[]) => {
+    const correctCount = finalAnswers.filter(a => a.isCorrect).length;
+    const score = Math.round((correctCount / finalAnswers.length) * 100);
+    const currentSet = quizQueue[currentQuizIndex];
+
+    // Profile Updates
+    const newScores = { ...userProfile.scores };
+    const oldScore = newScores[currentSet.topic] || 0;
+    if (score > oldScore) newScores[currentSet.topic] = score;
+    
+    const newEloRatings = { ...userProfile.eloRatings };
+    const catId = currentSet.categoryId || "GENERAL";
+    const currentElo = newEloRatings[catId] || 1000;
+    // Simple Elo logic: win (+15) or loss (-10) scaled by score
+    // If score > 60 consider it a 'win' against current level
+    const change = score >= 60 ? Math.round((score - 50)/2) : -15; 
+    newEloRatings[catId] = Math.max(0, currentElo + change);
+
+    const historyItem = {
+        timestamp: Date.now(),
+        topicId: currentSet.topic,
+        score: score,
+        aiScore: Math.min(100, score + Math.floor(Math.random() * 15)), 
+        difficulty
+    };
+    
+    const newSeenIds = [...(userProfile.seenQuestionIds || [])];
+    finalAnswers.forEach(a => {
+        if (!newSeenIds.includes(a.questionId)) newSeenIds.push(a.questionId);
+    });
+
+    const updatedProfile = {
+        ...userProfile,
+        scores: newScores,
+        eloRatings: newEloRatings,
+        seenQuestionIds: newSeenIds,
+        history: [...(userProfile.history || []), historyItem]
+    };
+    
+    setUserProfile(updatedProfile);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));
+
+    // Analyze Result
+    setStage(AppStage.ANALYZING);
+    try {
+        const result = await evaluateAnswers(
+            currentSet.topic, 
+            score, 
+            updatedProfile, 
+            language, 
+            finalAnswers.map(a => ({ id: a.questionId, ok: a.isCorrect }))
+        );
         
-        if (quizSets.length > 0) {
-          const [first, ...rest] = quizSets;
-          setQuizQueue(rest);
-          setCurrentQuizSet(first);
-          setQuestions(first.questions);
-          setCurrentQuestionIndex(0);
-          setUserAnswers([]);
-          setSessionResults([]); 
-          setCompletedBatches([]); 
-          
-          setBatchProgress({
-            total: selectedSubTopics.length,
-            current: 1,
-            topics: selectedSubTopics
-          });
-          
-          setStage(AppStage.QUIZ);
-        } else {
-           throw new Error("No questions generated");
-        }
-      } catch (e: any) {
-        setErrorMsg(e.message || "Failed to initialize protocol");
+        // Ensure we preserve the ID for iconography mapping
+        const resultWithId = { ...result, id: catId };
+
+        const newSessionResults = [...sessionResults, resultWithId];
+        setSessionResults(newSessionResults);
+        setEvaluation(resultWithId);
+        
+        setStage(AppStage.RESULTS);
+        audioHaptic.playLevelUp();
+    } catch (e) {
+        console.error(e);
+        setErrorMsg("Analysis failed.");
         setStage(AppStage.ERROR);
-      } finally {
-        setIsPending(false);
-      }
-    },
-    
-    nextTopicInQueue: () => {
-      try { audioHaptic.playClick(); } catch {}
-      if (quizQueue.length > 0) {
-         const [next, ...rest] = quizQueue;
-         
-         const nextProgress = {
-            ...batchProgress,
-            current: batchProgress.current + 1
-         };
+    }
+  };
 
-         setQuizQueue(rest);
-         setCurrentQuizSet(next);
-         setQuestions(next.questions);
-         setCurrentQuestionIndex(0);
-         setUserAnswers([]);
-         setBatchProgress(nextProgress);
-         
-         setStage(AppStage.QUIZ);
-      }
-    },
+  const nextTopicInQueue = () => {
+    const nextIndex = currentQuizIndex + 1;
+    if (nextIndex < quizQueue.length) {
+        setCurrentQuizIndex(nextIndex);
+        setupQuizStep(quizQueue[nextIndex]);
+        setStage(AppStage.QUIZ);
+    }
+  };
 
-    startDebugQuiz: async () => {
-       if (isPending) return;
-       try { audioHaptic.playClick(); } catch {}
-       setIsPending(true);
-       setStage(AppStage.LOADING_QUIZ);
-       try {
-         await new Promise(resolve => setTimeout(resolve, 800));
-         const debugTopics = ["Debug Alpha", "Debug Beta", "Debug Gamma", "Debug Delta"];
-         const debugSets: QuizSet[] = debugTopics.map((topic, index) => ({
-           topic: topic,
-           categoryId: "GENERAL",
-           questions: DEBUG_QUIZ.map(q => ({
-              ...q,
-              id: q.id + (index * 100), 
-              question: `[${topic}] ${q.question}`
-           }))
-         }));
-         const [first, ...rest] = debugSets;
-         setQuizQueue(rest);
-         setCurrentQuizSet(first);
-         setQuestions(first.questions);
-         setCurrentQuestionIndex(0);
-         setUserAnswers([]);
-         setSessionResults([]);
-         setCompletedBatches([]);
-         setBatchProgress({ total: debugTopics.length, current: 1, topics: debugTopics });
-         setStage(AppStage.QUIZ);
-       } catch (e: any) {
-         setErrorMsg("Debug Init Failed: " + e.message);
-         setStage(AppStage.ERROR);
-       } finally {
-         setIsPending(false);
-       }
-    },
+  const resetApp = () => {
+    setStage(AppStage.INTRO);
+    setQuizQueue([]);
+    setSessionResults([]);
+  };
 
-    triggerSeeding: async () => {
-       if (isPending) return;
-       try { audioHaptic.playClick('hard'); } catch {}
-       setIsPending(true);
-       try {
-         await seedLocalDatabase((msg) => {
-            console.log(msg);
-         });
-         alert("Seeding Complete! Check console for details.");
-       } catch (e: any) {
-         alert("Seeding Failed: " + e.message);
-       } finally {
-         setIsPending(false);
-       }
-    },
-
-    previewResults: () => {
-      try { audioHaptic.playClick(); } catch {}
-      const mockResult: EvaluationResult = {
-        id: "SCIENCE",
-        totalScore: 88,
-        humanPercentile: 92,
-        aiComparison: "Cognitive patterns exhibit surprising resistance.",
-        demographicPercentile: 95,
-        demographicComment: "Outlier detected.",
-        title: "Quantum Physics",
-        details: []
-      };
-      setEvaluation(mockResult);
-      setSessionResults([
-          mockResult, 
-          {...mockResult, id:"HISTORY", title:"History", totalScore: 70}, 
-          {...mockResult, id:"ARTS", title:"Arts", totalScore: 95},
-          {...mockResult, id:"TECH", title:"Technology", totalScore: 65}
-      ]);
-      setStage(AppStage.RESULTS);
-    },
-
-    previewLoading: () => {
-        try { audioHaptic.playClick(); } catch {}
-        setStage(AppStage.LOADING_QUIZ);
-        setTimeout(() => {
-           setStage(AppStage.INTRO);
-        }, 5000);
-    },
-    
-    selectOption: (option: string) => {
-        if (isSubmitting) return; 
-        try { audioHaptic.playClick('soft'); } catch {}
-        setSelectedOption(option);
-    },
-    confirmAnswer: () => {
-      if (!selectedOption || isSubmitting) return; 
-      setIsSubmitting(true);
-      const question = questions[currentQuestionIndex];
-      const isCorrect = selectedOption === question.correctAnswer;
-      if (isCorrect) audioHaptic.playSuccess();
-      else audioHaptic.playError();
-      const answer = { 
-        questionId: question.id, 
-        questionText: question.question, 
-        selectedOption, 
-        correctAnswer: question.correctAnswer, 
-        isCorrect 
-      };
-      const updatedAnswers = [...userAnswers, answer];
-      setUserAnswers(updatedAnswers);
-      
-      if (currentQuestionIndex < questions.length - 1) {
-        setTimeout(() => {
-           setCurrentQuestionIndex(prev => prev + 1);
-           setSelectedOption(null); 
-           setIsSubmitting(false); 
-        }, 800); 
-      } else {
-        const currentTopicLabel = currentQuizSet?.topic || (batchProgress.topics[batchProgress.current - 1] || "Unknown");
-        const currentTopicId = currentQuizSet?.categoryId || "GENERAL";
-        const batchData: AccumulatedBatchData = {
-           topicLabel: currentTopicLabel,
-           topicId: currentTopicId,
-           answers: updatedAnswers
-        };
-        const newCompletedBatches = [...completedBatches, batchData];
-        setCompletedBatches(newCompletedBatches);
-
-        if (quizQueue.length > 0) {
-           setTimeout(() => {
-               const nextProgress = {
-                  ...batchProgress,
-                  current: batchProgress.current + 1
-               };
-               const [next, ...rest] = quizQueue;
-               setQuizQueue(rest);
-               setCurrentQuizSet(next);
-               setQuestions(next.questions);
-               setCurrentQuestionIndex(0);
-               setUserAnswers([]);
-               setBatchProgress(nextProgress);
-               setSelectedOption(null);
-               setIsSubmitting(false);
-           }, 800);
-        } else {
-           finishBatchQuiz(newCompletedBatches, userProfile, language).then(() => {
-               setIsSubmitting(false);
-           });
-        }
-      }
-    },
-    shuffleTopics: () => {
-      try { audioHaptic.playClick(); } catch {}
-      setDisplayedTopics(prev => shuffleArray(prev));
-    },
-    shuffleSubTopics: () => {},
-    setCustomTopic: (_topic: string) => {}
-  }), [isPending, stage, selectionPhase, selectedCategories, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, displayedTopics, completedBatches, isSubmitting]);
+  // Debugs
+  const startDebugQuiz = () => {
+    setDifficulty(Difficulty.EASY);
+    setSelectedSubTopics(["Quantum Physics"]);
+    setStage(AppStage.LOADING_QUIZ);
+    setTimeout(() => startQuiz(), 500);
+  };
+  const previewResults = () => {
+     setStage(AppStage.RESULTS);
+     const mock = {
+         id: TOPIC_IDS.SCIENCE, title: "Quantum Physics", totalScore: 85, humanPercentile: 92,
+         aiComparison: "Good", demographicPercentile: 88, demographicComment: "Top", details: []
+     };
+     setEvaluation(mock);
+     setSessionResults([mock]);
+  };
+  const previewLoading = () => setStage(AppStage.LOADING_QUIZ);
+  const triggerSeeding = () => seedLocalDatabase((msg) => console.log(msg));
 
   return {
     state: {
       stage, language, userProfile,
-      topicState: { selectionPhase, selectedCategories, selectedSubTopics, difficulty, displayedTopics, isTopicLoading: isPending },
-      quizState: { 
-        questions, 
-        currentQuestionIndex, 
-        userAnswers, 
-        selectedOption, 
-        remainingTopics: quizQueue.length,
-        nextTopicName: quizQueue.length > 0 ? quizQueue[0].topic : undefined,
-        currentTopicName: currentQuizSet?.topic || (batchProgress.topics.length > 0 ? batchProgress.topics[batchProgress.current - 1] : undefined),
-        batchProgress,
-        isSubmitting 
+      topicState: {
+        selectionPhase, selectedCategories, selectedSubTopics, difficulty, displayedTopics, isTopicLoading, errorMsg, userProfile
       },
-      resultState: { evaluation, sessionResults, errorMsg } 
+      quizState: {
+        questions, currentQuestionIndex, selectedOption,
+        currentTopicName: quizQueue[currentQuizIndex]?.topic || "",
+        batchProgress: { total: quizQueue.length, current: currentQuizIndex + 1, topics: quizQueue.map(q => q.topic) },
+        isSubmitting,
+        remainingTopics: quizQueue.length - 1 - currentQuizIndex,
+        nextTopicName: quizQueue[currentQuizIndex + 1]?.topic
+      },
+      resultState: { evaluation, sessionResults, errorMsg }
     },
-    actions, t
+    actions: {
+      setLanguage, goHome, startIntro, resetProfile, updateProfile, submitProfile, editProfile,
+      shuffleTopics, selectCategory, proceedToSubTopics, selectSubTopic, shuffleSubTopics, setCustomTopic, setDifficulty, startQuiz, goBack,
+      selectOption, confirmAnswer, nextTopicInQueue, resetApp,
+      startDebugQuiz, previewResults, previewLoading, triggerSeeding
+    },
+    t
   };
 };
