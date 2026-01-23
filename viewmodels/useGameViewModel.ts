@@ -106,13 +106,23 @@ export const useGameViewModel = () => {
 
   const t = useMemo(() => TRANSLATIONS[language], [language]);
 
+  // --- REFS FOR EVENT LISTENERS ---
+  // Using refs ensures the handlePopState closure always accesses the LATEST state
+  // without needing to be removed/re-added constantly, which can miss events.
+  const stageRef = useRef(stage);
+  const tRef = useRef(t);
+  const selectionPhaseRef = useRef(selectionPhase);
+
+  useEffect(() => { stageRef.current = stage; }, [stage]);
+  useEffect(() => { tRef.current = t; }, [t]);
+  useEffect(() => { selectionPhaseRef.current = selectionPhase; }, [selectionPhase]);
+
   // Load Profile on Mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem(PROFILE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Ensure new fields exist for legacy profiles
         setUserProfile({
           ...parsed,
           eloRatings: parsed.eloRatings || {},
@@ -139,10 +149,8 @@ export const useGameViewModel = () => {
     audioHaptic.playClick('hard');
 
     try {
-      // 1. Prepare data for API
       const batchInputs: BatchEvaluationInput[] = [];
       
-      // Update User Stats (Elo & History)
       const updatedProfile = { ...profile };
       const currentScores = { ...(profile.scores || {}) };
       const currentElos = { ...(profile.eloRatings || {}) };
@@ -154,31 +162,23 @@ export const useGameViewModel = () => {
         const totalCount = batch.answers.length;
         const score = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
         
-        // Update High Score
         if (score >= (currentScores[batch.topicLabel] || 0)) {
            currentScores[batch.topicLabel] = score;
         }
 
-        // --- ADAPTIVE LEARNING LOGIC ---
-        // 1. Track Seen Questions
         batch.answers.forEach(a => seenIds.add(a.questionId));
 
-        // 2. Update Elo Rating (Simple Implementation)
-        // Base Elo starts at 1000. 
-        // If score > 70, rating increases. If < 50, rating decreases.
         const currentElo = currentElos[batch.topicId] || 1000;
         let eloChange = 0;
         
-        if (score >= 80) eloChange = 30; // Strong performance
-        else if (score >= 60) eloChange = 10; // Moderate improvement
-        else if (score >= 40) eloChange = -10; // Slight struggle
-        else eloChange = -20; // Needs easier questions
+        if (score >= 80) eloChange = 30; 
+        else if (score >= 60) eloChange = 10; 
+        else if (score >= 40) eloChange = -10; 
+        else eloChange = -20; 
 
         const newElo = Math.max(0, currentElo + eloChange);
         currentElos[batch.topicId] = newElo;
 
-        // 3. Track History
-        // Use a static AI Score "ceiling" for now (e.g. 95-100) to represent the AI benchmark
         const aiBenchmark = difficulty === Difficulty.HARD ? 98 : difficulty === Difficulty.MEDIUM ? 95 : 92;
         
         const historyItem: HistoryItem = {
@@ -197,7 +197,6 @@ export const useGameViewModel = () => {
         });
       });
 
-      // Save Profile Updates
       updatedProfile.scores = currentScores;
       updatedProfile.eloRatings = currentElos;
       updatedProfile.seenQuestionIds = Array.from(seenIds);
@@ -206,7 +205,6 @@ export const useGameViewModel = () => {
       setUserProfile(updatedProfile);
       localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));
 
-      // 2. DEBUG MODE Check
       const isDebug = allBatches.some(b => b.topicLabel.startsWith("Debug"));
       if (isDebug) {
          await new Promise(resolve => setTimeout(resolve, 800));
@@ -235,10 +233,8 @@ export const useGameViewModel = () => {
          return;
       }
 
-      // 3. Real API Call (Batch)
       const results = await evaluateBatchAnswers(batchInputs, updatedProfile, lang);
       
-      // Inject IDs back into results for iconography
       const resultsWithIds = results.map((res, idx) => ({
         ...res,
         id: allBatches[idx].topicId
@@ -259,27 +255,21 @@ export const useGameViewModel = () => {
     }
   };
 
-  // --- History Navigation Logic (Android Back Button Handling) ---
+  // --- History Navigation Logic ---
   const isPoppingRef = useRef(false);
 
   // 1. Initial Stack Setup: [Root, Intro]
   useEffect(() => {
-    // Clear any existing history state logic by replacing current with 'root'
     window.history.replaceState({ stage: 'root' }, '');
-    // Push 'intro' immediately so there is something to pop back to 'root'
     window.history.pushState({ stage: AppStage.INTRO }, '');
   }, []);
 
   // 2. Update History on Stage Change
   useEffect(() => {
-    // If this stage change was triggered by the user pressing Back (popstate),
-    // we do NOT want to push a new state on top of it.
     if (isPoppingRef.current) {
       isPoppingRef.current = false;
       return;
     }
-    
-    // For Intro, we managed initialization manually. For others, push state.
     if (stage !== AppStage.INTRO) {
       window.history.pushState({ stage }, '');
     }
@@ -291,13 +281,20 @@ export const useGameViewModel = () => {
       isPoppingRef.current = true;
       event.preventDefault();
 
+      const currentStage = stageRef.current;
+      const currentT = tRef.current;
+      const currentSelectionPhase = selectionPhaseRef.current;
+
       // CASE 1: INTRO VIEW
-      if (stage === AppStage.INTRO) {
-        if (window.confirm(t.common.confirm_exit_app)) {
-           // User confirmed Exit. 
-           // We are currently at 'root' (because we popped 'intro').
-           // Going back once more should exit the app/close tab.
-           window.history.back();
+      if (currentStage === AppStage.INTRO) {
+        if (window.confirm(currentT.common.confirm_exit_app)) {
+           // User confirmed Exit.
+           // We are now at 'root' (popped intro).
+           // Call back() again to exit root.
+           // Use setTimeout to ensure this runs after the event loop clears.
+           setTimeout(() => {
+             window.history.back();
+           }, 0);
         } else {
            // User cancelled.
            // Restore 'intro' state to the stack.
@@ -307,55 +304,41 @@ export const useGameViewModel = () => {
       }
 
       // CASE 2: TOPIC SELECTION
-      if (stage === AppStage.TOPIC_SELECTION) {
-         if (selectionPhase === 'SUBTOPIC') {
-            // Logic: Go back to Category Phase
+      if (currentStage === AppStage.TOPIC_SELECTION) {
+         if (currentSelectionPhase === 'SUBTOPIC') {
             setSelectionPhase('CATEGORY');
             setSelectedSubTopics([]);
-            // Restore History: We want to stay on TopicSelection, just change view.
             window.history.pushState({ stage: AppStage.TOPIC_SELECTION }, '');
          } else {
-            // Logic: Go back to Intro
             setStage(AppStage.INTRO);
-            // Restore History: We want the stack to be [Root, Intro].
-            // We just popped to [Root] (or whatever was before Topic). 
-            // We need to ensure Intro is top.
             window.history.pushState({ stage: AppStage.INTRO }, '');
          }
          return;
       }
 
-      // CASE 3: QUIZ or RESULTS (Strict Exit Confirmation)
-      if (stage === AppStage.QUIZ || stage === AppStage.RESULTS) {
-         const msg = stage === AppStage.QUIZ ? t.common.confirm_exit : t.common.confirm_home;
+      // CASE 3: QUIZ or RESULTS
+      if (currentStage === AppStage.QUIZ || currentStage === AppStage.RESULTS) {
+         const msg = currentStage === AppStage.QUIZ ? currentT.common.confirm_exit : currentT.common.confirm_home;
 
          if (window.confirm(msg)) {
-            // User confirmed "Go Home".
-            // We want to reset everything.
             resetToHome();
          } else {
-            // User cancelled. Stay where we are.
-            // Restore the state we just popped.
-            window.history.pushState({ stage }, '');
+            window.history.pushState({ stage: currentStage }, '');
          }
          return;
       }
       
       // Default Fallback
-      if (stage === AppStage.PROFILE || stage === AppStage.ERROR) {
-         setStage(AppStage.INTRO);
-         window.history.pushState({ stage: AppStage.INTRO }, '');
-         return;
-      }
+      setStage(AppStage.INTRO);
+      window.history.pushState({ stage: AppStage.INTRO }, '');
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [stage, selectionPhase, t]);
+  }, []); // Empty dependency array: We use Refs to access state!
 
   // --- Reset Helper ---
   const resetToHome = () => {
-      // Reset all Game Data
       setIsPending(false);
       setIsSubmitting(false);
       setEvaluation(null);
@@ -370,10 +353,8 @@ export const useGameViewModel = () => {
       setCompletedBatches([]);
       setSelectionPhase('CATEGORY');
 
-      // Update UI
       setStage(AppStage.INTRO);
 
-      // Clean History Stack: Reset to clean [Root, Intro]
       window.history.replaceState({ stage: 'root' }, '');
       window.history.pushState({ stage: AppStage.INTRO }, '');
   };
@@ -447,25 +428,18 @@ export const useGameViewModel = () => {
        setDifficulty(diff);
     },
     
-    // Manual Back Button (UI) Action
     goBack: () => {
       if (isPending || isSubmitting) return; 
       try { audioHaptic.playClick(); } catch {}
-
-      // Trigger the standard browser back, which invokes handlePopState
       window.history.back();
     },
     
-    // Home Button Action
     goHome: () => {
       try { audioHaptic.playClick(); } catch {}
-      
       const needsConfirmation = stage === AppStage.QUIZ || stage === AppStage.LOADING_QUIZ || stage === AppStage.ANALYZING;
-
       if (needsConfirmation) {
         if (!window.confirm(t.common.confirm_home || t.common.confirm_exit || "Return to Home?")) return;
       }
-      
       resetToHome();
     },
 
@@ -479,11 +453,9 @@ export const useGameViewModel = () => {
       setBatchProgress({ total: 0, current: 0, topics: [] });
       setSessionResults([]); 
       setCompletedBatches([]);
-
       setSelectionPhase('CATEGORY');
       setSelectedCategories([]);
       setSelectedSubTopics([]);
-
       setStage(AppStage.TOPIC_SELECTION);
     },
 
@@ -505,7 +477,7 @@ export const useGameViewModel = () => {
           setCurrentQuestionIndex(0);
           setUserAnswers([]);
           setSessionResults([]); 
-          setCompletedBatches([]); // Reset accumulator
+          setCompletedBatches([]); 
           
           setBatchProgress({
             total: selectedSubTopics.length,
@@ -551,10 +523,8 @@ export const useGameViewModel = () => {
        try { audioHaptic.playClick(); } catch {}
        setIsPending(true);
        setStage(AppStage.LOADING_QUIZ);
-       
        try {
          await new Promise(resolve => setTimeout(resolve, 800));
-         
          const debugTopics = ["Debug Alpha", "Debug Beta", "Debug Gamma", "Debug Delta"];
          const debugSets: QuizSet[] = debugTopics.map((topic, index) => ({
            topic: topic,
@@ -565,9 +535,7 @@ export const useGameViewModel = () => {
               question: `[${topic}] ${q.question}`
            }))
          }));
-         
          const [first, ...rest] = debugSets;
-         
          setQuizQueue(rest);
          setCurrentQuizSet(first);
          setQuestions(first.questions);
@@ -575,9 +543,7 @@ export const useGameViewModel = () => {
          setUserAnswers([]);
          setSessionResults([]);
          setCompletedBatches([]);
-         
          setBatchProgress({ total: debugTopics.length, current: 1, topics: debugTopics });
-         
          setStage(AppStage.QUIZ);
        } catch (e: any) {
          setErrorMsg("Debug Init Failed: " + e.message);
@@ -591,7 +557,6 @@ export const useGameViewModel = () => {
        if (isPending) return;
        try { audioHaptic.playClick('hard'); } catch {}
        setIsPending(true);
-       
        try {
          await seedLocalDatabase((msg) => {
             console.log(msg);
@@ -629,30 +594,23 @@ export const useGameViewModel = () => {
     previewLoading: () => {
         try { audioHaptic.playClick(); } catch {}
         setStage(AppStage.LOADING_QUIZ);
-        // Automatically go back after 5 seconds
         setTimeout(() => {
            setStage(AppStage.INTRO);
         }, 5000);
     },
     
     selectOption: (option: string) => {
-        if (isSubmitting) return; // Block changing answer during submission
+        if (isSubmitting) return; 
         try { audioHaptic.playClick('soft'); } catch {}
         setSelectedOption(option);
     },
     confirmAnswer: () => {
-      if (!selectedOption || isSubmitting) return; // Prevent double submission
-      
-      // 1. Lock the UI immediately
+      if (!selectedOption || isSubmitting) return; 
       setIsSubmitting(true);
-      
       const question = questions[currentQuestionIndex];
       const isCorrect = selectedOption === question.correctAnswer;
-      
-      // 2. Play Feedback sound (Result determined here)
       if (isCorrect) audioHaptic.playSuccess();
       else audioHaptic.playError();
-
       const answer = { 
         questionId: question.id, 
         questionText: question.question, 
@@ -662,25 +620,21 @@ export const useGameViewModel = () => {
       };
       const updatedAnswers = [...userAnswers, answer];
       setUserAnswers(updatedAnswers);
-      // Don't clear selectedOption yet, so user sees what they picked during transition
       
-      // 3. Move to next question after delay
       if (currentQuestionIndex < questions.length - 1) {
         setTimeout(() => {
            setCurrentQuestionIndex(prev => prev + 1);
-           setSelectedOption(null); // Clear now
-           setIsSubmitting(false); // Unlock
-        }, 800); // Increased delay slightly to ensure feedback is felt before change
+           setSelectedOption(null); 
+           setIsSubmitting(false); 
+        }, 800); 
       } else {
         const currentTopicLabel = currentQuizSet?.topic || (batchProgress.topics[batchProgress.current - 1] || "Unknown");
         const currentTopicId = currentQuizSet?.categoryId || "GENERAL";
-        
         const batchData: AccumulatedBatchData = {
            topicLabel: currentTopicLabel,
            topicId: currentTopicId,
            answers: updatedAnswers
         };
-        
         const newCompletedBatches = [...completedBatches, batchData];
         setCompletedBatches(newCompletedBatches);
 
@@ -728,7 +682,7 @@ export const useGameViewModel = () => {
         nextTopicName: quizQueue.length > 0 ? quizQueue[0].topic : undefined,
         currentTopicName: currentQuizSet?.topic || (batchProgress.topics.length > 0 ? batchProgress.topics[batchProgress.current - 1] : undefined),
         batchProgress,
-        isSubmitting // Expose locking state
+        isSubmitting 
       },
       resultState: { evaluation, sessionResults, errorMsg } 
     },
