@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   AppStage, 
   Language, 
@@ -259,103 +259,129 @@ export const useGameViewModel = () => {
     }
   };
 
-  // --- History Navigation Logic ---
-  const isNavigatingBackRef = useRef(false);
+  // --- History Navigation Logic (Android Back Button Handling) ---
+  const isPoppingRef = useRef(false);
 
+  // 1. Initial Stack Setup: [Root, Intro]
   useEffect(() => {
-    // CRITICAL FIX: To intercept "Back" at the Intro screen, we must have a history entry.
-    // We replace the current entry (root) and push a new one (app).
-    // This way, pressing Back triggers 'popstate' instead of immediately closing the tab.
-    // This allows us to show the confirmation popup.
+    // Clear any existing history state logic by replacing current with 'root'
     window.history.replaceState({ stage: 'root' }, '');
-    window.history.pushState({ stage: 'intro' }, '');
+    // Push 'intro' immediately so there is something to pop back to 'root'
+    window.history.pushState({ stage: AppStage.INTRO }, '');
   }, []);
 
+  // 2. Update History on Stage Change
   useEffect(() => {
-    if (isNavigatingBackRef.current) {
-      isNavigatingBackRef.current = false;
+    // If this stage change was triggered by the user pressing Back (popstate),
+    // we do NOT want to push a new state on top of it.
+    if (isPoppingRef.current) {
+      isPoppingRef.current = false;
       return;
     }
-    // Only push state if we are NOT at the root (INTRO)
+    
+    // For Intro, we managed initialization manually. For others, push state.
     if (stage !== AppStage.INTRO) {
       window.history.pushState({ stage }, '');
     }
   }, [stage]);
 
-  const performBackNavigation = useCallback((): boolean => {
-    if (isPending || isSubmitting) return false; // Block back nav during submission
-    try { audioHaptic.playClick('soft'); } catch {}
+  // 3. Handle Back Button (PopState)
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      isPoppingRef.current = true;
+      event.preventDefault();
 
-    switch (stage) {
-      case AppStage.TOPIC_SELECTION:
-        if (selectionPhase === 'SUBTOPIC') {
+      // CASE 1: INTRO VIEW
+      if (stage === AppStage.INTRO) {
+        if (window.confirm(t.common.confirm_exit_app)) {
+           // User confirmed Exit. 
+           // We are currently at 'root' (because we popped 'intro').
+           // Going back once more should exit the app/close tab.
+           window.history.back();
+        } else {
+           // User cancelled.
+           // Restore 'intro' state to the stack.
+           window.history.pushState({ stage: AppStage.INTRO }, '');
+        }
+        return;
+      }
+
+      // CASE 2: TOPIC SELECTION
+      if (stage === AppStage.TOPIC_SELECTION) {
+         if (selectionPhase === 'SUBTOPIC') {
+            // Logic: Go back to Category Phase
             setSelectionPhase('CATEGORY');
             setSelectedSubTopics([]);
-            return true;
-        }
-        setStage(AppStage.INTRO); 
-        return true;
-      case AppStage.PROFILE:
-        setStage(AppStage.INTRO);
-        return true;
-      case AppStage.INTRO:
-        // Ask for confirmation before exit
-        if (window.confirm(t.common.confirm_exit_app)) {
-           // User confirmed exit.
-           // Since we are inside 'popstate' event handler, we have technically already "popped" to 'root'.
-           // To actually exit the app/tab, we need to go back further.
-           setTimeout(() => {
-             window.history.back();
-           }, 10);
-           return true;
-        }
-        return false; // User cancelled. We will push state back in handlePopState to stay.
-      case AppStage.QUIZ:
-        // PREVENT CHEATING: Do not allow going back to previous questions.
-        // Always confirm exit if back is pressed during quiz.
-        if (window.confirm(t.common.confirm_exit)) {
-          setStage(AppStage.TOPIC_SELECTION);
-          setSelectionPhase('CATEGORY');
-          setQuizQueue([]);
-          setBatchProgress({ total: 0, current: 0, topics: [] });
-          setSessionResults([]); 
-          setCompletedBatches([]);
-          return true;
-        }
-        return false;
-      case AppStage.RESULTS:
-      case AppStage.ERROR:
-        setStage(AppStage.TOPIC_SELECTION);
-        setSelectionPhase('CATEGORY');
-        setSessionResults([]); 
-        setCompletedBatches([]);
-        return true;
-      default:
-        return true;
-    }
-  }, [stage, selectionPhase, isPending, isSubmitting, t]);
+            // Restore History: We want to stay on TopicSelection, just change view.
+            window.history.pushState({ stage: AppStage.TOPIC_SELECTION }, '');
+         } else {
+            // Logic: Go back to Intro
+            setStage(AppStage.INTRO);
+            // Restore History: We want the stack to be [Root, Intro].
+            // We just popped to [Root] (or whatever was before Topic). 
+            // We need to ensure Intro is top.
+            window.history.pushState({ stage: AppStage.INTRO }, '');
+         }
+         return;
+      }
 
-  useEffect(() => {
-    const handlePopState = (_: PopStateEvent) => {
-      isNavigatingBackRef.current = true;
-      const success = performBackNavigation();
+      // CASE 3: QUIZ or RESULTS (Strict Exit Confirmation)
+      if (stage === AppStage.QUIZ || stage === AppStage.RESULTS) {
+         const msg = stage === AppStage.QUIZ ? t.common.confirm_exit : t.common.confirm_home;
+
+         if (window.confirm(msg)) {
+            // User confirmed "Go Home".
+            // We want to reset everything.
+            resetToHome();
+         } else {
+            // User cancelled. Stay where we are.
+            // Restore the state we just popped.
+            window.history.pushState({ stage }, '');
+         }
+         return;
+      }
       
-      if (!success) {
-        // If we stayed (returned false), restore the state
-        // This effectively cancels the back navigation in the UI
-        window.history.pushState({ stage }, '');
+      // Default Fallback
+      if (stage === AppStage.PROFILE || stage === AppStage.ERROR) {
+         setStage(AppStage.INTRO);
+         window.history.pushState({ stage: AppStage.INTRO }, '');
+         return;
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [performBackNavigation, stage]);
+  }, [stage, selectionPhase, t]);
+
+  // --- Reset Helper ---
+  const resetToHome = () => {
+      // Reset all Game Data
+      setIsPending(false);
+      setIsSubmitting(false);
+      setEvaluation(null);
+      setUserAnswers([]);
+      setCurrentQuestionIndex(0);
+      setSelectedCategories([]);
+      setSelectedSubTopics([]);
+      setQuizQueue([]);
+      setCurrentQuizSet(null);
+      setBatchProgress({ total: 0, current: 0, topics: [] });
+      setSessionResults([]); 
+      setCompletedBatches([]);
+      setSelectionPhase('CATEGORY');
+
+      // Update UI
+      setStage(AppStage.INTRO);
+
+      // Clean History Stack: Reset to clean [Root, Intro]
+      window.history.replaceState({ stage: 'root' }, '');
+      window.history.pushState({ stage: AppStage.INTRO }, '');
+  };
 
   // --- Actions ---
   const actions = useMemo(() => ({
     setLanguage: (lang: Language) => { 
       try { audioHaptic.playClick('soft'); } catch {}
-      // Reset selections to prevent language mismatch with static DB
       setSelectedCategories([]);
       setSelectedSubTopics([]);
       setSelectionPhase('CATEGORY');
@@ -421,55 +447,26 @@ export const useGameViewModel = () => {
        setDifficulty(diff);
     },
     
+    // Manual Back Button (UI) Action
     goBack: () => {
-      if (isPending || isSubmitting) return; // Block back nav during submission
+      if (isPending || isSubmitting) return; 
       try { audioHaptic.playClick(); } catch {}
 
-      if (stage === AppStage.TOPIC_SELECTION && selectionPhase === 'SUBTOPIC') {
-        setSelectionPhase('CATEGORY');
-        setSelectedSubTopics([]);
-        return;
-      }
-      if (stage === AppStage.INTRO) return; // Nowhere to go back from root
-      
-      // Allow standard browser back behavior to trigger handlePopState
+      // Trigger the standard browser back, which invokes handlePopState
       window.history.back();
     },
     
+    // Home Button Action
     goHome: () => {
       try { audioHaptic.playClick(); } catch {}
       
-      // Only require confirmation during active critical states
-      // Profile, Intro, Results, and Topic Selection (Category phase) are safe to exit instantly
       const needsConfirmation = stage === AppStage.QUIZ || stage === AppStage.LOADING_QUIZ || stage === AppStage.ANALYZING;
 
       if (needsConfirmation) {
         if (!window.confirm(t.common.confirm_home || t.common.confirm_exit || "Return to Home?")) return;
       }
       
-      // Force reset states in case we were stuck
-      setIsPending(false);
-      setIsSubmitting(false);
-
-      // Reset to Intro
-      setStage(AppStage.INTRO); 
-      
-      // Reset all Game Data
-      setEvaluation(null);
-      setUserAnswers([]);
-      setCurrentQuestionIndex(0);
-      setSelectedCategories([]);
-      setSelectedSubTopics([]);
-      setQuizQueue([]);
-      setCurrentQuizSet(null);
-      setBatchProgress({ total: 0, current: 0, topics: [] });
-      setSessionResults([]); 
-      setCompletedBatches([]);
-      setSelectionPhase('CATEGORY');
-
-      // CRITICAL: Replace history state to "Root" logic to match the new back button trap
-      window.history.replaceState({ stage: 'root' }, '', window.location.pathname);
-      window.history.pushState({ stage: 'intro' }, '', window.location.pathname);
+      resetToHome();
     },
 
     resetApp: () => {
@@ -716,7 +713,7 @@ export const useGameViewModel = () => {
     },
     shuffleSubTopics: () => {},
     setCustomTopic: (_topic: string) => {}
-  }), [isPending, stage, selectionPhase, selectedCategories, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, performBackNavigation, displayedTopics, completedBatches, isSubmitting]);
+  }), [isPending, stage, selectionPhase, selectedCategories, selectedSubTopics, difficulty, language, userProfile, questions, currentQuestionIndex, userAnswers, selectedOption, t, quizQueue, currentQuizSet, batchProgress, displayedTopics, completedBatches, isSubmitting]);
 
   return {
     state: {
