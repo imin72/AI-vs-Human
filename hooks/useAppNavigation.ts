@@ -38,20 +38,18 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
   // --- [핵심] 더블 히스토리 트랩 (Double Trap) ---
   useEffect(() => {
     // 1. 초기화 시: 현재 상태를 저장하고, 트랩을 '2번' 쌓습니다.
-    // 이렇게 하면 모바일에서 빠르게 뒤로가기를 연타해도 앱이 꺼지지 않습니다.
-    // Stack: [Root, Trap1, Trap2]
     if (!window.history.state || window.history.state.key !== 'trap2') {
       window.history.replaceState({ key: 'root' }, '');
       window.history.pushState({ key: 'trap1' }, '');
       window.history.pushState({ key: 'trap2' }, '');
     }
 
-    const handlePopState = (event: PopStateEvent) => {
+    // [에러 수정] event -> _ : 사용하지 않는 변수 처리
+    const handlePopState = (_: PopStateEvent) => {
       // 종료 중이면 간섭하지 않음
       if (isExitingRef.current) return;
 
       // 2. 뒤로가기 감지 시: 현재 위치를 확인하지 않고 무조건 다시 끝으로 밀어넣습니다.
-      // (사용자가 뒤로가기를 눌러서 Trap1이나 Root로 갔을 때, 다시 Trap2로 강제 이동)
       window.history.pushState({ key: 'trap2' }, '');
 
       const { stage, selectionPhase } = stateRef.current;
@@ -64,18 +62,15 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
           if (window.confirm(confirmExitMsg)) {
              isExitingRef.current = true;
              
-             // [종료 로직]
-             // 현재 우리는 방금 pushState를 해서 [Root, Trap1, Trap2(현재)]에 있습니다.
-             // 앱을 나가려면 3칸을 뒤로 가야 안전합니다. (Root 이전으로)
-             // 모바일/태블릿 호환성을 위해 go를 사용하되, 실패 시 back을 연타합니다.
+             // [종료 로직] 3칸 뒤로 이동 (Trap2 -> Trap1 -> Root -> Exit)
              const len = window.history.length;
              if (len > 3) {
                  window.history.go(-3);
              } else {
-                 // 히스토리 깊이가 얕을 경우 (바로가기로 실행 등)
-                 window.history.back(); // Trap2 제거
-                 setTimeout(() => window.history.back(), 50); // Trap1 제거
-                 setTimeout(() => window.history.back(), 100); // Root 제거 -> 종료
+                 // 히스토리 깊이가 얕을 경우 백업 로직
+                 window.history.back(); 
+                 setTimeout(() => window.history.back(), 50); 
+                 setTimeout(() => window.history.back(), 100); 
              }
              
              if (onExitApp) onExitApp();
@@ -105,7 +100,7 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
         // [상황 D] 그 외 -> 인트로로
         setStage(AppStage.INTRO);
         setSelectionPhase('CATEGORY');
-      }, 10); // 모바일 터치 씹힘 방지를 위해 아주 짧은 딜레이(10ms) 추가
+      }, 10); 
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -117,7 +112,6 @@ export const useAppNavigation = (initialStage: AppStage = AppStage.INTRO) => {
 
   // 수동 뒤로가기 (UI 버튼)
   const goBack = useCallback(() => {
-    // 물리 버튼과 똑같이 동작하도록 history.back() 호출
     window.history.back();
   }, []);
 
