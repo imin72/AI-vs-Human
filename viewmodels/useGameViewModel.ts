@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
   AppStage, 
   Language, 
@@ -276,7 +276,8 @@ export const useGameViewModel = () => {
 
   // 2. [이벤트 핸들러] 뒤로가기 감지 및 처리
   useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
+    // event 파라미터를 사용하지 않으므로 '_'로 변경하여 TS 에러 방지
+    const handlePopState = (_: PopStateEvent) => {
       // event.state는 사용자가 '이동하려고 하는 곳'의 상태입니다.
       // 현재 depth가 1(Intro)인데, 뒤로가기를 눌러서 depth가 0인 곳으로 왔다면? -> 종료 시도
 
