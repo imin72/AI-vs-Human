@@ -108,7 +108,7 @@ export const generateQuestionsBatch = async (
       if (unseenQuestions.length >= 5) {
         const selected = unseenQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
         console.log(`[Static DB Hit] ${req.stableId} (Adaptive Filter: ${selected.length})`);
-        results.push({ topic: req.originalLabel, questions: selected });
+        results.push({ topic: req.originalLabel, questions: selected, categoryId: req.catId });
         continue;
       }
     }
@@ -121,7 +121,7 @@ export const generateQuestionsBatch = async (
            if (unseenCache.length >= 5) {
                const selected = unseenCache.sort(() => 0.5 - Math.random()).slice(0, 5);
                console.log(`[Cache Hit] ${req.stableId}`);
-               results.push({ topic: req.originalLabel, questions: selected });
+               results.push({ topic: req.originalLabel, questions: selected, categoryId: req.catId });
                continue;
            }
        }
@@ -219,7 +219,7 @@ export const generateQuestionsBatch = async (
             id: q.id,
             ...q[lang]
           }));
-          results.push({ topic: req.originalLabel, questions: resultQuestions });
+          results.push({ topic: req.originalLabel, questions: resultQuestions, categoryId: req.catId });
         }
       });
       
@@ -227,7 +227,7 @@ export const generateQuestionsBatch = async (
     } catch (error) {
       console.error("Batch Quiz Generation Failed:", error);
       missingRequests.forEach(req => {
-         results.push({ topic: req.originalLabel, questions: FALLBACK_QUIZ });
+         results.push({ topic: req.originalLabel, questions: FALLBACK_QUIZ, categoryId: req.catId });
       });
     }
   }

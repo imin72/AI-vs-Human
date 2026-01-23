@@ -53,6 +53,7 @@ export interface QuizQuestion {
 
 export interface QuizSet {
   topic: string;
+  categoryId?: string; // Added to track parent category for iconography
   questions: QuizQuestion[];
 }
 

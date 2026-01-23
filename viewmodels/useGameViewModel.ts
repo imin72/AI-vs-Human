@@ -129,16 +129,6 @@ export const useGameViewModel = () => {
     setDisplayedTopics(shuffleArray(topics));
   }, [t]);
 
-  // Determine topic ID from label (helper)
-  const getTopicIdFromLabel = (label: string): string => {
-    const topicObj = displayedTopics.find(t => t.label === label);
-    if (topicObj) return topicObj.id;
-    
-    // Fallback: Try to find by value in current translations
-    const rawKey = Object.keys(t.topics.categories).find(k => t.topics.categories[k] === label);
-    return rawKey || "GENERAL"; 
-  };
-
   const finishBatchQuiz = async (allBatches: AccumulatedBatchData[], profile: UserProfile, lang: Language) => {
     if (isPending) return;
     setIsPending(true);
@@ -537,6 +527,7 @@ export const useGameViewModel = () => {
          const debugTopics = ["Debug Alpha", "Debug Beta", "Debug Gamma", "Debug Delta"];
          const debugSets: QuizSet[] = debugTopics.map((topic, index) => ({
            topic: topic,
+           categoryId: "GENERAL",
            questions: DEBUG_QUIZ.map(q => ({
               ...q,
               id: q.id + (index * 100), 
@@ -625,7 +616,7 @@ export const useGameViewModel = () => {
         }, 800); // Increased delay slightly to ensure feedback is felt before change
       } else {
         const currentTopicLabel = currentQuizSet?.topic || (batchProgress.topics[batchProgress.current - 1] || "Unknown");
-        const currentTopicId = getTopicIdFromLabel(currentTopicLabel);
+        const currentTopicId = currentQuizSet?.categoryId || "GENERAL";
         
         const batchData: AccumulatedBatchData = {
            topicLabel: currentTopicLabel,
